@@ -2,10 +2,12 @@
 
 ---
 
-## Oturum 1 — 2026-11-16 (Kuruluş + Hafıza + M0 İskelet)
-- **Hedef:** `GENESIS.md` ve `CONTINUE.md` kayıt, araç envanteri, Play/repo/veri doğrulaması, kalıcı hafıza iskeleti, M0 çalışan 3B sahne + Capacitor 8 (API 36) + CI + Release Debug APK.
-- **Doğrulamalar:**
-  - Google Play API 36 + Play Billing Library 8.0.0+ + 12 testçi × 14 gün (+ 2026 aktif kullanım kontrolü) + 200 MB AAB taban sınırı + Türkiye satıcı (TRY) doğrulandı.
-  - Referans repolar (`gta7`, `next-gen`, `leonida`, `map3d`) doğrulandı ve commit hash'leri kaydedildi; `YusufEminoglu/osm2threejs` 404, `OpenCity` lisanssız (`NONE`) olarak işaretlendi.
-  - Copernicus DEM GLO-30 AWS açık erişimi ve İBB Açık Veri Portalı kapsamı doğrulandı.
-- **Durum:** Devam ediyor (M0 kodu, Android yapılandırması, CI ve Release APK kurulacak; oturum sonunda güncellenecek).
+## Oturum 1 — 2026-11-16 (Kuruluş + Hafıza + M0 İskelet + M1 Gerçek Fatih Dünyası)
+- **Hedef:** `GENESIS.md` ve `CONTINUE.md` kaydı, araç envanteri, Play/repo/veri doğrulaması, kalıcı hafıza iskeleti, M0 çalışan 3B sahne + Capacitor 8 (API 36) + CI + Release Debug APK, ardından M1 gerçek Sultanahmet–Eminönü 3B dünyası.
+- **Tamamlananlar:**
+  1. **Kuruluş & Hafıza (`e681ee6`):** `GENESIS.md`, `CONTINUE.md`, `AGENTS.md`, `CLAUDE.md`, `docs/USER_TASKS.md`, `docs/memory/*`, `docs/store/PLAY_CHECKLIST.md`, `docs/regions/fatih-sultanahmet-eminonu.md` oluşturuldu. Google Play 2026 gereksinimleri (API 36, Billing 8, 12×14 testçi, 200 MB AAB, TR $25/TRY), referans repolar (`gta7`, `next-gen`, `leonida`, `map3d`; `OpenCity` yasak; `osm2threejs` 404) ve açık veri kaynakları (Copernicus DEM GLO-30, OSM, İBB) doğrulandı.
+  2. **M0 İskelet (`e39538b` → `29e708f`):** Vite + TS + Three.js + Rapier3D WASM + Capacitor 8 (API 36, `sensorLandscape`, immersive tam ekran, geri tuşu = duraklat) kuruldu; saf TS çekirdek/Three.js ESLint sınırı, global hata yakalayıcı + kilitlenme günlüğü, `.bak` kurtarmalı kayıt, TR/EN UI, Lite modu, `privacy.html` eklendi. `CI` (`43947277709`, 15 draw call, 0 hata) ve `Android APK` (`43947277723`) yeşil geçti; Release `v0.0.1-m0` (5.94 MB APK) yayınlandı. GitHub Issues `#1`–`#7` açıldı.
+  3. **M1 Gerçek Fatih Veri Hasadı (`3e3674e` → `eda79bb` → `9a92d05`):** Saf TS coğrafi projeksiyon (`geo.ts`), yükseklik çözümleyici (`height.ts`), çift doğrusal arazi örnekleyici (`terrain.ts`), 300 m histerezisli karo akışı (`tileStreamer.ts`), 2B bina AABB çarpışma ızgarası (`collision.ts`) ve `fetch-fatih-data.yml` yazıldı. GitHub Actions (`43948133177` & `43949962553`) gerçek Copernicus DEM GLO-30 (`N41 E028`) + OpenStreetMap Overpass verisini hasat edip `public/regions/fatih-sultanahmet-eminonu/` altına **1.7 MB** olarak işledi (59 karo, 3,661 bina, 727 yol, 6 T1 tramvay, 1,796 düğüm / 1,924 kenar). Küçük Ayasofya koordinat çakışması 150 m tohum koruyucuyla düzeltildi.
+  4. **M1 3B Dünya, Çarpışma, Güvenli Alan & APK (`940ccf2`):** Karo başına ≤3 birleştirilmiş draw call üreten `tileMeshBuilder.ts` ve `FatihWorldScene.ts` (Copernicus DEM arazi, Boğaz suyu, 300 m karo akışı, Ayasofya/Sultanahmet/Dikilitaş/Eminönü vapuru/sarı taksi landmark'ları, Q/E + sürüklemeli 3. şahıs kamera) bağlandı; Duraklat menüsüne hızlı bölge noktaları, HUD'a canlı Güvenli Alan rozeti eklendi. 25/25 birim testi geçti, CI Playwright smoke (`43949962546`) **41 draw call, 21,699 üçgen, 14 karo, 1,526 aktif OSM bina, 0 konsol hatası, Ayasofya Güvenli Alan aktif** ile yeşil geçti; `v0.1.0-m1` API 36 Debug APK (**6.37 MB**) yayınlandı.
+- **Ölçülmemiş Kalanlar:** Gerçek Android cihaz FPS/RAM/soğuk başlangıç süresi, 10 dakikalık soak testi (`scripts/soak.mjs`).
+- **Sonraki Oturumun İlk Adımı:** M2 Sürüş — Sultanahmet'teki sarı taksiye binip inme, Rapier3D + saf TS araç sürüş fiziği, `road-graph.json` üzerinde AI trafik (taksi/dolmuş/sivil/T1 tramvay) ve 10 dk soak doğrulaması.

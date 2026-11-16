@@ -65,7 +65,7 @@ try {
   const movedDist = Math.hypot(movedPos.x - initialPos.x, movedPos.z - initialPos.z);
 
   // Verify Ayasofya sanctuary zone activates when inside precinct
-  await page.evaluate(() => window.__game.teleportTo(413.7, -37.1));
+  await page.evaluate(() => window.__game.teleportTo(385.2, -38.8));
   await page.waitForTimeout(600);
   const sanctuaryAtAyasofya = await page.evaluate(() => window.__game.sanctuaryId);
 

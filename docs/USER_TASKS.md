@@ -20,7 +20,7 @@ Google Play'de uygulama yayınlamak için Google **tek seferlik 25 USD** (yakla�
 
 | # | İş | Ne Zaman Gerekli? | Maliyet | Durum |
 |---|---|---|---|---|
-| 1 | Telefonunda ilk APK'yı test et | M0 bittiğinde (ŞİMDİ) | 0 TL | [ ] Bekliyor |
+| 1 | Telefonunda ilk APK'yı test et (`v0.1.0-m1` hazır!) | M0–M1 bitti (ŞİMDİ) | 0 TL | [ ] Bekliyor |
 | 2 | GitHub Pages'i 2 tıklamayla aç (web demosu + gizlilik politikası) | M0–M1 | 0 TL | [ ] Bekliyor |
 | 3 | Ücretsiz itch.io hesabı aç (isteğe bağlı, ücretsiz dağıtım) | M1–M4 | 0 TL | [ ] İsteğe bağlı |
 | 4 | Google Play Geliştirici Hesabı aç (25 USD) | M5–M6 (Play yayını için) | 25 USD | [ ] Bütçe bekliyor |
@@ -33,16 +33,19 @@ Google Play'de uygulama yayınlamak için Google **tek seferlik 25 USD** (yakla�
 ## GÖREV 1 — Telefonuna APK Kurup Açıldığını Kontrol Et (0 TL)
 
 1. Android telefonunda tarayıcıyı aç ve şu adrese git:
-   `https://github.com/eraslan19j/Aslan/releases`
-2. En üstteki sürümün altındaki **Assets** bölümünden `istanbul-streets-debug.apk` dosyasına dokun ve indir.
+   `https://github.com/eraslan19j/Aslan/releases/tag/v0.1.0-m1`
+   (Tüm sürümler listesi: `https://github.com/eraslan19j/Aslan/releases`)
+2. En üstteki **`v0.1.0-m1`** sürümünün altındaki **Assets** bölümünden `istanbul-streets-debug.apk` (6.37 MB) dosyasına dokun ve indir.
 3. İnen dosyaya dokun. Telefon **"Bilinmeyen kaynaklardan uygulama yüklemeye izin ver"** uyarısı verirse:
    - **Ayarlar** → **Bu kaynaktan izin ver** düğmesini aç → geri dön → **Yükle** de.
 4. Uygulamayı aç ve şunları kontrol et:
    - Ekran otomatik **yatay** dönüyor mu?
-   - İstanbul gün batımı sahnesi açılıyor mu?
+   - Gerçek **Sultanahmet Meydanı** (etrafında Ayasofya, Sultanahmet Camii, Dikilitaş ve gerçek sokak binaları) açılıyor mu?
+   - Sol analog kolla yürüyüp sağ ekranı kaydırarak kamerayı döndürebiliyor musun?
+   - Sağ üstteki **Duraklat** → bölge noktalarından **Ayasofya**'ya geçince yeşil **"GÜVENLİ ALAN"** rozeti çıkıyor mu?
    - Sağ üstteki **Lite** düğmesine basınca donma olmadan çalışıyor mu?
    - Telefonun **Geri** tuşuna basınca duraklatma menüsü açılıyor mu?
-5. Bir sorun görürsen ekran görüntüsü alıp bir sonraki sohbette paylaşman yeterli.
+5. Bir sorun görürsen (veya üstteki FPS sayısını paylaşmak istersen) ekran görüntüsü alıp bir sonraki sohbette paylaşman yeterli.
 
 ---
 
