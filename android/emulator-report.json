@@ -1,0 +1,37 @@
+{
+  "generatedAtIso": "2026-11-16T22:08:13.730Z",
+  "note": "Android x86_64 KVM emulator (SwiftShader GPU) validates layout, landscape, cutout, touch input, Back key, and crash-free launch — NOT real-device FPS.",
+  "appAliveAfterBack": true,
+  "fatalCount": 0,
+  "anrCount": 0,
+  "chromiumErrorCount": 0,
+  "fatals": [],
+  "anrs": [],
+  "chromiumErrors": [],
+  "shots": [
+    {
+      "file": "qa-out/android/emulator_01_launch.png",
+      "width": 2400,
+      "height": 1080,
+      "isLandscape": true,
+      "uniqueColors": 175,
+      "brightFrac": 0.0722
+    },
+    {
+      "file": "qa-out/android/emulator_02_after_joystick.png",
+      "width": 2400,
+      "height": 1080,
+      "isLandscape": true,
+      "uniqueColors": 175,
+      "brightFrac": 0.0722
+    },
+    {
+      "file": "qa-out/android/emulator_03_pause_back.png",
+      "width": 2400,
+      "height": 1080,
+      "isLandscape": true,
+      "uniqueColors": 175,
+      "brightFrac": 0.0722
+    }
+  ]
+}
