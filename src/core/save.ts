@@ -37,7 +37,7 @@ export function createDefaultSave(nowIso = new Date().toISOString()): SaveData {
     updatedAtIso: nowIso,
     locale: 'tr',
     qualityTier: 'normal',
-    activeRegionId: 'fatih-sultanahmet-eminonu',
+    activeRegionId: 'esenler-namik-kemal',
     playerPos: { x: 0, y: 1.0, z: 0 },
     cash: 250,
     wantedStars: 0,

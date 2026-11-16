@@ -78,18 +78,21 @@ jobs:
           echo "Detected orientation line: ${ORIENTATION}"
           echo "$ORIENTATION" | grep -qE "0x0*6|sensorLandscape|=6([^0-9]|$)"
           {
-            echo "## Istanbul Streets — M1 Debug APK (Fatih: Sultanahmet–Eminönü, API 36)"
+            echo "## Istanbul Streets — v0.2.0 Debug APK (Esenler Namık Kemal + Fatih · M2 Sürüş & Trafik · API 36)"
             echo ""
             echo "- **Package:** \`com.istanbulstreets.game\`"
             echo "- **Target SDK:** \`36\` (Android 16) · **Min SDK:** \`24\` (Android 7.0+)"
             echo "- **Orientation:** \`sensorLandscape\` (\`${ORIENTATION}\`)"
             echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
-            echo "- **Region Data:** Real OpenStreetMap (3,661 buildings, 1,924 road edges, T1 tramway) + Copernicus DEM GLO-30 (100% offline 300m tiles)"
+            echo "- **Default Region:** Esenler / Namık Kemal Mahallesi (SHA-256 verified \`osm_data.zip\` + Copernicus DEM + Overpass, 100% offline 300m tiles)"
+            echo "- **Second Region:** Fatih (Sultanahmet–Eminönü) — Duraklat menüsünden geçiş"
+            echo "- **M2 Features:** Sürülebilir Sarı Taksi (BİN/İN + 20:9 dokunmatik sürüş kontrolleri), gerçek yol grafı AI trafiği, tüm ibadethanelerde otomatik Güvenli Alan, Ayarlar içi Tanılama Paneli (RAPORU KOPYALA)"
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo ""
-            echo "### Kurulum (Android Telefon)"
-            echo "1. Aşağıdaki \`istanbul-streets-debug.apk\` dosyasını indirin ve dokunarak kurun."
-            echo "2. Detaylı rehber: \`docs/USER_TASKS.md\`"
+            echo "### Kurulum (Yalnızca Android Telefon)"
+            echo "1. Aşağıdaki \`istanbul-streets-debug.apk\` dosyasını telefonuna indir ve dokunarak kur."
+            echo "2. Açtıktan sonra sağ üst **Ayarlar → RAPORU KOPYALA** ile gerçek telefon raporunu paylaşabilirsin."
+            echo "3. Adım adım rehber: \`docs/USER_TASKS.md\`"
           } > release-notes.md
           cat release-notes.md
 
@@ -134,9 +137,9 @@ jobs:
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0-m1' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.2.0' }}
           target_commitish: ${{ github.sha }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0-m1 (M1 Fatih World Debug APK - API 36)' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.2.0 (Esenler Namik Kemal + Fatih · M2 Driving APK - API 36)' }}
           body_path: release-notes.md
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |

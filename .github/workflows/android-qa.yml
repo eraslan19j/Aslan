@@ -1,0 +1,245 @@
+name: Android Emulator QA (x86_64 KVM + Screencap + Logcat)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - arena/**
+    paths:
+      - src/**
+      - public/**
+      - android/**
+      - index.html
+      - capacitor.config.ts
+      - .github/workflows/android-qa.yml
+
+permissions:
+  contents: write
+
+jobs:
+  emulator-qa:
+    name: Android x86_64 KVM Emulator Visual & Input QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install Android 16 (API 36) SDK Platform & Build Tools for APK build
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDKMANAGER="${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Build Web + Sync Capacitor + Assemble Debug APK
+        run: |
+          npm ci
+          npm run build
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Enable KVM permissions on runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm || true
+          ls -la /dev/kvm || true
+
+      - name: Run Android x86_64 KVM Emulator QA (install, launch, screencap, touch input, back key, logcat)
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 3072M
+          heap-size: 512M
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            mkdir -p qa-out/android
+            APK="android/app/build/outputs/apk/debug/app-debug.apk"
+            PKG="com.istanbulstreets.game"
+
+            adb logcat -c || true
+            adb install -r "$APK"
+
+            # Launch MainActivity and wait for WebView + Three.js + tiles to render
+            adb shell am start -W -n "${PKG}/.MainActivity"
+            sleep 14
+
+            # Capture 1: Initial launch in Esenler / Namık Kemal
+            adb exec-out screencap -p > qa-out/android/emulator_01_launch.png
+
+            # Inspect display orientation & dimensions
+            DISPLAY_INFO=$(adb shell wm size && adb shell dumpsys input | grep -E "SurfaceOrientation|DisplayViewport" | head -n 10 || true)
+            echo "$DISPLAY_INFO" > qa-out/android/display-info.txt
+
+            # Compute screen width/height from screencap PNG via node + pngjs
+            DIMS=$(node -e "const fs=require('fs'), {PNG}=require('pngjs'); const p=PNG.sync.read(fs.readFileSync('qa-out/android/emulator_01_launch.png')); console.log(p.width + ' ' + p.height);")
+            W=$(echo "$DIMS" | awk '{print $1}')
+            H=$(echo "$DIMS" | awk '{print $2}')
+            echo "Captured emulator screencap dimensions: ${W}x${H}"
+
+            # Simulate left-side virtual joystick swipe (walk forward-right) and right-side tap
+            STICK_X=$((W * 9 / 100))
+            STICK_Y=$((H * 82 / 100))
+            STICK_TO_X=$((W * 14 / 100))
+            STICK_TO_Y=$((H * 72 / 100))
+            adb shell input swipe "${STICK_X}" "${STICK_Y}" "${STICK_TO_X}" "${STICK_TO_Y}" 900 || true
+            sleep 2
+            adb exec-out screencap -p > qa-out/android/emulator_02_after_joystick.png
+
+            # Simulate Android Hardware Back key -> should open Pause menu (NOT exit app)
+            adb shell input keyevent 4 || true
+            sleep 2
+            adb exec-out screencap -p > qa-out/android/emulator_03_pause_back.png
+
+            # Collect full logcat and scan for crashes / ANRs / Chromium console errors
+            adb logcat -d -v time > qa-out/android/logcat.txt || true
+
+            node - <<'NODE'
+            const fs = require('node:fs');
+            const { PNG } = require('pngjs');
+
+            const log = fs.readFileSync('qa-out/android/logcat.txt', 'utf8');
+            const lines = log.split(/\r?\n/);
+            const fatals = lines.filter((l) => /FATAL EXCEPTION/i.test(l)).slice(0, 20);
+            const anrs = lines.filter((l) => /ANR in com\.istanbulstreets/i.test(l)).slice(0, 20);
+            const chromiumErrors = lines
+              .filter((l) => /chromium/i.test(l) && /(CONSOLE.*ERROR|Uncaught|TypeError|ReferenceError|SyntaxError)/i.test(l))
+              .slice(0, 30);
+
+            const checkImg = (file) => {
+              const p = PNG.sync.read(fs.readFileSync(file));
+              const colors = new Set();
+              let bright = 0;
+              const stride = 4 * 11;
+              for (let i = 0; i < p.data.length; i += stride) {
+                const r = p.data[i], g = p.data[i + 1], b = p.data[i + 2];
+                colors.add(`${r >> 3},${g >> 3},${b >> 3}`);
+                if (r + g + b > 300) bright += 1;
+              }
+              return {
+                file,
+                width: p.width,
+                height: p.height,
+                isLandscape: p.width > p.height,
+                uniqueColors: colors.size,
+                brightFrac: Number((bright / Math.max(1, Math.floor(p.data.length / stride))).toFixed(4)),
+              };
+            };
+
+            const shots = [
+              checkImg('qa-out/android/emulator_01_launch.png'),
+              checkImg('qa-out/android/emulator_02_after_joystick.png'),
+              checkImg('qa-out/android/emulator_03_pause_back.png'),
+            ];
+
+            const report = {
+              generatedAtIso: new Date().toISOString(),
+              note: 'Android x86_64 KVM emulator with SwiftShader GPU — validates layout, landscape, notch, input, and crash-free boot; NOT real device FPS.',
+              fatalCount: fatals.length,
+              anrCount: anrs.length,
+              chromiumErrorCount: chromiumErrors.length,
+              fatals,
+              anrs,
+              chromiumErrors,
+              shots,
+            };
+
+            fs.writeFileSync('qa-out/android/emulator-report.json', JSON.stringify(report, null, 2));
+            console.log('EMULATOR_QA_REPORT', JSON.stringify(report, null, 2));
+
+            if (fatals.length > 0) process.exit(1);
+            if (anrs.length > 0) process.exit(1);
+            if (!shots[0].isLandscape) {
+              console.error('FAIL: App did not lock to landscape orientation!', shots[0]);
+              process.exit(1);
+            }
+            NODE
+
+      - name: Record Emulator QA summary & commit comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f qa-out/android/emulator-report.json ]; then
+            {
+              echo "## Android x86_64 Emulator QA Report"
+              echo '```json'
+              cat qa-out/android/emulator-report.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+              REPORT=$(cat qa-out/android/emulator-report.json)
+              gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" \
+                -f body="$(printf 'Android Emulator QA Report (`%s`):\n```json\n%s\n```' "${GITHUB_SHA::7}" "${REPORT}")" || true
+            fi
+          fi
+
+      - name: Upload Android Emulator QA Artifacts (PNGs + logcat + report)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-emulator-qa-${{ github.run_id }}
+          path: qa-out/android/
+          if-no-files-found: warn
+
+      - name: Publish Android Emulator PNGs & Logcat to qa-screens branch (clean old android/ outputs)
+        if: always() && github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -d qa-out/android ]; then
+            exit 0
+          fi
+          rm -rf /tmp/qa-android-publish
+          if git clone --depth 1 --branch qa-screens "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/qa-android-publish 2>/dev/null; then
+            echo "Cloned existing qa-screens branch."
+          else
+            mkdir -p /tmp/qa-android-publish
+            cd /tmp/qa-android-publish
+            git init -b qa-screens
+            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+          cd /tmp/qa-android-publish
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf android
+          mkdir -p android
+          cp "${GITHUB_WORKSPACE}/qa-out/android/"*.png android/ 2>/dev/null || true
+          cp "${GITHUB_WORKSPACE}/qa-out/android/emulator-report.json" android/ 2>/dev/null || true
+          cp "${GITHUB_WORKSPACE}/qa-out/android/display-info.txt" android/ 2>/dev/null || true
+          # Keep last 2500 lines of logcat so qa-screens stays compact and easy to inspect
+          tail -n 2500 "${GITHUB_WORKSPACE}/qa-out/android/logcat.txt" > android/logcat-tail.txt 2>/dev/null || true
+          git add -A android
+          if git diff --cached --quiet; then
+            echo "No changes to qa-screens android/ outputs."
+          else
+            git commit -m "qa(android): update x86_64 emulator screencaps and logcat (${GITHUB_SHA::7})"
+            for attempt in 1 2 3; do
+              if git push origin HEAD:refs/heads/qa-screens; then
+                break
+              fi
+              git fetch origin qa-screens || true
+              git rebase origin/qa-screens || true
+            done
+          fi

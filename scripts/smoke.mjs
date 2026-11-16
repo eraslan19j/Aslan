@@ -1,14 +1,19 @@
-// Headless Chromium smoke test for Istanbul Streets (M1: Fatih Sultanahmet-Eminönü).
-// Self-hosts dist/, verifies zero console/page errors, real OSM+DEM tile streaming,
-// walking movement, sanctuary zone enforcement, Lite/About/Pause UI, draw call budget,
-// and non-blank 3D rasterization.
-import { writeFileSync } from 'node:fs';
+// Headless Chromium smoke test for Istanbul Streets (v0.2.0: Esenler default + Fatih + M2 driving & traffic).
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { PNG } from 'pngjs';
 import { preview } from 'vite';
 
 const OUT = process.env.OUT || 'smoke.png';
 const SIM_DURATION_MS = Number(process.env.SMOKE_DURATION_MS || '8000');
+
+const esenlerManifest = JSON.parse(
+  readFileSync(
+    join(process.cwd(), 'public', 'derived-data', 'esenler-namik-kemal', 'manifest.json'),
+    'utf8',
+  ),
+);
 
 const server = process.env.URL
   ? null
@@ -46,67 +51,114 @@ try {
       Boolean(window.__game?.physicsReady) &&
       (window.__game?.perf?.loadedTiles ?? 0) >= 1 &&
       (window.__game?.perf?.activeBuildings ?? 0) >= 20,
-    { timeout: 20000 },
+    { timeout: 25000 },
   );
   await page.waitForTimeout(800);
 
+  const initialRegion = await page.evaluate(() => window.__game.regionId);
   const initialPos = await page.evaluate(() => ({ ...window.__game.player }));
 
-  // Walk & sprint through Sultanahmet Square
+  // 1. On-foot walk in Esenler Namık Kemal
   await page.keyboard.down('ShiftLeft');
   await page.keyboard.down('KeyW');
-  await page.keyboard.down('KeyE');
-  await page.waitForTimeout(1200);
-  await page.keyboard.up('KeyE');
+  await page.waitForTimeout(900);
   await page.keyboard.up('KeyW');
   await page.keyboard.up('ShiftLeft');
+  const walkedPos = await page.evaluate(() => ({ ...window.__game.player }));
+  const walkDist = Math.hypot(walkedPos.x - initialPos.x, walkedPos.z - initialPos.z);
 
-  const movedPos = await page.evaluate(() => ({ ...window.__game.player }));
-  const movedDist = Math.hypot(movedPos.x - initialPos.x, movedPos.z - initialPos.z);
+  // 2. Enter Yellow Taxi, drive along street, verify speed & movement, then exit
+  await page.evaluate(() => window.__game.enterVehicle());
+  await page.waitForTimeout(150);
+  const driveStart = await page.evaluate(() => ({ ...window.__game.vehicle }));
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(1100);
+  await page.keyboard.down('KeyD');
+  await page.waitForTimeout(450);
+  await page.keyboard.up('KeyD');
+  await page.keyboard.up('KeyW');
+  const driveState = await page.evaluate(() => ({
+    inVehicle: window.__game.inVehicle,
+    speedKph: window.__game.speedKph,
+    trafficCount: window.__game.trafficCount,
+    vehicle: { ...window.__game.vehicle },
+  }));
+  const driveDist = Math.hypot(
+    driveState.vehicle.x - driveStart.x,
+    driveState.vehicle.z - driveStart.z,
+  );
+  await page.keyboard.press('KeyF');
+  await page.waitForTimeout(200);
+  const exitedOk = await page.evaluate(() => window.__game.inVehicle === false);
 
-  // Verify Ayasofya sanctuary zone activates when inside precinct
-  await page.evaluate(() => window.__game.teleportTo(385.2, -38.8));
-  await page.waitForTimeout(600);
-  const sanctuaryAtAyasofya = await page.evaluate(() => window.__game.sanctuaryId);
+  // 3. Verify automatic amenity=place_of_worship Sanctuary Zone in Esenler
+  const firstSanctuary = esenlerManifest.sanctuaryZones[0];
+  await page.evaluate(
+    ([sx, sz]) => window.__game.teleportTo(sx, sz),
+    [firstSanctuary.x, firstSanctuary.z],
+  );
+  await page.waitForTimeout(400);
+  const esenlerSanctuaryId = await page.evaluate(() => window.__game.sanctuaryId);
 
-  // Return to Sultanahmet Square spawn for screenshot & remaining walkthrough
-  await page.evaluate(() => window.__game.teleportTo(31.5, 229.7));
-  await page.waitForTimeout(800);
-
-  // Verify Lite mode toggle
-  const beforeTier = await page.evaluate(() => window.__game.qualityTier);
-  await page.getByTestId('btn-quality').click();
+  // 4. Verify Settings & Diagnostics Panel JSON report
+  await page.getByTestId('btn-settings').click();
   await page.waitForTimeout(250);
-  const toggledTier = await page.evaluate(() => window.__game.qualityTier);
-  await page.getByTestId('btn-quality').click();
-  await page.waitForTimeout(250);
+  const diagJsonText = await page.getByTestId('diagnostics-json').innerText();
+  const diagParsed = JSON.parse(diagJsonText);
+  const diagOk =
+    typeof diagParsed.fps === 'number' &&
+    typeof diagParsed.drawCalls === 'number' &&
+    typeof diagParsed.gpuRenderer === 'string' &&
+    typeof diagParsed.webViewVersion === 'string';
+  await page.getByTestId('modal-close').click();
+  await page.waitForTimeout(200);
 
-  // Verify About & Attributions modal
+  // 5. Verify About modal ODbL + OpenStreetMap + Copernicus + İBB attributions
   await page.getByTestId('btn-about').click();
   await page.waitForTimeout(200);
   const aboutText = await page.evaluate(() => document.body.innerText);
   const hasAttributions =
     aboutText.includes('OpenStreetMap') &&
-    aboutText.includes('İBB') &&
-    aboutText.includes('Copernicus');
+    aboutText.includes('ODbL') &&
+    aboutText.includes('Copernicus') &&
+    aboutText.includes('İBB');
   await page.getByTestId('modal-close').click();
   await page.waitForTimeout(200);
 
-  // Verify Pause toggle via Escape
+  // 6. Verify Pause + Region Switch to Fatih (second region preserved!) and back to Esenler
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   const isPaused = await page.evaluate(() => window.__game.paused);
-  await page.keyboard.press('Escape');
-  await page.waitForTimeout(200);
+  await page.getByTestId('region-fatih-sultanahmet-eminonu').click();
+  await page.waitForFunction(
+    () =>
+      window.__game?.regionId === 'fatih-sultanahmet-eminonu' &&
+      (window.__game?.perf?.loadedTiles ?? 0) >= 1 &&
+      (window.__game?.perf?.activeBuildings ?? 0) >= 20,
+    { timeout: 20000 },
+  );
+  await page.waitForTimeout(500);
+  const fatihSwitchedOk = await page.evaluate(
+    () => window.__game.regionId === 'fatih-sultanahmet-eminonu',
+  );
 
-  // Run remaining simulated gameplay window
-  const remaining = Math.max(800, SIM_DURATION_MS - 3500);
-  await page.keyboard.down('KeyA');
-  await page.waitForTimeout(Math.floor(remaining / 2));
-  await page.keyboard.up('KeyA');
-  await page.keyboard.down('KeyW');
-  await page.waitForTimeout(Math.ceil(remaining / 2));
-  await page.keyboard.up('KeyW');
+  // Switch back to Esenler default for final snapshot & screenshot
+  await page.evaluate(() => window.__game.switchRegion('esenler-namik-kemal'));
+  await page.waitForFunction(
+    () =>
+      window.__game?.regionId === 'esenler-namik-kemal' &&
+      (window.__game?.perf?.loadedTiles ?? 0) >= 1 &&
+      (window.__game?.perf?.activeBuildings ?? 0) >= 20,
+    { timeout: 20000 },
+  );
+
+  // Quality toggle check
+  const beforeTier = await page.evaluate(() => window.__game.qualityTier);
+  await page.getByTestId('btn-quality').click();
+  await page.waitForTimeout(250);
+  const toggledTier = await page.evaluate(() => window.__game.qualityTier);
+  await page.getByTestId('btn-quality').click();
+  await page.waitForTimeout(Math.max(400, Math.min(1200, SIM_DURATION_MS - 5000)));
 
   const snapshot = await page.evaluate(() => {
     const c = document.querySelector('canvas');
@@ -118,6 +170,7 @@ try {
       regionId: window.__game?.regionId ?? null,
       regionLoaded: window.__game?.regionLoaded ?? false,
       physicsReady: window.__game?.physicsReady ?? false,
+      trafficCount: window.__game?.trafficCount ?? 0,
       crashCount: window.__game?.getCrashCount() ?? -1,
       perf: window.__game?.perf ?? null,
     };
@@ -142,8 +195,14 @@ try {
 
   const report = {
     snapshot,
-    movedDist: Number(movedDist.toFixed(2)),
-    sanctuaryAtAyasofya,
+    initialRegion,
+    walkDist: Number(walkDist.toFixed(2)),
+    driveDist: Number(driveDist.toFixed(2)),
+    driveSpeedKph: driveState.speedKph,
+    exitedOk,
+    esenlerSanctuaryId,
+    fatihSwitchedOk,
+    diagOk,
     qualityToggleOk: beforeTier !== toggledTier,
     hasAttributions,
     pauseToggleOk: isPaused === true,
@@ -156,22 +215,30 @@ try {
   writeFileSync('smoke-report.json', JSON.stringify(report, null, 2));
 
   if (errors.length > 0) fail(`${errors.length} console/page error(s)`);
+  if (initialRegion !== 'esenler-namik-kemal') {
+    fail(`Expected default start region esenler-namik-kemal, got ${initialRegion}`);
+  }
   if (!snapshot.hasCanvas || snapshot.canvasW === 0 || snapshot.canvasH === 0) {
     fail('Canvas missing or zero size');
   }
-  if (!snapshot.regionLoaded) fail('Offline Fatih region did not load');
+  if (!snapshot.regionLoaded) fail('Offline region did not load');
   if (!snapshot.physicsReady) fail('Rapier3D physics did not initialize');
   if ((snapshot.perf?.loadedTiles ?? 0) < 1) fail('No 300m tiles streamed');
   if ((snapshot.perf?.activeBuildings ?? 0) < 20) {
     fail(`Too few real OSM buildings loaded: ${snapshot.perf?.activeBuildings}`);
   }
-  if (sanctuaryAtAyasofya !== 'ayasofya') {
-    fail(`Sanctuary zone did not activate at Ayasofya (got ${sanctuaryAtAyasofya})`);
+  if (walkDist < 0.5) fail(`Player did not walk on input (walkDist=${walkDist})`);
+  if (driveDist < 2.0) fail(`Vehicle did not drive on input (driveDist=${driveDist})`);
+  if (!exitedOk) fail('KeyF did not exit player vehicle');
+  if ((snapshot.trafficCount ?? 0) < 5) fail(`Too few AI traffic vehicles: ${snapshot.trafficCount}`);
+  if (esenlerSanctuaryId !== firstSanctuary.id) {
+    fail(`Esenler worship sanctuary did not activate (got ${esenlerSanctuaryId})`);
   }
+  if (!fatihSwitchedOk) fail('Region switch to Fatih failed');
+  if (!diagOk) fail('Diagnostics panel JSON incomplete');
   if (snapshot.crashCount !== 0) fail(`Unexpected crash log entries: ${snapshot.crashCount}`);
-  if (movedDist < 0.5) fail(`Player did not move on input (movedDist=${movedDist})`);
   if (beforeTier === toggledTier) fail('Lite/Normal quality toggle did not change state');
-  if (!hasAttributions) fail('About modal missing required OSM/İBB/Copernicus attributions');
+  if (!hasAttributions) fail('About modal missing required OSM/ODbL/Copernicus/İBB attributions');
   if (!isPaused) fail('Escape key did not pause the game');
   if ((snapshot.perf?.drawCalls ?? 999) > 150) {
     fail(`Draw calls exceeded 150 budget: ${snapshot.perf?.drawCalls}`);

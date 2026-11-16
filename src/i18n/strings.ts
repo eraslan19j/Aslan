@@ -8,20 +8,33 @@ export interface UiStrings {
   trisLabel: string;
   tilesLabel: string;
   buildingsLabel: string;
+  speedUnit: string;
   physicsReady: string;
   physicsLoading: string;
   qualityNormal: string;
   qualityLite: string;
+  timeDay: string;
+  timeNight: string;
+  settingsButton: string;
   pauseButton: string;
   aboutButton: string;
   langButton: string;
   sprintButton: string;
+  enterCarButton: string;
+  exitCarButton: string;
+  gasButton: string;
+  brakeButton: string;
   pausedTitle: string;
   resumeButton: string;
   resetPosButton: string;
+  regionSwitchHeading: string;
   fastTravelHeading: string;
   viewCrashLogButton: string;
   closeButton: string;
+  settingsTitle: string;
+  diagnosticsHeading: string;
+  copyReportButton: string;
+  reportCopied: string;
   aboutTitle: string;
   aboutSubtitle: string;
   aboutDataHeading: string;
@@ -34,40 +47,56 @@ export interface UiStrings {
   crashReloadButton: string;
   crashLogEmpty: string;
   recoveredSaveToast: string;
-  controlsHintDesktop: string;
-  controlsHintTouch: string;
+  controlsHintFootDesktop: string;
+  controlsHintDriveDesktop: string;
+  controlsHintFootTouch: string;
+  controlsHintDriveTouch: string;
   sanctuaryBanner: string;
+  nearVehiclePrompt: string;
 }
 
 const STRINGS: Record<LocaleCode, UiStrings> = {
   tr: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'M1 Dünya · Fatih (Sultanahmet–Eminönü) · v0.1',
+    milestoneTag: 'v0.2 · M2 Sürüş & Çoklu Bölge',
     fpsLabel: 'FPS',
     drawsLabel: 'Çizim',
     trisLabel: 'Üçgen',
     tilesLabel: 'Karo',
     buildingsLabel: 'Bina',
-    physicsReady: 'Rapier3D Hazır',
+    speedUnit: 'km/s',
+    physicsReady: 'Fizik Hazır',
     physicsLoading: 'Fizik…',
     qualityNormal: 'Normal',
-    qualityLite: 'Lite Modu',
+    qualityLite: 'Lite',
+    timeDay: 'Gündüz',
+    timeNight: 'Gece',
+    settingsButton: 'Ayarlar',
     pauseButton: 'Duraklat',
     aboutButton: 'Hakkında',
     langButton: 'TR / EN',
     sprintButton: 'KOŞ',
-    pausedTitle: 'Oyun Duraklatıldı',
+    enterCarButton: 'BİN',
+    exitCarButton: 'İN',
+    gasButton: 'GAZ',
+    brakeButton: 'FREN',
+    pausedTitle: 'Duraklatıldı',
     resumeButton: 'Devam Et',
-    resetPosButton: 'Sultanahmet Meydanı',
+    resetPosButton: 'Başlangıca Dön',
+    regionSwitchHeading: 'Bölge Değiştir',
     fastTravelHeading: 'Bölge Noktaları (Hızlı Keşif)',
     viewCrashLogButton: 'Kilitlenme Günlüğü',
     closeButton: 'Kapat',
-    aboutTitle: 'Hakkında ve Açık Veri Atıfları',
+    settingsTitle: 'Ayarlar ve Tanılama Paneli',
+    diagnosticsHeading: 'Cihaz & Performans Tanılama (JSON)',
+    copyReportButton: 'RAPORU KOPYALA',
+    reportCopied: 'Rapor panoya kopyalandı!',
+    aboutTitle: 'Hakkında ve ODbL / Açık Veri Atıfları',
     aboutSubtitle:
-      'Istanbul Streets — Gerçek Fatih (Sultanahmet–Eminönü) açık verisiyle çevrimdışı çalışan %100 orijinal açık dünya oyunu (v0.1.0-m1).',
-    aboutDataHeading: 'Kullanılan Harita ve Açık Veri Atıfları',
+      'Istanbul Streets v0.2.0 — Gerçek Esenler (Namık Kemal) ve Fatih (Sultanahmet–Eminönü) açık verisiyle çevrimdışı çalışan %100 orijinal açık dünya oyunu.',
+    aboutDataHeading: 'Harita ve Türetilmiş Veri Atıfları (public/derived-data/)',
     aboutOriginalityNote:
-      'Tüm karakterler, markalar ve kurumlar kurgusaldır. Ayasofya ve Sultanahmet Camii çevresi şiddetsiz güvenli alan olarak kilitlidir.',
+      'Tüm karakterler, araçlar, markalar ve kurumlar kurgusaldır; gerçek kişi, ev adresi veya işletme logosu yoktur. Tüm ibadethaneler otomatik şiddetsiz Güvenli Alandır.',
     aboutPrivacyLink: 'Gizlilik Politikası (KVKK / GDPR)',
     crashTitle: 'Beklenmedik Bir Hata Oluştu',
     crashBody:
@@ -77,38 +106,54 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     crashReloadButton: 'Oyunu Yeniden Başlat',
     crashLogEmpty: 'Henüz kayıtlı kilitlenme yok.',
     recoveredSaveToast: 'Kayıt yedeği başarıyla kurtarıldı.',
-    controlsHintDesktop: 'WASD: Yürü · Shift: Koş · Q/E veya Sürükle: Kamera · Esc: Duraklat',
-    controlsHintTouch: 'Sol kol: Yürü · Sağ sürükle: Kamera · KOŞ: Hızlı koş · Geri: Duraklat',
+    controlsHintFootDesktop: 'WASD: Yürü · Shift: Koş · F: Taksiye Bin · Q/E: Kamera · Esc: Menü',
+    controlsHintDriveDesktop: 'W/S: Gaz-Fren · A/D: Direksiyon · Space: El Freni · F: Araçtan İn',
+    controlsHintFootTouch: 'Sol kol: Yürü · Sağ kaydır: Kamera · BİN: Taksi · Geri: Menü',
+    controlsHintDriveTouch: 'Sol ◀/▶: Direksiyon · GAZ / FREN · İN: Araçtan çık',
     sanctuaryBanner: 'GÜVENLİ ALAN — Şiddet & Silah Kilitli',
+    nearVehiclePrompt: 'Sarı Taksi yakın — Binmek için F / BİN',
   },
   en: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'M1 World · Fatih (Sultanahmet–Eminönü) · v0.1',
+    milestoneTag: 'v0.2 · M2 Driving & Multi-Region',
     fpsLabel: 'FPS',
     drawsLabel: 'Draws',
     trisLabel: 'Tris',
     tilesLabel: 'Tiles',
     buildingsLabel: 'Bldgs',
-    physicsReady: 'Rapier3D Ready',
+    speedUnit: 'km/h',
+    physicsReady: 'Physics OK',
     physicsLoading: 'Physics…',
     qualityNormal: 'Normal',
-    qualityLite: 'Lite Mode',
+    qualityLite: 'Lite',
+    timeDay: 'Day',
+    timeNight: 'Night',
+    settingsButton: 'Settings',
     pauseButton: 'Pause',
     aboutButton: 'About',
     langButton: 'EN / TR',
-    sprintButton: 'SPRINT',
-    pausedTitle: 'Game Paused',
+    sprintButton: 'RUN',
+    enterCarButton: 'DRIVE',
+    exitCarButton: 'EXIT',
+    gasButton: 'GAS',
+    brakeButton: 'BRAKE',
+    pausedTitle: 'Paused',
     resumeButton: 'Resume',
-    resetPosButton: 'Sultanahmet Square',
+    resetPosButton: 'Reset Position',
+    regionSwitchHeading: 'Switch Region',
     fastTravelHeading: 'Region Landmarks (Quick Explore)',
     viewCrashLogButton: 'Crash Log',
     closeButton: 'Close',
-    aboutTitle: 'About & Open Data Attributions',
+    settingsTitle: 'Settings & Diagnostics Panel',
+    diagnosticsHeading: 'Device & Performance Diagnostics (JSON)',
+    copyReportButton: 'COPY REPORT',
+    reportCopied: 'Report copied to clipboard!',
+    aboutTitle: 'About & ODbL / Open Data Attributions',
     aboutSubtitle:
-      'Istanbul Streets — 100% original offline open-world game built from real Fatih (Sultanahmet–Eminönü) open geospatial data (v0.1.0-m1).',
-    aboutDataHeading: 'Map & Open Data Attributions',
+      'Istanbul Streets v0.2.0 — 100% original offline open-world game built from real Esenler (Namik Kemal) & Fatih (Sultanahmet–Eminonu) open geospatial data.',
+    aboutDataHeading: 'Map & Derived Data Attributions (public/derived-data/)',
     aboutOriginalityNote:
-      'All characters, brands, and agencies are fictional. Hagia Sophia and Blue Mosque precincts are strict non-violent safe zones.',
+      'All characters, vehicles, brands, and agencies are fictional; zero real people, home addresses, or brand logos. All places of worship are automatic Safe Zones.',
     aboutPrivacyLink: 'Privacy Policy (KVKK / GDPR)',
     crashTitle: 'An Unexpected Error Occurred',
     crashBody:
@@ -118,9 +163,12 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     crashReloadButton: 'Restart Game',
     crashLogEmpty: 'No crash records yet.',
     recoveredSaveToast: 'Save file recovered from backup.',
-    controlsHintDesktop: 'WASD: Walk · Shift: Sprint · Q/E or Drag: Camera · Esc: Pause',
-    controlsHintTouch: 'Left stick: Walk · Drag right: Camera · SPRINT: Run · Back: Pause',
+    controlsHintFootDesktop: 'WASD: Walk · Shift: Run · F: Enter Taxi · Q/E: Camera · Esc: Menu',
+    controlsHintDriveDesktop: 'W/S: Gas/Brake · A/D: Steer · Space: Handbrake · F: Exit Taxi',
+    controlsHintFootTouch: 'Left stick: Walk · Drag right: Camera · DRIVE: Taxi · Back: Menu',
+    controlsHintDriveTouch: 'Left ◀/▶: Steer · GAS / BRAKE · EXIT: Leave taxi',
     sanctuaryBanner: 'SAFE ZONE — Sanctuary Precinct (No Combat)',
+    nearVehiclePrompt: 'Yellow Taxi nearby — Press F / DRIVE',
   },
 };
 

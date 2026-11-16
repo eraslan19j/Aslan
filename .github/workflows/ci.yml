@@ -1,17 +1,26 @@
-name: CI (Web + Unit + Headless Smoke)
+name: CI (Web + Unit + Smoke + Visual QA + Soak)
 
 on:
   push:
+    branches:
+      - main
+      - arena/**
   pull_request:
   workflow_dispatch:
+    inputs:
+      soak_minutes:
+        description: 'Soak test duration in minutes'
+        required: false
+        default: '10'
 
 permissions:
   contents: write
 
 jobs:
   verify:
+    name: Typecheck, Lint, Unit, Smoke & Visual QA
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,7 +29,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -31,41 +40,115 @@ jobs:
       - name: Lint (including core/Three.js boundary)
         run: npm run lint
 
-      - name: Pure TS core unit tests (including Rapier3D WASM)
+      - name: Pure TS core + offline region dataset unit tests (including Rapier3D WASM)
         run: npm test
 
       - name: Production web build
         run: npm run build
 
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
-      - name: Headless Chromium smoke test (0 console errors + raster check)
+      - name: Fetch existing qa-screens reference baseline (for pixel regression diff)
+        run: |
+          mkdir -p qa-ref/web
+          if git clone --depth 1 --branch qa-screens "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/qa-ref-repo 2>/dev/null; then
+            cp /tmp/qa-ref-repo/web/*.png qa-ref/web/ 2>/dev/null || true
+            echo "Loaded $(ls -1 qa-ref/web/*.png 2>/dev/null | wc -l) reference PNG(s) from qa-screens."
+          else
+            echo "No existing qa-screens branch yet — this run establishes the baseline."
+          fi
         env:
-          SMOKE_DURATION_MS: '8000'
-          OUT: 'smoke.png'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Headless Chromium smoke test (Esenler default + M2 driving + Fatih switch + diagnostics)
         run: npm run smoke
 
-      - name: Record smoke metrics to job summary and commit comment
-        if: always() && hashFiles('smoke-report.json') != ''
+      - name: Visual QA 14-shot Playwright capture & pixel regression diff
+        run: npm run qa:screens
+
+      - name: Driving & tile-streaming soak test
+        run: |
+          SOAK_MINS="${{ github.event.inputs.soak_minutes || '3' }}"
+          SOAK_MINUTES="${SOAK_MINS}" SOAK_OUT="qa-out/web/soak-report.json" npm run soak
+
+      - name: Record Smoke + Visual QA + Soak metrics to Job Summary & Commit Comment
+        if: always()
+        run: |
+          if [ -f smoke-report.json ]; then
+            {
+              echo "## Headless Chromium Smoke Report"
+              echo '```json'
+              cat smoke-report.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f qa-out/web/qa-summary.md ]; then
+            cat qa-out/web/qa-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f qa-out/web/soak-report.json ]; then
+            {
+              echo "## Soak Test Summary"
+              echo '```json'
+              node -e "const r=require('./qa-out/web/soak-report.json'); console.log(JSON.stringify(r.summary,null,2));"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ -f smoke-report.json ]; then
+            SMOKE_JSON=$(cat smoke-report.json)
+            SOAK_JSON=$(node -e "const fs=require('fs'); console.log(fs.existsSync('qa-out/web/soak-report.json') ? JSON.stringify(JSON.parse(fs.readFileSync('qa-out/web/soak-report.json','utf8')).summary,null,2) : '{}');")
+            gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" \
+              -f body="$(printf 'CI Smoke + Soak Report (`%s`):\n```json\n%s\n```\nSoak:\n```json\n%s\n```' "${GITHUB_SHA::7}" "${SMOKE_JSON}" "${SOAK_JSON}")" || true
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          {
-            echo "### Headless Chromium Smoke Report (SwiftShader)"
-            echo '```json'
-            cat smoke-report.json
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          BODY=$(printf "CI Smoke Report (\`%s\`):\n\`\`\`json\n%s\n\`\`\`" "${GITHUB_SHA::7}" "$(cat smoke-report.json)")
-          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -f body="$BODY" > /dev/null || true
 
-      - name: Upload smoke artifacts
+      - name: Upload Smoke, Visual QA PNGs & Soak Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-artifacts
+          name: web-qa-artifacts-${{ github.run_id }}
           path: |
             smoke.png
             smoke-report.json
-          if-no-files-found: ignore
+            qa-out/web/
+          if-no-files-found: warn
+
+      - name: Publish Web QA PNGs & Reports to qa-screens branch (clean old web/ outputs)
+        if: always() && github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -d qa-out/web ]; then
+            echo "No qa-out/web directory to publish."
+            exit 0
+          fi
+          rm -rf /tmp/qa-publish
+          if git clone --depth 1 --branch qa-screens "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/qa-publish 2>/dev/null; then
+            echo "Cloned existing qa-screens branch."
+          else
+            mkdir -p /tmp/qa-publish
+            cd /tmp/qa-publish
+            git init -b qa-screens
+            git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+          cd /tmp/qa-publish
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf web
+          mkdir -p web
+          cp "${GITHUB_WORKSPACE}/qa-out/web/"* web/ 2>/dev/null || true
+          cp "${GITHUB_WORKSPACE}/smoke-report.json" web/ 2>/dev/null || true
+          git add -A web
+          if git diff --cached --quiet; then
+            echo "No changes to qa-screens web/ outputs."
+          else
+            git commit -m "qa(web): update Playwright screenshots, regression diff, and soak report (${GITHUB_SHA::7})"
+            for attempt in 1 2 3; do
+              if git push origin HEAD:refs/heads/qa-screens; then
+                break
+              fi
+              git fetch origin qa-screens || true
+              git rebase origin/qa-screens || true
+            done
+          fi

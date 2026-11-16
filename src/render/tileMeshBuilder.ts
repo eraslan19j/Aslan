@@ -33,13 +33,23 @@ const ROOF_HEX: Record<BuildingPalette, number> = {
 };
 
 const ROAD_RGB: Record<RoadClass, [number, number, number]> = {
-  primary: [0.22, 0.23, 0.26],
-  secondary: [0.26, 0.27, 0.3],
-  tertiary: [0.3, 0.31, 0.34],
-  residential: [0.38, 0.37, 0.36],
-  service: [0.42, 0.4, 0.38],
+  primary: [0.21, 0.22, 0.25],
+  secondary: [0.25, 0.26, 0.29],
+  tertiary: [0.29, 0.3, 0.33],
+  residential: [0.36, 0.36, 0.38],
+  service: [0.42, 0.4, 0.39],
   pedestrian: [0.56, 0.52, 0.46],
   tram: [0.76, 0.24, 0.2],
+};
+
+const ROAD_LIFT: Record<RoadClass, number> = {
+  tram: 0.42,
+  primary: 0.36,
+  secondary: 0.32,
+  tertiary: 0.28,
+  residential: 0.24,
+  service: 0.2,
+  pedestrian: 0.17,
 };
 
 function pushTri(
@@ -75,10 +85,10 @@ function pushTri(
   col.push(r, g, b, r, g, b, r, g, b);
 }
 
-/** Signed area of 2D ring in XZ plane to guarantee outward-facing wall normals. */
+/** Signed area of 2D ring in XZ plane to guarantee consistent outward-facing wall normals. */
 function signedAreaXZ(ring: readonly number[]): number {
   let area = 0;
-  const n = ring.length / 2;
+  const n = Math.floor(ring.length / 2);
   for (let i = 0; i < n; i += 1) {
     const j = (i + 1) % n;
     area += ring[i * 2]! * ring[j * 2 + 1]! - ring[j * 2]! * ring[i * 2 + 1]!;
@@ -97,17 +107,25 @@ function buildBatchedBuildingsGeometry(tile: RegionTileData): THREE.BufferGeomet
   const roofColor = new THREE.Color();
 
   for (const b of tile.buildings) {
-    const n = Math.floor(b.ring.length / 2);
+    let n = Math.floor(b.ring.length / 2);
+    // Strip duplicate closing vertex if present
+    if (
+      n > 3 &&
+      Math.abs(b.ring[0]! - b.ring[(n - 1) * 2]!) < 0.05 &&
+      Math.abs(b.ring[1]! - b.ring[(n - 1) * 2 + 1]!) < 0.05
+    ) {
+      n -= 1;
+    }
     if (n < 3) continue;
 
     wallColor.setHex(PALETTE_HEX[b.palette] ?? PALETTE_HEX.limestone);
     roofColor.setHex(ROOF_HEX[b.palette] ?? ROOF_HEX.limestone);
 
-    // Skirt 2.5m below sampled centroid baseY so buildings never float on steep Fatih slopes
-    const y0 = b.baseY - 2.5;
+    // 5.5m foundation skirt ensures zero floating corners on steep Esenler/Fatih slopes
+    const y0 = b.baseY - 5.5;
     const y1 = b.baseY + b.height;
-    const area = signedAreaXZ(b.ring);
-    // Ensure consistent winding for outward normals
+    const area = signedAreaXZ(b.ring.slice(0, n * 2));
+    if (Math.abs(area) < 0.5) continue;
     const reverse = area < 0;
 
     const ptsX: number[] = [];
@@ -118,7 +136,7 @@ function buildBatchedBuildingsGeometry(tile: RegionTileData): THREE.BufferGeomet
       ptsZ.push(b.ring[idx * 2 + 1]!);
     }
 
-    // Side walls
+    // Side walls (verified outward right-handed winding matching (nx, 0, nz))
     for (let i = 0; i < n; i += 1) {
       const j = (i + 1) % n;
       const x0 = ptsX[i]!;
@@ -132,36 +150,36 @@ function buildBatchedBuildingsGeometry(tile: RegionTileData): THREE.BufferGeomet
 
       const nx = dz / len;
       const nz = -dx / len;
-      // Subtle directional shade variation per wall face
-      const shade = 0.88 + 0.12 * Math.max(0, nx * 0.6 - nz * 0.8);
+      const shade = 0.86 + 0.14 * Math.max(0, nx * 0.6 - nz * 0.8);
       const r = wallColor.r * shade;
       const g = wallColor.g * shade;
       const bl = wallColor.b * shade;
 
       const uSpan = Math.max(1, len / 4.5);
-      const vSpan = Math.max(1, b.height / 3.4);
+      const vSpan = Math.max(1, (b.height + 5.5) / 3.4);
 
+      // Outward CCW winding: (p0_bot, p1_top, p1_bot) and (p0_bot, p0_top, p1_top)
       pushTri(
         pos, nor, uv, col,
         x0, y0, z0,
-        x1, y0, z1,
         x1, y1, z1,
+        x1, y0, z1,
         nx, 0, nz,
-        0, 0, uSpan, 0, uSpan, vSpan,
+        0, 0, uSpan, vSpan, uSpan, 0,
         r, g, bl,
       );
       pushTri(
         pos, nor, uv, col,
         x0, y0, z0,
-        x1, y1, z1,
         x0, y1, z0,
+        x1, y1, z1,
         nx, 0, nz,
-        0, 0, uSpan, vSpan, 0, vSpan,
+        0, 0, 0, vSpan, uSpan, vSpan,
         r, g, bl,
       );
     }
 
-    // Roof polygon via Three.js ShapeUtils earcut triangulation (handles concave courtyards!)
+    // Roof polygon via ShapeUtils earcut triangulation (upward +Y winding)
     const contour: THREE.Vector2[] = [];
     for (let i = 0; i < n; i += 1) {
       contour.push(new THREE.Vector2(ptsX[i]!, ptsZ[i]!));
@@ -171,7 +189,6 @@ function buildBatchedBuildingsGeometry(tile: RegionTileData): THREE.BufferGeomet
       const i0 = tri[0]!;
       const i1 = tri[1]!;
       const i2 = tri[2]!;
-      // Sample solid roof texel (0.02, 0.02) in facade texture
       pushTri(
         pos, nor, uv, col,
         ptsX[i0]!, y1, ptsZ[i0]!,
@@ -210,52 +227,65 @@ function buildBatchedRoadsGeometry(
     if (ptCount < 2) continue;
 
     const halfW = road.width * 0.5;
-    const yLift = road.roadClass === 'tram' ? 0.34 : road.roadClass === 'primary' ? 0.26 : 0.2;
+    const yLift = ROAD_LIFT[road.roadClass] ?? 0.24;
     const [r, g, b] = ROAD_RGB[road.roadClass] ?? ROAD_RGB.residential;
 
     for (let i = 1; i < ptCount; i += 1) {
-      const x0 = road.points[(i - 1) * 2]!;
-      const z0 = road.points[(i - 1) * 2 + 1]!;
-      const x1 = road.points[i * 2]!;
-      const z1 = road.points[i * 2 + 1]!;
-      const dx = x1 - x0;
-      const dz = z1 - z0;
-      const len = Math.hypot(dx, dz);
-      if (len < 0.4) continue;
+      const sx0 = road.points[(i - 1) * 2]!;
+      const sz0 = road.points[(i - 1) * 2 + 1]!;
+      const sx1 = road.points[i * 2]!;
+      const sz1 = road.points[i * 2 + 1]!;
+      const totalDx = sx1 - sx0;
+      const totalDz = sz1 - sz0;
+      const totalLen = Math.hypot(totalDx, totalDz);
+      if (totalLen < 0.4) continue;
 
-      const px = (-dz / len) * halfW;
-      const pz = (dx / len) * halfW;
+      const px = (-totalDz / totalLen) * halfW;
+      const pz = (totalDx / totalLen) * halfW;
+      // Subdivide segments >10m so roads hug curved Esenler hillsides without terrain clipping
+      const steps = Math.max(1, Math.min(8, Math.ceil(totalLen / 10)));
 
-      const y0 = sampleTerrainElevation(terrain, x0, z0) + yLift;
-      const y1 = sampleTerrainElevation(terrain, x1, z1) + yLift;
+      for (let s = 0; s < steps; s += 1) {
+        const t0 = s / steps;
+        const t1 = (s + 1) / steps;
+        const x0 = sx0 + totalDx * t0;
+        const z0 = sz0 + totalDz * t0;
+        const x1 = sx0 + totalDx * t1;
+        const z1 = sz0 + totalDz * t1;
 
-      const ax = x0 - px;
-      const az = z0 - pz;
-      const bx = x0 + px;
-      const bz = z0 + pz;
-      const cx = x1 + px;
-      const cz = z1 + pz;
-      const dxp = x1 - px;
-      const dzp = z1 - pz;
+        const ax = x0 - px;
+        const az = z0 - pz;
+        const bx = x0 + px;
+        const bz = z0 + pz;
+        const cx = x1 + px;
+        const cz = z1 + pz;
+        const dxp = x1 - px;
+        const dzp = z1 - pz;
 
-      pushTri(
-        pos, nor, uv, col,
-        ax, y0, az,
-        cx, y1, cz,
-        bx, y0, bz,
-        0, 1, 0,
-        0, 0, 1, 1, 1, 0,
-        r, g, b,
-      );
-      pushTri(
-        pos, nor, uv, col,
-        ax, y0, az,
-        dxp, y1, dzp,
-        cx, y1, cz,
-        0, 1, 0,
-        0, 0, 0, 1, 1, 1,
-        r, g, b,
-      );
+        const ya = sampleTerrainElevation(terrain, ax, az) + yLift;
+        const yb = sampleTerrainElevation(terrain, bx, bz) + yLift;
+        const yc = sampleTerrainElevation(terrain, cx, cz) + yLift;
+        const yd = sampleTerrainElevation(terrain, dxp, dzp) + yLift;
+
+        pushTri(
+          pos, nor, uv, col,
+          ax, ya, az,
+          cx, yc, cz,
+          bx, yb, bz,
+          0, 1, 0,
+          0, 0, 1, 1, 1, 0,
+          r, g, b,
+        );
+        pushTri(
+          pos, nor, uv, col,
+          ax, ya, az,
+          dxp, yd, dzp,
+          cx, yc, cz,
+          0, 1, 0,
+          0, 0, 0, 1, 1, 1,
+          r, g, b,
+        );
+      }
     }
   }
 
@@ -281,7 +311,14 @@ function buildBatchedAreasGeometry(
   const col: number[] = [];
 
   for (const area of tile.areas) {
-    const n = Math.floor(area.ring.length / 2);
+    let n = Math.floor(area.ring.length / 2);
+    if (
+      n > 3 &&
+      Math.abs(area.ring[0]! - area.ring[(n - 1) * 2]!) < 0.05 &&
+      Math.abs(area.ring[1]! - area.ring[(n - 1) * 2 + 1]!) < 0.05
+    ) {
+      n -= 1;
+    }
     if (n < 3) continue;
 
     const contour: THREE.Vector2[] = [];
@@ -291,11 +328,11 @@ function buildBatchedAreasGeometry(
     const tris = THREE.ShapeUtils.triangulateShape(contour, []);
     const [r, g, b] =
       area.kind === 'park'
-        ? [0.24, 0.45, 0.26]
+        ? [0.26, 0.48, 0.28]
         : area.kind === 'water'
-          ? [0.11, 0.25, 0.39]
+          ? [0.12, 0.28, 0.44]
           : [0.68, 0.64, 0.56];
-    const yLift = area.kind === 'water' ? 0.12 : 0.15;
+    const yLift = area.kind === 'water' ? 0.12 : 0.14;
 
     for (const tri of tris) {
       const p0 = contour[tri[0]!]!;
