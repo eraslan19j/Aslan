@@ -1,0 +1,42 @@
+# Dependencies & build output
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+# Reference repos (cloned locally, never committed)
+refs/
+
+# Test & debug artifacts
+smoke.png
+smoke-*.png
+playwright-report/
+test-results/
+*.log
+
+# Android build & local config
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+android/.idea/
+*.iml
+
+# Secrets & signing keys (NEVER commit)
+*.keystore
+*.jks
+*.p12
+*.pem
+keystore.properties
+.env
+.env.*
+!.env.example
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
