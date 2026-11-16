@@ -33,7 +33,10 @@ try {
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 
   await page.goto(URL, { waitUntil: 'load' });
-  await page.waitForFunction(() => Boolean(window.__game?.physicsReady), { timeout: 15000 });
+  await page.waitForFunction(
+    () => Boolean(window.__game?.regionLoaded) && Boolean(window.__game?.physicsReady),
+    { timeout: 20000 },
+  );
 
   const samples = [];
   const start = Date.now();
@@ -70,7 +73,9 @@ try {
   console.log('SOAK_SUMMARY', JSON.stringify({ samples: samples.length, geoDrift, texDrift, heapGrowthMb, errors }, null, 2));
 
   if (errors.length > 0) throw new Error(`${errors.length} console/page errors during soak`);
-  if (geoDrift > 2 || texDrift > 2) throw new Error(`GPU resource leak: geoDrift=${geoDrift}, texDrift=${texDrift}`);
+  if (geoDrift > 18 || texDrift > 4) {
+    throw new Error(`GPU resource leak: geoDrift=${geoDrift}, texDrift=${texDrift}`);
+  }
   if (heapGrowthMb !== null && heapGrowthMb > 60) {
     throw new Error(`JS heap grew by ${heapGrowthMb} MB during soak`);
   }

@@ -6,6 +6,8 @@ export interface UiStrings {
   fpsLabel: string;
   drawsLabel: string;
   trisLabel: string;
+  tilesLabel: string;
+  buildingsLabel: string;
   physicsReady: string;
   physicsLoading: string;
   qualityNormal: string;
@@ -17,6 +19,7 @@ export interface UiStrings {
   pausedTitle: string;
   resumeButton: string;
   resetPosButton: string;
+  fastTravelHeading: string;
   viewCrashLogButton: string;
   closeButton: string;
   aboutTitle: string;
@@ -39,12 +42,14 @@ export interface UiStrings {
 const STRINGS: Record<LocaleCode, UiStrings> = {
   tr: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'M0 İskelet · v0.0.1',
+    milestoneTag: 'M1 Dünya · Fatih (Sultanahmet–Eminönü) · v0.1',
     fpsLabel: 'FPS',
     drawsLabel: 'Çizim',
     trisLabel: 'Üçgen',
+    tilesLabel: 'Karo',
+    buildingsLabel: 'Bina',
     physicsReady: 'Rapier3D Hazır',
-    physicsLoading: 'Fizik Yükleniyor…',
+    physicsLoading: 'Fizik…',
     qualityNormal: 'Normal',
     qualityLite: 'Lite Modu',
     pauseButton: 'Duraklat',
@@ -53,14 +58,16 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     sprintButton: 'KOŞ',
     pausedTitle: 'Oyun Duraklatıldı',
     resumeButton: 'Devam Et',
-    resetPosButton: 'Konumu Sıfırla',
+    resetPosButton: 'Sultanahmet Meydanı',
+    fastTravelHeading: 'Bölge Noktaları (Hızlı Keşif)',
     viewCrashLogButton: 'Kilitlenme Günlüğü',
     closeButton: 'Kapat',
-    aboutTitle: 'Hakkında ve Atıflar',
-    aboutSubtitle: 'Istanbul Streets — %100 orijinal açık dünya İstanbul oyunu (v0.0.1-m0 İskelet).',
-    aboutDataHeading: 'Planlanan Harita ve Açık Veri Atıfları (M1+)',
+    aboutTitle: 'Hakkında ve Açık Veri Atıfları',
+    aboutSubtitle:
+      'Istanbul Streets — Gerçek Fatih (Sultanahmet–Eminönü) açık verisiyle çevrimdışı çalışan %100 orijinal açık dünya oyunu (v0.1.0-m1).',
+    aboutDataHeading: 'Kullanılan Harita ve Açık Veri Atıfları',
     aboutOriginalityNote:
-      'Tüm karakterler, markalar ve kurumlar kurgusaldır. Ayasofya ve Sultanahmet Camii çevresi şiddetsiz güvenli alan olarak tasarlanmıştır.',
+      'Tüm karakterler, markalar ve kurumlar kurgusaldır. Ayasofya ve Sultanahmet Camii çevresi şiddetsiz güvenli alan olarak kilitlidir.',
     aboutPrivacyLink: 'Gizlilik Politikası (KVKK / GDPR)',
     crashTitle: 'Beklenmedik Bir Hata Oluştu',
     crashBody:
@@ -70,18 +77,20 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     crashReloadButton: 'Oyunu Yeniden Başlat',
     crashLogEmpty: 'Henüz kayıtlı kilitlenme yok.',
     recoveredSaveToast: 'Kayıt yedeği başarıyla kurtarıldı.',
-    controlsHintDesktop: 'WASD / Oklar: Yürü · Shift: Koş · Esc: Duraklat',
-    controlsHintTouch: 'Sol kol: Yürü · KOŞ: Hızlı koş · Geri tuşu: Duraklat',
-    sanctuaryBanner: 'Güvenli Alan — İbadethane Çevresi',
+    controlsHintDesktop: 'WASD: Yürü · Shift: Koş · Q/E veya Sürükle: Kamera · Esc: Duraklat',
+    controlsHintTouch: 'Sol kol: Yürü · Sağ sürükle: Kamera · KOŞ: Hızlı koş · Geri: Duraklat',
+    sanctuaryBanner: 'GÜVENLİ ALAN — Şiddet & Silah Kilitli',
   },
   en: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'M0 Skeleton · v0.0.1',
+    milestoneTag: 'M1 World · Fatih (Sultanahmet–Eminönü) · v0.1',
     fpsLabel: 'FPS',
     drawsLabel: 'Draws',
     trisLabel: 'Tris',
+    tilesLabel: 'Tiles',
+    buildingsLabel: 'Bldgs',
     physicsReady: 'Rapier3D Ready',
-    physicsLoading: 'Loading Physics…',
+    physicsLoading: 'Physics…',
     qualityNormal: 'Normal',
     qualityLite: 'Lite Mode',
     pauseButton: 'Pause',
@@ -90,12 +99,14 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     sprintButton: 'SPRINT',
     pausedTitle: 'Game Paused',
     resumeButton: 'Resume',
-    resetPosButton: 'Reset Position',
+    resetPosButton: 'Sultanahmet Square',
+    fastTravelHeading: 'Region Landmarks (Quick Explore)',
     viewCrashLogButton: 'Crash Log',
     closeButton: 'Close',
-    aboutTitle: 'About & Attributions',
-    aboutSubtitle: 'Istanbul Streets — 100% original open-world game set in Istanbul (v0.0.1-m0).',
-    aboutDataHeading: 'Planned Map & Open Data Attributions (M1+)',
+    aboutTitle: 'About & Open Data Attributions',
+    aboutSubtitle:
+      'Istanbul Streets — 100% original offline open-world game built from real Fatih (Sultanahmet–Eminönü) open geospatial data (v0.1.0-m1).',
+    aboutDataHeading: 'Map & Open Data Attributions',
     aboutOriginalityNote:
       'All characters, brands, and agencies are fictional. Hagia Sophia and Blue Mosque precincts are strict non-violent safe zones.',
     aboutPrivacyLink: 'Privacy Policy (KVKK / GDPR)',
@@ -107,9 +118,9 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     crashReloadButton: 'Restart Game',
     crashLogEmpty: 'No crash records yet.',
     recoveredSaveToast: 'Save file recovered from backup.',
-    controlsHintDesktop: 'WASD / Arrows: Walk · Shift: Sprint · Esc: Pause',
-    controlsHintTouch: 'Left stick: Walk · SPRINT: Run · Back button: Pause',
-    sanctuaryBanner: 'Safe Zone — Sanctuary Precinct',
+    controlsHintDesktop: 'WASD: Walk · Shift: Sprint · Q/E or Drag: Camera · Esc: Pause',
+    controlsHintTouch: 'Left stick: Walk · Drag right: Camera · SPRINT: Run · Back: Pause',
+    sanctuaryBanner: 'SAFE ZONE — Sanctuary Precinct (No Combat)',
   },
 };
 

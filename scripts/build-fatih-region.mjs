@@ -402,7 +402,7 @@ async function main() {
     }
     if (pts.length < 2) continue;
 
-    // Match iconic landmarks by OSM way name to refine centroid coordinates
+    // Match iconic landmarks by OSM way name only when within 150m of reference seed
     if (tags.name) {
       for (const seed of LANDMARK_SEEDS) {
         if (!osmMatchedLandmarks.has(seed.id) && seed.match.test(tags.name)) {
@@ -414,9 +414,13 @@ async function main() {
           }
           const cx = sx / pts.length;
           const cz = sz / pts.length;
-          const lon = ORIGIN.lon + (cx / (EARTH_RADIUS * Math.cos(ORIGIN.lat * DEG_TO_RAD))) * (180 / Math.PI);
-          const lat = ORIGIN.lat - (cz / EARTH_RADIUS) * (180 / Math.PI);
-          osmMatchedLandmarks.set(seed.id, { x: round1(cx), z: round1(cz), lon, lat });
+          const seedLocal = lonLatToLocal(seed.lon, seed.lat);
+          if (Math.hypot(cx - seedLocal.x, cz - seedLocal.z) <= 150) {
+            const lon =
+              ORIGIN.lon + (cx / (EARTH_RADIUS * Math.cos(ORIGIN.lat * DEG_TO_RAD))) * (180 / Math.PI);
+            const lat = ORIGIN.lat - (cz / EARTH_RADIUS) * (180 / Math.PI);
+            osmMatchedLandmarks.set(seed.id, { x: round1(cx), z: round1(cz), lon, lat });
+          }
         }
       }
     }

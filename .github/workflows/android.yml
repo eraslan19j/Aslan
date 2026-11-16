@@ -78,12 +78,13 @@ jobs:
           echo "Detected orientation line: ${ORIENTATION}"
           echo "$ORIENTATION" | grep -qE "0x0*6|sensorLandscape|=6([^0-9]|$)"
           {
-            echo "## Istanbul Streets — M0 Debug APK (Android 16 / API 36)"
+            echo "## Istanbul Streets — M1 Debug APK (Fatih: Sultanahmet–Eminönü, API 36)"
             echo ""
             echo "- **Package:** \`com.istanbulstreets.game\`"
             echo "- **Target SDK:** \`36\` (Android 16) · **Min SDK:** \`24\` (Android 7.0+)"
             echo "- **Orientation:** \`sensorLandscape\` (\`${ORIENTATION}\`)"
             echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
+            echo "- **Region Data:** Real OpenStreetMap (3,661 buildings, 1,924 road edges, T1 tramway) + Copernicus DEM GLO-30 (100% offline 300m tiles)"
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo ""
             echo "### Kurulum (Android Telefon)"
@@ -129,13 +130,13 @@ jobs:
           path: istanbul-streets-release.aab
           if-no-files-found: ignore
 
-      - name: Publish M0 Pre-release APK to GitHub Releases
+      - name: Publish Pre-release APK to GitHub Releases
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.0.1-m0' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0-m1' }}
           target_commitish: ${{ github.sha }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.0.1-m0 (M0 Debug APK - API 36)' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0-m1 (M1 Fatih World Debug APK - API 36)' }}
           body_path: release-notes.md
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |

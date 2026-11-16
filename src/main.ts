@@ -2,11 +2,16 @@ import './styles.css';
 import { CrashLogStore } from './core/crashLog';
 import { mergeControlIntent, type KeyboardInputState } from './core/controls';
 import { FixedStepClock } from './core/gameLoop';
-import { createStarterPhysicsWorld, type StarterPhysicsWorld } from './core/physics';
+import { clamp, distance2D } from './core/math';
+import { ensureRapierReady } from './core/physics';
 import { suggestQualityTier, type QualityTier } from './core/quality';
+import { findSanctuaryZone } from './core/sanctuary';
 import { SaveStore, type SaveData } from './core/save';
+import { FATIH_REGION_ID } from './core/world/geo';
+import { sampleTerrainElevation } from './core/world/terrain';
+import type { LandmarkPin, RegionManifest, TerrainGrid } from './core/world/types';
 import { getStrings } from './i18n/strings';
-import { StarterScene } from './render/StarterScene';
+import { FatihWorldScene } from './render/FatihWorldScene';
 import { installGlobalErrorBoundary } from './runtime/errorBoundary';
 import {
   HybridStorage,
@@ -15,14 +20,20 @@ import {
 } from './runtime/nativeBridge';
 import { HudOverlay } from './ui/HudOverlay';
 
-const APP_VERSION = '0.0.1-m0';
+const APP_VERSION = '0.1.0-m1';
+const WALK_SPEED = 7.2;
+const SPRINT_SPEED = 14.5;
+const PLAYER_RADIUS = 0.7;
 
 interface GameDebugHandle {
   version: string;
+  regionId: string;
+  regionLoaded: boolean;
   paused: boolean;
   qualityTier: QualityTier;
   locale: 'tr' | 'en';
   physicsReady: boolean;
+  sanctuaryId: string | null;
   player: { x: number; y: number; z: number };
   perf: {
     fps: number;
@@ -32,12 +43,15 @@ interface GameDebugHandle {
     geometries: number;
     textures: number;
     pixelRatio: number;
+    loadedTiles: number;
+    activeBuildings: number;
   };
   toggleQuality: () => void;
   toggleLocale: () => void;
   togglePause: () => void;
   openAbout: () => void;
   closeModal: () => void;
+  teleportTo: (x: number, z: number) => void;
   getCrashCount: () => number;
 }
 
@@ -68,7 +82,6 @@ async function bootstrap(): Promise<void> {
   const loaded = saveStore.load();
   const save: SaveData = loaded.data;
 
-  // On first fresh launch without saved preference, auto-suggest Lite on low-spec devices
   if (loaded.source === 'default') {
     const nav = navigator as Navigator & { deviceMemory?: number };
     save.qualityTier = suggestQualityTier(nav.hardwareConcurrency, nav.deviceMemory);
@@ -85,15 +98,50 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  const sceneHost = new StarterScene(container, save.qualityTier);
+  // Load offline Fatih (Sultanahmet - Eminönü) manifest + Copernicus DEM terrain grid
+  const regionBaseUrl = `./regions/${FATIH_REGION_ID}`;
+  const [manifestRes, terrainRes] = await Promise.all([
+    fetch(`${regionBaseUrl}/manifest.json`),
+    fetch(`${regionBaseUrl}/terrain.json`),
+  ]);
+  if (!manifestRes.ok || !terrainRes.ok) {
+    throw new Error(`Failed to load offline region ${FATIH_REGION_ID}`);
+  }
+  const manifest = (await manifestRes.json()) as RegionManifest;
+  const terrain = (await terrainRes.json()) as TerrainGrid;
+
+  const worldScene = new FatihWorldScene(
+    container,
+    manifest,
+    terrain,
+    regionBaseUrl,
+    save.qualityTier,
+  );
   const clock = new FixedStepClock(60, 0.1, 6);
 
-  let physics: StarterPhysicsWorld | null = null;
-  let playerX = 0;
-  let playerY = 1.0;
-  let playerZ = 6;
+  // Start at verified Sultanahmet Square spawn (open space, real Copernicus DEM elevation)
+  let playerX = manifest.spawn.x;
+  let playerZ = manifest.spawn.z;
+  let playerY = sampleTerrainElevation(terrain, playerX, playerZ);
   let velX = 0;
   let velZ = 0;
+  let physicsReady = false;
+
+  // Prime embedded Rapier3D WASM asynchronously so M2 vehicle physics is already warm
+  void ensureRapierReady()
+    .then(() => {
+      physicsReady = true;
+    })
+    .catch((err: unknown) => {
+      crashLog.record({
+        source: 'runtime',
+        message: `Rapier WASM init failed: ${err instanceof Error ? err.message : String(err)}`,
+        version: APP_VERSION,
+      });
+    });
+
+  // Stream initial 300m tiles around Sultanahmet Square immediately
+  worldScene.updateStreaming(playerX, playerZ);
 
   const kb: KeyboardInputState = {
     forward: false,
@@ -102,15 +150,26 @@ async function bootstrap(): Promise<void> {
     right: false,
     sprint: false,
   };
+  let turnLeft = false;
+  let turnRight = false;
 
   const applySave = (): void => {
+    save.activeRegionId = manifest.regionId;
     save.playerPos = { x: playerX, y: playerY, z: playerZ };
     saveStore.save(save);
   };
 
+  const teleportTo = (x: number, z: number): void => {
+    playerX = clamp(x, terrain.minX + 10, terrain.maxX - 10);
+    playerZ = clamp(z, terrain.minZ + 10, terrain.maxZ - 10);
+    playerY = sampleTerrainElevation(terrain, playerX, playerZ);
+    worldScene.updateStreaming(playerX, playerZ);
+    applySave();
+  };
+
   const toggleQuality = (): void => {
     save.qualityTier = save.qualityTier === 'normal' ? 'lite' : 'normal';
-    sceneHost.applyQuality(save.qualityTier);
+    worldScene.applyQuality(save.qualityTier);
     hud.setState(save.locale, save.qualityTier);
     applySave();
     void triggerLightHaptic();
@@ -130,21 +189,6 @@ async function bootstrap(): Promise<void> {
     void triggerLightHaptic();
   };
 
-  const resetPosition = (): void => {
-    if (physics) {
-      physics.resetPlayer(0, 1.2, 6);
-      const p = physics.getPlayerPosition();
-      playerX = p.x;
-      playerY = p.y;
-      playerZ = p.z;
-    } else {
-      playerX = 0;
-      playerY = 1.0;
-      playerZ = 6;
-    }
-    applySave();
-  };
-
   const hud = new HudOverlay(
     container,
     save.locale,
@@ -155,15 +199,42 @@ async function bootstrap(): Promise<void> {
       onToggleQuality: toggleQuality,
       onToggleLocale: toggleLocale,
       onTogglePause: togglePause,
-      onResetPosition: resetPosition,
+      onResetPosition: () => teleportTo(manifest.spawn.x, manifest.spawn.z),
+      onTeleportLandmark: (lm: LandmarkPin) => {
+        // Offset 25m outside mosque footprints while staying inside or beside plaza
+        const offset = lm.kind === 'mosque' ? 38 : 6;
+        teleportTo(lm.x - offset, lm.z + offset * 0.5);
+      },
     },
   );
+  hud.setLandmarks(manifest.landmarks);
 
   if (loaded.recoveredFromCorruption) {
     hud.showToast(getStrings(save.locale).recoveredSaveToast);
   }
 
-  // Keyboard bindings
+  // Right-side / canvas drag rotates third-person camera yaw smoothly
+  let dragPointerId: number | null = null;
+  let lastDragX = 0;
+  const canvas = worldScene.renderer.domElement;
+  canvas.addEventListener('pointerdown', (e) => {
+    dragPointerId = e.pointerId;
+    lastDragX = e.clientX;
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== dragPointerId) return;
+    const dx = e.clientX - lastDragX;
+    lastDragX = e.clientX;
+    worldScene.rotateCameraYaw(-dx * 0.0055);
+  });
+  const endDrag = (e: PointerEvent): void => {
+    if (e.pointerId === dragPointerId) dragPointerId = null;
+  };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  // Keyboard controls
   const setKey = (code: string, down: boolean): void => {
     switch (code) {
       case 'KeyW':
@@ -185,6 +256,12 @@ async function bootstrap(): Promise<void> {
       case 'ShiftLeft':
       case 'ShiftRight':
         kb.sprint = down;
+        break;
+      case 'KeyQ':
+        turnLeft = down;
+        break;
+      case 'KeyE':
+        turnRight = down;
         break;
       default:
         break;
@@ -209,9 +286,10 @@ async function bootstrap(): Promise<void> {
     kb.left = false;
     kb.right = false;
     kb.sprint = false;
+    turnLeft = false;
+    turnRight = false;
   });
 
-  // Android hardware/gesture back button -> Pause menu
   registerBackButtonHandler(() => {
     if (hud.getActiveModal() === 'about' || hud.getActiveModal() === 'crashlog') {
       hud.openModal(paused ? 'pause' : 'none');
@@ -220,40 +298,40 @@ async function bootstrap(): Promise<void> {
     togglePause();
   });
 
-  // Resize handling
   window.addEventListener('resize', () => {
-    sceneHost.resize(window.innerWidth, window.innerHeight);
+    worldScene.resize(window.innerWidth, window.innerHeight);
   });
 
-  // Initialize Rapier3D WASM physics asynchronously (scene renders immediately without blocking)
-  void createStarterPhysicsWorld()
-    .then((world) => {
-      physics = world;
-      const p = world.getPlayerPosition();
-      playerX = p.x;
-      playerY = p.y;
-      playerZ = p.z;
-    })
-    .catch((err: unknown) => {
-      crashLog.record({
-        source: 'runtime',
-        message: `Rapier init failed: ${err instanceof Error ? err.message : String(err)}`,
-        version: APP_VERSION,
-      });
-    });
+  const findNearestLandmarkLabel = (): string => {
+    let best: LandmarkPin | null = null;
+    let bestDist = Infinity;
+    for (const lm of manifest.landmarks) {
+      const d = distance2D(playerX, playerZ, lm.x, lm.z);
+      if (d < bestDist) {
+        bestDist = d;
+        best = lm;
+      }
+    }
+    if (!best) return manifest.nameTr;
+    const name = save.locale === 'tr' ? best.nameTr : best.nameEn;
+    return `${name} · ${Math.round(bestDist)} m`;
+  };
 
-  // Main render & fixed-step simulation loop
   let lastTimeMs = performance.now();
   let fpsSmoothed = 60;
   let frameMsSmoothed = 16.6;
   let lastHudUpdateMs = 0;
+  let lastStreamCheckMs = 0;
 
   const debugHandle: GameDebugHandle = {
     version: APP_VERSION,
+    regionId: manifest.regionId,
+    regionLoaded: true,
     paused: false,
     qualityTier: save.qualityTier,
     locale: save.locale,
     physicsReady: false,
+    sanctuaryId: null,
     player: { x: playerX, y: playerY, z: playerZ },
     perf: {
       fps: 60,
@@ -263,6 +341,8 @@ async function bootstrap(): Promise<void> {
       geometries: 0,
       textures: 0,
       pixelRatio: 1,
+      loadedTiles: 0,
+      activeBuildings: 0,
     },
     toggleQuality,
     toggleLocale,
@@ -272,6 +352,7 @@ async function bootstrap(): Promise<void> {
       paused = false;
       hud.openModal('none');
     },
+    teleportTo,
     getCrashCount: () => crashLog.list().length,
   };
   window.__game = debugHandle;
@@ -282,39 +363,59 @@ async function bootstrap(): Promise<void> {
 
     const frameMs = rawDt * 1000;
     frameMsSmoothed = frameMsSmoothed * 0.9 + frameMs * 0.1;
-    const instantFps = 1 / rawDt;
-    fpsSmoothed = fpsSmoothed * 0.9 + Math.min(240, instantFps) * 0.1;
+    fpsSmoothed = fpsSmoothed * 0.9 + Math.min(240, 1 / rawDt) * 0.1;
 
     if (!paused) {
       const intent = mergeControlIntent(kb, hud.getTouchInput());
-      // Forward input (+Y) moves North (-Z); right input (+X) moves East (+X)
+      const yawTurn = (turnLeft ? 1 : 0) - (turnRight ? 1 : 0);
+
       clock.advance(rawDt, (dt) => {
-        if (physics) {
-          const snap = physics.step(intent.moveX, -intent.moveY, intent.sprint, dt);
-          playerX = snap.x;
-          playerY = snap.y;
-          playerZ = snap.z;
-          velX = snap.vx;
-          velZ = snap.vz;
-        } else {
-          const speed = intent.sprint ? 10 : 6;
-          velX = intent.moveX * speed;
-          velZ = -intent.moveY * speed;
-          playerX = Math.max(-44, Math.min(44, playerX + velX * dt));
-          playerZ = Math.max(-22.5, Math.min(44, playerZ + velZ * dt));
+        if (yawTurn !== 0) {
+          worldScene.rotateCameraYaw(yawTurn * 2.1 * dt);
         }
+
+        const speed = intent.sprint ? SPRINT_SPEED : WALK_SPEED;
+        const yaw = worldScene.getCameraYaw();
+        // Camera forward = (-sin(yaw), -cos(yaw)); camera right = (cos(yaw), -sin(yaw))
+        const fwdX = -Math.sin(yaw);
+        const fwdZ = -Math.cos(yaw);
+        const rightX = Math.cos(yaw);
+        const rightZ = -Math.sin(yaw);
+
+        velX = (rightX * intent.moveX + fwdX * intent.moveY) * speed;
+        velZ = (rightZ * intent.moveX + fwdZ * intent.moveY) * speed;
+
+        let nextX = clamp(playerX + velX * dt, terrain.minX + 8, terrain.maxX - 8);
+        let nextZ = clamp(playerZ + velZ * dt, terrain.minZ + 8, terrain.maxZ - 8);
+
+        // Resolve against real streamed OSM building footprints
+        const resolved = worldScene.spatialGrid.resolveCircle(nextX, nextZ, PLAYER_RADIUS);
+        nextX = resolved.x;
+        nextZ = resolved.z;
+
+        playerX = nextX;
+        playerZ = nextZ;
+        playerY = sampleTerrainElevation(terrain, playerX, playerZ);
       });
 
-      sceneHost.updateVisuals(playerX, playerY, playerZ, velX, velZ, Math.min(rawDt, 0.05));
+      if (nowMs - lastStreamCheckMs >= 450) {
+        lastStreamCheckMs = nowMs;
+        worldScene.updateStreaming(playerX, playerZ);
+      }
+
+      worldScene.updateVisuals(playerX, playerY, playerZ, velX, velZ, Math.min(rawDt, 0.05));
     }
 
-    sceneHost.render();
+    worldScene.render();
 
-    const tel = sceneHost.getTelemetry();
+    const tel = worldScene.getTelemetry();
+    const activeSanctuary = findSanctuaryZone(playerX, playerZ, manifest.sanctuaryZones);
+
     debugHandle.paused = paused;
     debugHandle.qualityTier = save.qualityTier;
     debugHandle.locale = save.locale;
-    debugHandle.physicsReady = physics !== null;
+    debugHandle.physicsReady = physicsReady;
+    debugHandle.sanctuaryId = activeSanctuary?.id ?? null;
     debugHandle.player = { x: playerX, y: playerY, z: playerZ };
     debugHandle.perf = {
       fps: fpsSmoothed,
@@ -324,6 +425,8 @@ async function bootstrap(): Promise<void> {
       geometries: tel.geometries,
       textures: tel.textures,
       pixelRatio: tel.pixelRatio,
+      loadedTiles: tel.loadedTiles,
+      activeBuildings: tel.activeBuildings,
     };
 
     if (nowMs - lastHudUpdateMs >= 250) {
@@ -332,8 +435,16 @@ async function bootstrap(): Promise<void> {
         fps: fpsSmoothed,
         drawCalls: tel.drawCalls,
         triangles: tel.triangles,
-        physicsReady: physics !== null,
+        loadedTiles: tel.loadedTiles,
+        activeBuildings: tel.activeBuildings,
+        physicsReady,
         qualityTier: save.qualityTier,
+        nearestLandmarkLabel: findNearestLandmarkLabel(),
+        sanctuaryLabel: activeSanctuary
+          ? save.locale === 'tr'
+            ? activeSanctuary.nameTr
+            : activeSanctuary.nameEn
+          : null,
       });
     }
 

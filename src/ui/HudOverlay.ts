@@ -2,14 +2,19 @@ import type { CrashLogStore } from '../core/crashLog';
 import type { TouchStickInput } from '../core/controls';
 import type { QualityTier } from '../core/quality';
 import type { LocaleCode } from '../core/save';
+import type { LandmarkPin } from '../core/world/types';
 import { getStrings } from '../i18n/strings';
 
 export interface HudTelemetryView {
   fps: number;
   drawCalls: number;
   triangles: number;
+  loadedTiles: number;
+  activeBuildings: number;
   physicsReady: boolean;
   qualityTier: QualityTier;
+  nearestLandmarkLabel: string;
+  sanctuaryLabel: string | null;
 }
 
 export interface HudCallbacks {
@@ -17,6 +22,7 @@ export interface HudCallbacks {
   onToggleLocale: () => void;
   onTogglePause: () => void;
   onResetPosition: () => void;
+  onTeleportLandmark: (landmark: LandmarkPin) => void;
 }
 
 type ActiveModal = 'none' | 'pause' | 'about' | 'crashlog';
@@ -31,6 +37,7 @@ export class HudOverlay {
   private readonly titleEl: HTMLDivElement;
   private readonly subEl: HTMLDivElement;
   private readonly perfRowEl: HTMLDivElement;
+  private readonly locationRowEl: HTMLDivElement;
   private readonly hintEl: HTMLDivElement;
 
   private readonly qualityBtn: HTMLButtonElement;
@@ -46,6 +53,7 @@ export class HudOverlay {
   private readonly touchState: TouchStickInput = { x: 0, y: 0, sprint: false };
   private readonly callbacks: HudCallbacks;
   private readonly crashLog: CrashLogStore;
+  private landmarks: LandmarkPin[] = [];
 
   constructor(
     container: HTMLElement,
@@ -61,7 +69,6 @@ export class HudOverlay {
     this.crashLog = crashLog;
     this.callbacks = callbacks;
 
-    // Main HUD overlay
     this.root = document.createElement('div');
     this.root.className = 'hud-root';
 
@@ -81,7 +88,11 @@ export class HudOverlay {
     this.perfRowEl.className = 'perf-row';
     this.perfRowEl.dataset.testid = 'perf-telemetry';
 
-    brandCard.append(this.titleEl, this.subEl, this.perfRowEl);
+    this.locationRowEl = document.createElement('div');
+    this.locationRowEl.className = 'location-row';
+    this.locationRowEl.dataset.testid = 'location-telemetry';
+
+    brandCard.append(this.titleEl, this.subEl, this.perfRowEl, this.locationRowEl);
 
     const actions = document.createElement('div');
     actions.className = 'hud-actions';
@@ -103,7 +114,6 @@ export class HudOverlay {
 
     this.root.append(topRow, bottomRow);
 
-    // Touch controls layer (coarse pointer or ?touch=1)
     this.touchLayer = document.createElement('div');
     this.touchLayer.className = touchEnabled ? 'touch-layer visible' : 'touch-layer';
 
@@ -123,19 +133,21 @@ export class HudOverlay {
 
     this.touchLayer.append(stickZone, this.sprintBtn);
 
-    // Modal container
     this.modalBackdrop = document.createElement('div');
     this.modalBackdrop.className = 'modal-backdrop';
     this.modalPanel = document.createElement('div');
     this.modalPanel.className = 'modal-panel';
     this.modalBackdrop.append(this.modalPanel);
 
-    // Toast notification
     this.toastEl = document.createElement('div');
     this.toastEl.className = 'toast-banner';
 
     container.append(this.root, this.touchLayer, this.modalBackdrop, this.toastEl);
     this.applyLabels();
+  }
+
+  setLandmarks(landmarks: LandmarkPin[]): void {
+    this.landmarks = landmarks;
   }
 
   private makeButton(testId: string, onClick: () => void): HTMLButtonElement {
@@ -236,7 +248,15 @@ export class HudOverlay {
       `<span class="perf-pill">${t.fpsLabel}: ${Math.round(view.fps)}</span>` +
       `<span class="perf-pill">${t.drawsLabel}: ${view.drawCalls}</span>` +
       `<span class="perf-pill">${t.trisLabel}: ${view.triangles}</span>` +
+      `<span class="perf-pill">${t.tilesLabel}: ${view.loadedTiles}</span>` +
+      `<span class="perf-pill">${t.buildingsLabel}: ${view.activeBuildings}</span>` +
       `<span class="perf-pill ${view.physicsReady ? 'ok' : ''}">${physText}</span>`;
+
+    const sanctuaryHtml = view.sanctuaryLabel
+      ? `<span class="sanctuary-pill" data-testid="sanctuary-banner">${t.sanctuaryBanner} · ${view.sanctuaryLabel}</span>`
+      : '';
+    this.locationRowEl.innerHTML =
+      `<span class="location-pill">${view.nearestLandmarkLabel}</span>${sanctuaryHtml}`;
   }
 
   openModal(modal: ActiveModal): void {
@@ -289,6 +309,24 @@ export class HudOverlay {
 
       actions.append(resumeBtn, resetBtn, aboutBtn, crashBtn);
       this.modalPanel.append(h2, p, actions);
+
+      if (this.landmarks.length > 0) {
+        const ftTitle = document.createElement('div');
+        ftTitle.className = 'fast-travel-title';
+        ftTitle.textContent = t.fastTravelHeading;
+
+        const ftRow = document.createElement('div');
+        ftRow.className = 'modal-actions';
+        for (const lm of this.landmarks) {
+          const btn = this.makeButton(`tp-${lm.id}`, () => {
+            this.callbacks.onTeleportLandmark(lm);
+            this.callbacks.onTogglePause();
+          });
+          btn.textContent = this.locale === 'tr' ? lm.nameTr : lm.nameEn;
+          ftRow.append(btn);
+        }
+        this.modalPanel.append(ftTitle, ftRow);
+      }
       return;
     }
 
@@ -309,10 +347,10 @@ export class HudOverlay {
 
       const list = document.createElement('ul');
       const items = [
-        '© OpenStreetMap contributors (ODbL 1.0)',
-        'Overture Maps Foundation (CDLA Permissive 2.0 / ODbL)',
+        '© OpenStreetMap contributors (ODbL 1.0) — Sultanahmet–Eminönü binaları, yolları ve T1 tramvay hattı',
+        'Copernicus DEM GLO-30 — © DLR e.V. & Airbus Defence and Space GmbH (EU / ESA) — arazi yüksekliği',
         'Kaynak: İBB Açık Veri Portalı (İBB Açık Veri Lisansı)',
-        'Copernicus DEM GLO-30 — © DLR e.V. & Airbus Defence and Space GmbH (EU / ESA)',
+        'Overture Maps Foundation (CDLA Permissive 2.0 / ODbL)',
         'Engine: Three.js (MIT) · Rapier3D (Apache-2.0) · Capacitor (MIT)',
       ];
       for (const text of items) {
