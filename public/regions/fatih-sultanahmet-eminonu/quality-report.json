@@ -1,0 +1,20 @@
+{
+  "generatedAtIso": "2026-11-16T20:22:13.100Z",
+  "regionId": "fatih-sultanahmet-eminonu",
+  "dataSource": "OpenStreetMap Overpass API (ODbL)",
+  "tileCount": 59,
+  "buildingCount": 3661,
+  "heightFromTag": 36,
+  "heightFromLevels": 107,
+  "heightInferred": 3518,
+  "roadSegmentCount": 727,
+  "tramSegmentCount": 6,
+  "roadGraphNodes": 1796,
+  "roadGraphEdges": 1924,
+  "parkCount": 17,
+  "waterCount": 5,
+  "landmarkCount": 8,
+  "elevationSource": "Copernicus DEM GLO-30 (AWS s3://copernicus-dem-30m, N41 E028, smoothed DSM)",
+  "elevationMinMeters": 0,
+  "elevationMaxMeters": 67.2
+}
