@@ -1,0 +1,62 @@
+name: Fetch Real Fatih (Sultanahmet-Eminönü) Offline Data
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'arena/**'
+    paths:
+      - 'scripts/build-fatih-region.mjs'
+      - 'scripts/sample-copernicus-dem.py'
+      - '.github/workflows/fetch-fatih-data.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  harvest-fatih:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python 3.11 + rasterio for Copernicus DEM GLO-30
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install rasterio
+        run: pip install --quiet rasterio
+
+      - name: Sample Copernicus DEM GLO-30 (N41 E028) for Fatih
+        run: |
+          mkdir -p public/regions/fatih-sultanahmet-eminonu
+          python3 scripts/sample-copernicus-dem.py public/regions/fatih-sultanahmet-eminonu/terrain.json || echo "Copernicus DEM download skipped; fallback terrain will be used"
+
+      - name: Fetch OpenStreetMap Overpass & build 300m offline tiles
+        run: node scripts/build-fatih-region.mjs
+
+      - name: Show bundle size & quality report
+        run: |
+          du -sh public/regions/fatih-sultanahmet-eminonu
+          cat public/regions/fatih-sultanahmet-eminonu/quality-report.json
+
+      - name: Commit offline Fatih data pack to current branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/regions/fatih-sultanahmet-eminonu
+          if git diff --cached --quiet; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+          git commit -m "data(m1): harvest real OSM + Copernicus DEM offline tiles for Fatih (Sultanahmet-Eminönü)"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
