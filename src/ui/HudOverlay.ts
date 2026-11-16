@@ -542,11 +542,35 @@ export class HudOverlay {
     }
 
     if (this.activeModal === 'settings') {
+      const snap = this.callbacks.getDiagnostics();
+      const jsonText = formatDiagnosticsJson(snap);
+
+      const header = document.createElement('div');
+      header.className = 'modal-header-row';
+
       const h2 = document.createElement('h2');
       h2.textContent = t.settingsTitle;
 
+      const topActions = document.createElement('div');
+      topActions.className = 'modal-actions modal-actions-tight';
+
+      const copyBtn = this.makeButton('btn-copy-diagnostics', () => {
+        void copyTextSafe(jsonText).then((ok) => {
+          copyBtn.textContent = ok ? t.reportCopied : t.copyReportButton;
+          this.showToast(t.reportCopied);
+        });
+      });
+      copyBtn.classList.add('active');
+      copyBtn.textContent = t.copyReportButton;
+
+      const closeBtn = this.makeButton('modal-close', () => this.openModal('none'));
+      closeBtn.textContent = t.closeButton;
+
+      topActions.append(copyBtn, closeBtn);
+      header.append(h2, topActions);
+
       const ctrlRow = document.createElement('div');
-      ctrlRow.className = 'modal-actions';
+      ctrlRow.className = 'modal-actions modal-actions-tight';
 
       const qualBtn = this.makeButton('settings-quality', () => this.callbacks.onToggleQuality());
       qualBtn.textContent =
@@ -566,7 +590,6 @@ export class HudOverlay {
       diagTitle.className = 'fast-travel-title';
       diagTitle.textContent = t.diagnosticsHeading;
 
-      const snap = this.callbacks.getDiagnostics();
       const grid = document.createElement('div');
       grid.className = 'diag-grid';
       grid.dataset.testid = 'diagnostics-grid';
@@ -597,29 +620,12 @@ export class HudOverlay {
         grid.append(item);
       }
 
-      const jsonText = formatDiagnosticsJson(snap);
       const pre = document.createElement('pre');
       pre.className = 'crash-pre';
       pre.dataset.testid = 'diagnostics-json';
       pre.textContent = jsonText;
 
-      const actions = document.createElement('div');
-      actions.className = 'modal-actions';
-
-      const copyBtn = this.makeButton('btn-copy-diagnostics', () => {
-        void copyTextSafe(jsonText).then((ok) => {
-          copyBtn.textContent = ok ? t.reportCopied : t.copyReportButton;
-          this.showToast(t.reportCopied);
-        });
-      });
-      copyBtn.classList.add('active');
-      copyBtn.textContent = t.copyReportButton;
-
-      const closeBtn = this.makeButton('modal-close', () => this.openModal('none'));
-      closeBtn.textContent = t.closeButton;
-
-      actions.append(copyBtn, closeBtn);
-      this.modalPanel.append(h2, ctrlRow, diagTitle, grid, pre, actions);
+      this.modalPanel.append(header, ctrlRow, diagTitle, grid, pre);
       return;
     }
 

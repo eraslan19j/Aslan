@@ -127,6 +127,7 @@ jobs:
           cp "${GITHUB_WORKSPACE}/qa-out/android/"*.png android/ 2>/dev/null || true
           cp "${GITHUB_WORKSPACE}/qa-out/android/emulator-report.json" android/ 2>/dev/null || true
           cp "${GITHUB_WORKSPACE}/qa-out/android/display-info.txt" android/ 2>/dev/null || true
+          cp "${GITHUB_WORKSPACE}/qa-out/android/logcat-app.txt" android/ 2>/dev/null || true
           # Keep last 2500 lines of logcat so qa-screens stays compact and easy to inspect
           tail -n 2500 "${GITHUB_WORKSPACE}/qa-out/android/logcat.txt" > android/logcat-tail.txt 2>/dev/null || true
           git add -A android

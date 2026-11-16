@@ -15,41 +15,41 @@ export interface BuiltTileGroup {
 }
 
 const PALETTE_HEX: Record<BuildingPalette, number> = {
-  limestone: 0xd9c7a8,
-  terracotta: 0xb97154,
-  ottoman_wood: 0x8d674b,
-  commercial: 0xc4b59f,
-  civic: 0xd4ccbe,
-  landmark: 0xe3d6be,
+  limestone: 0xebe0ce,
+  terracotta: 0xd48e6f,
+  ottoman_wood: 0xc9a378,
+  commercial: 0xd8d2c7,
+  civic: 0xe3dfd7,
+  landmark: 0xf1e8d8,
 };
 
 const ROOF_HEX: Record<BuildingPalette, number> = {
-  limestone: 0x9b5a44,
-  terracotta: 0x8c4734,
-  ottoman_wood: 0x6f3e2e,
-  commercial: 0x76787e,
-  civic: 0x7c848c,
-  landmark: 0x7a8590,
+  limestone: 0xb0664d,
+  terracotta: 0x9e543e,
+  ottoman_wood: 0x87543d,
+  commercial: 0x858991,
+  civic: 0x89929c,
+  landmark: 0x7d8a96,
 };
 
 const ROAD_RGB: Record<RoadClass, [number, number, number]> = {
-  primary: [0.21, 0.22, 0.25],
-  secondary: [0.25, 0.26, 0.29],
-  tertiary: [0.29, 0.3, 0.33],
-  residential: [0.36, 0.36, 0.38],
-  service: [0.42, 0.4, 0.39],
-  pedestrian: [0.56, 0.52, 0.46],
-  tram: [0.76, 0.24, 0.2],
+  primary: [0.17, 0.18, 0.21],
+  secondary: [0.21, 0.22, 0.25],
+  tertiary: [0.25, 0.26, 0.29],
+  residential: [0.29, 0.3, 0.33],
+  service: [0.36, 0.36, 0.38],
+  pedestrian: [0.58, 0.55, 0.49],
+  tram: [0.78, 0.22, 0.18],
 };
 
 const ROAD_LIFT: Record<RoadClass, number> = {
-  tram: 0.42,
-  primary: 0.36,
-  secondary: 0.32,
-  tertiary: 0.28,
-  residential: 0.24,
-  service: 0.2,
-  pedestrian: 0.17,
+  tram: 0.48,
+  primary: 0.42,
+  secondary: 0.38,
+  tertiary: 0.34,
+  residential: 0.3,
+  service: 0.26,
+  pedestrian: 0.23,
 };
 
 function pushTri(
@@ -267,22 +267,23 @@ function buildBatchedRoadsGeometry(
         const yc = sampleTerrainElevation(terrain, cx, cz) + yLift;
         const yd = sampleTerrainElevation(terrain, dxp, dzp) + yLift;
 
+        // Outward upward (+Y) CCW winding: (a, b, c) and (a, c, d)
         pushTri(
           pos, nor, uv, col,
           ax, ya, az,
-          cx, yc, cz,
           bx, yb, bz,
+          cx, yc, cz,
           0, 1, 0,
-          0, 0, 1, 1, 1, 0,
+          0, 0, 1, 0, 1, 1,
           r, g, b,
         );
         pushTri(
           pos, nor, uv, col,
           ax, ya, az,
-          dxp, yd, dzp,
           cx, yc, cz,
+          dxp, yd, dzp,
           0, 1, 0,
-          0, 0, 0, 1, 1, 1,
+          0, 0, 1, 1, 0, 1,
           r, g, b,
         );
       }
@@ -328,11 +329,11 @@ function buildBatchedAreasGeometry(
     const tris = THREE.ShapeUtils.triangulateShape(contour, []);
     const [r, g, b] =
       area.kind === 'park'
-        ? [0.26, 0.48, 0.28]
+        ? [0.27, 0.53, 0.29]
         : area.kind === 'water'
-          ? [0.12, 0.28, 0.44]
-          : [0.68, 0.64, 0.56];
-    const yLift = area.kind === 'water' ? 0.12 : 0.14;
+          ? [0.14, 0.36, 0.54]
+          : [0.68, 0.65, 0.59];
+    const yLift = area.kind === 'water' ? 0.15 : 0.18;
 
     for (const tri of tris) {
       const p0 = contour[tri[0]!]!;

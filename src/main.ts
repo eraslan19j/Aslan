@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import './styles.css';
 import { CrashLogStore } from './core/crashLog';
 import { mergeControlIntent, type KeyboardInputState } from './core/controls';
@@ -109,6 +110,8 @@ declare global {
 function detectTouchUi(params: URLSearchParams): boolean {
   if (params.get('touch') === '1') return true;
   if (params.get('touch') === '0') return false;
+  if (Capacitor.isNativePlatform()) return true;
+  if ((navigator.maxTouchPoints ?? 0) > 0) return true;
   return window.matchMedia?.('(pointer: coarse)').matches ?? false;
 }
 
@@ -244,6 +247,19 @@ async function bootstrap(): Promise<void> {
     });
 
   runtime.scene.updateStreaming(playerX, playerZ);
+  console.info(
+    'ISTANBUL_BOOT',
+    JSON.stringify({
+      version: APP_VERSION,
+      regionId: activeRegionId,
+      qualityTier: save.qualityTier,
+      touchUi,
+      viewport: `${window.innerWidth}x${window.innerHeight}`,
+      canvas: `${runtime.scene.renderer.domElement.width}x${runtime.scene.renderer.domElement.height}`,
+      glError: runtime.scene.renderer.getContext().getError(),
+      gpu: runtime.scene.getGpuInfo(),
+    }),
+  );
 
   const kb: KeyboardInputState = {
     forward: false,

@@ -5,6 +5,10 @@ mkdir -p qa-out/android
 APK="android/app/build/outputs/apk/debug/app-debug.apk"
 PKG="com.istanbulstreets.game"
 
+echo "Suppressing Android first-run immersive confirmation overlay..."
+adb shell settings put secure immersive_mode_confirmations confirmed || true
+adb shell settings put global policy_control immersive.full=* || true
+
 echo "Installing APK: ${APK}"
 adb logcat -c || true
 adb install -r "${APK}"
@@ -30,26 +34,27 @@ W=$(echo "${DIMS}" | awk '{print $1}')
 H=$(echo "${DIMS}" | awk '{print $2}')
 echo "Captured emulator screencap dimensions: ${W}x${H}"
 
-# Simulate virtual left-side joystick swipe (walk) and right-side tap
-STICK_X=$((W * 10 / 100))
-STICK_Y=$((H * 80 / 100))
-STICK_TO_X=$((W * 15 / 100))
-STICK_TO_Y=$((H * 70 / 100))
-adb shell input swipe "${STICK_X}" "${STICK_Y}" "${STICK_TO_X}" "${STICK_TO_Y}" 900 || true
+# Simulate virtual left-side joystick swipe (walk forward-right)
+STICK_X=$((W * 8 / 100))
+STICK_Y=$((H * 82 / 100))
+STICK_TO_X=$((W * 13 / 100))
+STICK_TO_Y=$((H * 72 / 100))
+adb shell input swipe "${STICK_X}" "${STICK_Y}" "${STICK_TO_X}" "${STICK_TO_Y}" 1100 || true
 sleep 3
 adb exec-out screencap -p > qa-out/android/emulator_02_after_joystick.png
 
-# Simulate Android Hardware Back button -> should open Pause modal (NOT exit)
+# Simulate Android Hardware Back button -> should open Pause modal (NOT exit app)
 adb shell input keyevent 4 || true
 sleep 3
 adb exec-out screencap -p > qa-out/android/emulator_03_pause_back.png
 
-# Verify our app process is still alive (Back key did NOT crash or exit the app)
+# Verify app process is still alive after Back key
 ALIVE=$(adb shell pidof "${PKG}" || true)
 echo "App PID after Back key: ${ALIVE:-NONE}"
 
-# Dump logcat for crash / ANR / Chromium console error inspection
+# Dump full logcat + compact app-focused logcat for WebGL/Chromium/Capacitor inspection
 adb logcat -d -v time > qa-out/android/logcat.txt || true
+grep -iE "ISTANBUL_BOOT|istanbulstreets|chromium|Capacitor|WebView|WebGL|THREE|FATAL EXCEPTION|ANR in|AndroidRuntime" qa-out/android/logcat.txt > qa-out/android/logcat-app.txt || true
 
 node - "${ALIVE}" <<'NODE'
 const fs = require('node:fs');
@@ -66,6 +71,7 @@ const anrs = lines.filter((l) => /ANR in com\.istanbulstreets/i.test(l)).slice(0
 const chromiumErrors = lines
   .filter((l) => /chromium/i.test(l) && /(CONSOLE.*ERROR|Uncaught|TypeError|ReferenceError|SyntaxError)/i.test(l))
   .slice(0, 30);
+const bootLines = lines.filter((l) => /ISTANBUL_BOOT/i.test(l)).slice(0, 5);
 
 const checkImg = (file) => {
   const p = PNG.sync.read(fs.readFileSync(file));
@@ -102,6 +108,7 @@ const report = {
   fatalCount: fatals.length,
   anrCount: anrs.length,
   chromiumErrorCount: chromiumErrors.length,
+  bootLines,
   fatals,
   anrs,
   chromiumErrors,

@@ -1,5 +1,7 @@
 package com.istanbulstreets.game;
 
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Display;
@@ -13,6 +15,8 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
+    private static final int DARK_BG = Color.parseColor("#0D1324");
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -20,13 +24,25 @@ public class MainActivity extends BridgeActivity {
         Window window = getWindow();
         // Keep the screen awake during active play
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        window.setBackgroundDrawable(new ColorDrawable(DARK_BG));
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.setNavigationBarColor(Color.TRANSPARENT);
 
-        // Allow drawing into display cutout areas in landscape immersive mode
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        // Extend edge-to-edge into display cutout areas in landscape immersive mode (no white cutout bar)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowManager.LayoutParams lp = window.getAttributes();
+            lp.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS;
+            window.setAttributes(lp);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             WindowManager.LayoutParams lp = window.getAttributes();
             lp.layoutInDisplayCutoutMode =
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
             window.setAttributes(lp);
+        }
+
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            this.bridge.getWebView().setBackgroundColor(DARK_BG);
         }
 
         requestHighRefreshRate(window);
@@ -44,6 +60,7 @@ public class MainActivity extends BridgeActivity {
     private void applyImmersiveFullscreen(Window window) {
         WindowCompat.setDecorFitsSystemWindows(window, false);
         View decorView = window.getDecorView();
+        decorView.setBackgroundColor(DARK_BG);
         WindowInsetsControllerCompat controller =
             WindowCompat.getInsetsController(window, decorView);
         if (controller != null) {

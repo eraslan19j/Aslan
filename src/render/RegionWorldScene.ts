@@ -45,12 +45,13 @@ function createFacadeTexture(): THREE.CanvasTexture {
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    ctx.fillStyle = '#eceae4';
+    ctx.fillStyle = '#f3f0ea';
     ctx.fillRect(0, 0, 256, 256);
 
-    ctx.fillStyle = 'rgba(0,0,0,0.06)';
-    for (let y = 0; y < 256; y += 32) {
-      ctx.fillRect(0, y, 256, 2);
+    // Subtle horizontal floor cornice lines
+    ctx.fillStyle = 'rgba(60,55,50,0.08)';
+    for (let y = 0; y < 256; y += 64) {
+      ctx.fillRect(0, y, 256, 3);
     }
 
     const rng = createRng(34011);
@@ -61,15 +62,19 @@ function createFacadeTexture(): THREE.CanvasTexture {
     for (let r = 0; r < rows; r += 1) {
       for (let c = 0; c < cols; c += 1) {
         // Keep top-left corner clean for roof UVs (0.02, 0.02)
-        const wx = c * cellW + 15;
-        const wy = r * cellH + 15;
-        const ww = cellW - 30;
-        const wh = cellH - 28;
-        ctx.fillStyle = '#534b44';
+        const wx = c * cellW + 14;
+        const wy = r * cellH + 14;
+        const ww = cellW - 28;
+        const wh = cellH - 26;
+        // Crisp light window frame + daytime reflective sky-blue/slate glass
+        ctx.fillStyle = '#d4cec4';
         ctx.fillRect(wx - 2, wy - 2, ww + 4, wh + 4);
-        const lit = rng.next() < 0.42;
-        ctx.fillStyle = lit ? '#f8d78c' : '#3d495b';
+        const roll = rng.next();
+        ctx.fillStyle = roll < 0.35 ? '#7c9ab8' : roll < 0.72 ? '#59748f' : '#8ea6ba';
         ctx.fillRect(wx, wy, ww, wh);
+        // Subtle window mullion
+        ctx.fillStyle = 'rgba(240,240,240,0.45)';
+        ctx.fillRect(wx + ww * 0.48, wy, 2, wh);
       }
     }
   }
@@ -95,9 +100,9 @@ function createWindowEmissiveTexture(): THREE.CanvasTexture {
     const cellH = 256 / rows;
     for (let r = 0; r < rows; r += 1) {
       for (let c = 0; c < cols; c += 1) {
-        if (rng.next() < 0.42) {
-          ctx.fillStyle = '#ffcf70';
-          ctx.fillRect(c * cellW + 16, r * cellH + 16, cellW - 32, cellH - 30);
+        if (rng.next() < 0.45) {
+          ctx.fillStyle = '#ffd17a';
+          ctx.fillRect(c * cellW + 14, r * cellH + 14, cellW - 28, cellH - 26);
         }
       }
     }
@@ -117,16 +122,17 @@ function createSkyTexture(mode: TimeOfDay): THREE.CanvasTexture {
   if (ctx) {
     const grad = ctx.createLinearGradient(0, 0, 0, 256);
     if (mode === 'day') {
-      grad.addColorStop(0.0, '#13254a');
-      grad.addColorStop(0.36, '#3b507f');
-      grad.addColorStop(0.66, '#c76c58');
-      grad.addColorStop(0.84, '#f29e54');
-      grad.addColorStop(1.0, '#f9d892');
+      // Bright Mediterranean Istanbul afternoon sky harmonizing seamlessly with horizon fog
+      grad.addColorStop(0.0, '#3a7ec2');
+      grad.addColorStop(0.32, '#6caee3');
+      grad.addColorStop(0.62, '#a7d2f0');
+      grad.addColorStop(0.84, '#d3e5f0');
+      grad.addColorStop(1.0, '#e6e4d8');
     } else {
-      grad.addColorStop(0.0, '#040814');
-      grad.addColorStop(0.45, '#0b1530');
-      grad.addColorStop(0.78, '#1a2748');
-      grad.addColorStop(1.0, '#2e3352');
+      grad.addColorStop(0.0, '#050a18');
+      grad.addColorStop(0.45, '#0d1936');
+      grad.addColorStop(0.78, '#1a2a4c');
+      grad.addColorStop(1.0, '#2a3554');
     }
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 32, 256);
@@ -173,6 +179,7 @@ export class RegionWorldScene {
   private readonly disposableGeometries: THREE.BufferGeometry[] = [];
   private readonly disposableMaterials: THREE.Material[] = [];
   private readonly disposableTextures: THREE.Texture[] = [];
+  private readonly resizeObserver: ResizeObserver | null;
 
   private qualityTier: QualityTier;
   private timeOfDay: TimeOfDay;
@@ -209,6 +216,18 @@ export class RegionWorldScene {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setSize(container.clientWidth || 1280, container.clientHeight || 720);
     container.appendChild(this.renderer.domElement);
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver((entries) => {
+        const rect = entries[0]?.contentRect;
+        if (rect && rect.width > 0 && rect.height > 0 && !this.disposed) {
+          this.resize(rect.width, rect.height);
+        }
+      });
+      this.resizeObserver.observe(container);
+    } else {
+      this.resizeObserver = null;
+    }
 
     this.scene = new THREE.Scene();
     this.daySkyTex = createSkyTexture('day');
@@ -343,12 +362,13 @@ export class RegionWorldScene {
         pos.setY(idx, elev);
         const t = (elev - minM) / spanM;
         if (this.regionMeta.hasCoastalSea && elev < 1.2) {
-          baseColor.setHex(0x8a7d68);
+          baseColor.setHex(0x8c877c);
         } else if (this.regionMeta.character === 'residential-hillside') {
-          // Urban asphalt-beige base transitioning to greener high ridges
-          baseColor.setRGB(0.49 + t * 0.08, 0.47 + t * 0.09, 0.43 + t * 0.05);
+          // Cool Istanbul concrete/sidewalk tone transitioning to soft green upper ridges
+          baseColor.setRGB(0.56 + t * 0.05, 0.57 + t * 0.08, 0.54 + t * 0.03);
         } else {
-          baseColor.setRGB(0.56 + t * 0.06, 0.52 + t * 0.06, 0.44 + t * 0.04);
+          // Warm Sultanahmet paving-stone tone
+          baseColor.setRGB(0.64 + t * 0.05, 0.61 + t * 0.05, 0.54 + t * 0.03);
         }
         colors[idx * 3] = baseColor.r;
         colors[idx * 3 + 1] = baseColor.g;
@@ -505,11 +525,14 @@ export class RegionWorldScene {
       } else if (lm.kind === 'mosque') {
         addMosque(lm, 9.5, 1);
       } else if (lm.id === 'hipodrom') {
-        const baseY = sampleTerrainElevation(this.terrain, lm.x, lm.z);
+        // Offset slightly along the Hippodrome axis so it frames Sultanahmet Square without blocking spawn camera
+        const ox = lm.x - 16;
+        const oz = lm.z - 22;
+        const baseY = sampleTerrainElevation(this.terrain, ox, oz);
         const obGeo = new THREE.CylinderGeometry(0.85, 1.55, 22, 4);
         this.disposableGeometries.push(obGeo);
         const ob = new THREE.Mesh(obGeo, obeliskMat);
-        ob.position.set(lm.x, baseY + 11, lm.z);
+        ob.position.set(ox, baseY + 11, oz);
         ob.rotation.y = Math.PI / 4;
         this.scene.add(ob);
       } else if (lm.id === 'eminonu-iskele') {
@@ -547,13 +570,13 @@ export class RegionWorldScene {
 
   private buildAvatar(): THREE.Group {
     const group = new THREE.Group();
-    const jacketMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.65 });
-    const headMat = new THREE.MeshStandardMaterial({ color: 0xe2b89b, roughness: 0.7 });
-    const accentMat = new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.5 });
+    const jacketMat = new THREE.MeshStandardMaterial({ color: 0x2b5a94, roughness: 0.58 });
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xe6be9e, roughness: 0.65 });
+    const accentMat = new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.45 });
 
     const bodyGeo = new THREE.CapsuleGeometry(0.32, 0.78, 4, 8);
     const headGeo = new THREE.SphereGeometry(0.24, 10, 10);
-    const scarfGeo = new THREE.BoxGeometry(0.18, 0.14, 0.44);
+    const scarfGeo = new THREE.BoxGeometry(0.42, 0.16, 0.34);
     this.disposableGeometries.push(bodyGeo, headGeo, scarfGeo);
     this.disposableMaterials.push(jacketMat, headMat, accentMat);
 
@@ -566,7 +589,7 @@ export class RegionWorldScene {
     head.castShadow = true;
 
     const collar = new THREE.Mesh(scarfGeo, accentMat);
-    collar.position.set(0, 1.15, 0.25);
+    collar.position.set(0, 1.18, 0.14);
 
     group.add(torso, head, collar);
     return group;
@@ -575,39 +598,47 @@ export class RegionWorldScene {
   private buildPlayerTaxi(): THREE.Group {
     const group = new THREE.Group();
     const taxiMat = new THREE.MeshStandardMaterial({
-      color: 0xf5b800,
-      roughness: 0.36,
-      metalness: 0.28,
+      color: 0xf7bd00,
+      roughness: 0.34,
+      metalness: 0.22,
     });
     const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x162234,
+      color: 0x3b6588,
       roughness: 0.18,
-      metalness: 0.6,
+      metalness: 0.48,
     });
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.9 });
+    const roofMat = new THREE.MeshStandardMaterial({
+      color: 0xf7bd00,
+      roughness: 0.36,
+      metalness: 0.2,
+    });
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x161920, roughness: 0.88 });
     const signMat = new THREE.MeshStandardMaterial({
-      color: 0xfff7cc,
+      color: 0xfff8d2,
       emissive: 0xf5b800,
-      emissiveIntensity: 0.55,
+      emissiveIntensity: 0.65,
     });
 
     const bodyGeo = new THREE.BoxGeometry(1.88, 0.66, 4.3);
-    const cabinGeo = new THREE.BoxGeometry(1.58, 0.56, 2.25);
-    const signGeo = new THREE.BoxGeometry(0.66, 0.2, 0.26);
-    const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.26, 12);
+    const cabinGeo = new THREE.BoxGeometry(1.56, 0.52, 2.22);
+    const roofGeo = new THREE.BoxGeometry(1.58, 0.1, 2.18);
+    const signGeo = new THREE.BoxGeometry(0.68, 0.22, 0.28);
+    const wheelGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.28, 12);
     wheelGeo.rotateZ(Math.PI / 2);
-    const lampGeo = new THREE.BoxGeometry(0.34, 0.16, 0.08);
-    this.disposableGeometries.push(bodyGeo, cabinGeo, signGeo, wheelGeo, lampGeo);
-    this.disposableMaterials.push(taxiMat, glassMat, wheelMat, signMat);
+    const lampGeo = new THREE.BoxGeometry(0.36, 0.17, 0.08);
+    this.disposableGeometries.push(bodyGeo, cabinGeo, roofGeo, signGeo, wheelGeo, lampGeo);
+    this.disposableMaterials.push(taxiMat, glassMat, roofMat, wheelMat, signMat);
 
     const body = new THREE.Mesh(bodyGeo, taxiMat);
-    body.position.y = 0.62;
+    body.position.y = 0.66;
     body.castShadow = true;
     const cabin = new THREE.Mesh(cabinGeo, glassMat);
-    cabin.position.set(0, 1.18, -0.15);
+    cabin.position.set(0, 1.2, -0.15);
+    const roofCap = new THREE.Mesh(roofGeo, roofMat);
+    roofCap.position.set(0, 1.48, -0.15);
     const roofSign = new THREE.Mesh(signGeo, signMat);
-    roofSign.position.set(0, 1.54, -0.1);
-    group.add(body, cabin, roofSign);
+    roofSign.position.set(0, 1.62, -0.1);
+    group.add(body, cabin, roofCap, roofSign);
 
     const wheelCoords: [number, number][] = [
       [-0.92, 1.32],
@@ -720,29 +751,29 @@ export class RegionWorldScene {
 
   private applyLighting(): void {
     const preset = getQualityPreset(this.qualityTier);
-    const farDist = preset.fogFar + 140;
+    const farDist = preset.fogFar + 180;
     if (this.timeOfDay === 'day') {
       this.scene.background = this.daySkyTex;
-      this.scene.fog = new THREE.Fog(0xd49a74, preset.fogNear * 0.9, farDist);
-      this.hemiLight.color.setHex(0xffdfb0);
-      this.hemiLight.groundColor.setHex(0x3b4863);
-      this.hemiLight.intensity = 0.92;
-      this.sunLight.color.setHex(0xffcb8c);
-      this.sunLight.intensity = 2.05;
-      this.buildingMat.emissiveIntensity = 0.06;
+      this.scene.fog = new THREE.Fog(0xcadfeb, preset.fogNear * 1.15, farDist);
+      this.hemiLight.color.setHex(0xdaf0ff);
+      this.hemiLight.groundColor.setHex(0x6d6a62);
+      this.hemiLight.intensity = 1.15;
+      this.sunLight.color.setHex(0xfff1d8);
+      this.sunLight.intensity = 2.1;
+      this.buildingMat.emissiveIntensity = 0.0;
       this.vehicleHeadLight.intensity = 0;
-      this.renderer.toneMappingExposure = 1.08;
+      this.renderer.toneMappingExposure = 1.12;
     } else {
       this.scene.background = this.nightSkyTex;
-      this.scene.fog = new THREE.Fog(0x0f1a33, preset.fogNear * 0.75, farDist * 0.85);
-      this.hemiLight.color.setHex(0x4b689c);
-      this.hemiLight.groundColor.setHex(0x161b2a);
-      this.hemiLight.intensity = 0.55;
-      this.sunLight.color.setHex(0x9cb8f0);
-      this.sunLight.intensity = 0.85;
-      this.buildingMat.emissiveIntensity = 0.95;
-      this.vehicleHeadLight.intensity = 18;
-      this.renderer.toneMappingExposure = 1.15;
+      this.scene.fog = new THREE.Fog(0x0f1a33, preset.fogNear * 0.85, farDist * 0.9);
+      this.hemiLight.color.setHex(0x5272aa);
+      this.hemiLight.groundColor.setHex(0x1a2030);
+      this.hemiLight.intensity = 0.62;
+      this.sunLight.color.setHex(0xa8c2f4);
+      this.sunLight.intensity = 0.9;
+      this.buildingMat.emissiveIntensity = 1.05;
+      this.vehicleHeadLight.intensity = 20;
+      this.renderer.toneMappingExposure = 1.18;
     }
   }
 
@@ -768,7 +799,7 @@ export class RegionWorldScene {
       const scaleY = a.archetype === 'dolmus' ? 1.35 : 1.0;
       const scaleZ = a.archetype === 'dolmus' ? 1.15 : 1.0;
 
-      this.dummyObj.position.set(a.x, a.y + 0.56 * scaleY, a.z);
+      this.dummyObj.position.set(a.x, a.y + 0.3 + 0.56 * scaleY, a.z);
       this.dummyObj.rotation.set(0, a.heading, 0);
       this.dummyObj.scale.set(1, scaleY, scaleZ);
       this.dummyObj.updateMatrix();
@@ -782,7 +813,7 @@ export class RegionWorldScene {
             : TRAFFIC_COLORS[2 + (a.colorIndex % 3)]!;
       this.trafficChassisInst.setColorAt(i, color);
 
-      this.dummyObj.position.set(a.x, a.y + 1.08 * scaleY, a.z);
+      this.dummyObj.position.set(a.x, a.y + 0.3 + 1.08 * scaleY, a.z);
       this.dummyObj.scale.set(1, scaleY * 0.9, scaleZ * 0.92);
       this.dummyObj.updateMatrix();
       this.trafficCabinInst.setMatrixAt(i, this.dummyObj.matrix);
@@ -807,9 +838,19 @@ export class RegionWorldScene {
   ): void {
     this.elapsed += dt;
 
-    // Update player taxi visual
-    this.playerVehicleGroup.position.set(vehicle.x, vehicle.y + 0.08, vehicle.z);
-    this.playerVehicleGroup.rotation.set(-vehicle.pitch, vehicle.heading, 0, 'YXZ');
+    // Update player taxi visual aligned cleanly to hillside pitch + roll
+    const sinH = Math.sin(vehicle.heading);
+    const cosH = Math.cos(vehicle.heading);
+    const yFront = sampleTerrainElevation(this.terrain, vehicle.x + sinH * 1.8, vehicle.z + cosH * 1.8);
+    const yRear = sampleTerrainElevation(this.terrain, vehicle.x - sinH * 1.8, vehicle.z - cosH * 1.8);
+    const yLeft = sampleTerrainElevation(this.terrain, vehicle.x + cosH * 0.95, vehicle.z - sinH * 0.95);
+    const yRight = sampleTerrainElevation(this.terrain, vehicle.x - cosH * 0.95, vehicle.z + sinH * 0.95);
+    const slopePitch = Math.atan2(yFront - yRear, 3.6);
+    const slopeRoll = Math.atan2(yLeft - yRight, 1.9);
+    const avgY = Math.max(vehicle.y, (yFront + yRear + yLeft + yRight) * 0.25);
+
+    this.playerVehicleGroup.position.set(vehicle.x, avgY + 0.34, vehicle.z);
+    this.playerVehicleGroup.rotation.set(-slopePitch, vehicle.heading, slopeRoll, 'YXZ');
     this.brakeLightMat.color.setHex(vehicle.braking ? 0xff2222 : 0x551111);
 
     // Update on-foot avatar
@@ -824,7 +865,7 @@ export class RegionWorldScene {
         this.avatarHeading += diff * Math.min(1, dt * 10);
       }
       const bob = speedSq > 0.04 ? Math.abs(Math.sin(this.elapsed * 11)) * 0.08 : 0;
-      this.avatarGroup.position.set(playerX, playerY + bob, playerZ);
+      this.avatarGroup.position.set(playerX, playerY + 0.26 + bob, playerZ);
       this.avatarGroup.rotation.y = this.avatarHeading;
     }
 
@@ -930,6 +971,7 @@ export class RegionWorldScene {
 
   dispose(): void {
     this.disposed = true;
+    this.resizeObserver?.disconnect();
     for (const tile of this.loadedTiles.values()) {
       for (const g of tile.geometries) g.dispose();
     }
