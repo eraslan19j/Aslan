@@ -67,14 +67,20 @@ try {
   const walkedPos = await page.evaluate(() => ({ ...window.__game.player }));
   const walkDist = Math.hypot(walkedPos.x - initialPos.x, walkedPos.z - initialPos.z);
 
-  // 2. Enter Yellow Taxi, drive along street, verify speed & movement, then exit
+  // 2. Enter Yellow Taxi, drive along street until >= 2.5m (SwiftShader-safe), then exit
   await page.evaluate(() => window.__game.enterVehicle());
-  await page.waitForTimeout(150);
   const driveStart = await page.evaluate(() => ({ ...window.__game.vehicle }));
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(1100);
+  await page.waitForFunction(
+    ([sx, sz]) => {
+      const v = window.__game?.vehicle;
+      return v ? Math.hypot(v.x - sx, v.z - sz) >= 2.5 : false;
+    },
+    [driveStart.x, driveStart.z],
+    { timeout: 15000 },
+  );
   await page.keyboard.down('KeyD');
-  await page.waitForTimeout(450);
+  await page.waitForTimeout(350);
   await page.keyboard.up('KeyD');
   await page.keyboard.up('KeyW');
   const driveState = await page.evaluate(() => ({
@@ -88,7 +94,7 @@ try {
     driveState.vehicle.z - driveStart.z,
   );
   await page.keyboard.press('KeyF');
-  await page.waitForTimeout(200);
+  await page.waitForTimeout(100);
   const exitedOk = await page.evaluate(() => window.__game.inVehicle === false);
 
   // 3. Verify automatic amenity=place_of_worship Sanctuary Zone in Esenler
@@ -97,7 +103,7 @@ try {
     ([sx, sz]) => window.__game.teleportTo(sx, sz),
     [firstSanctuary.x, firstSanctuary.z],
   );
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(100);
   const esenlerSanctuaryId = await page.evaluate(() => window.__game.sanctuaryId);
 
   // 4. Verify Settings & Diagnostics Panel JSON report

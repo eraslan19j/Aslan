@@ -285,6 +285,8 @@ async function bootstrap(): Promise<void> {
     saveStore.save(save);
   };
 
+  let syncDebugHandle: () => void = () => {};
+
   const teleportTo = (x: number, z: number): void => {
     const tx = clamp(x, runtime.terrain.minX + 12, runtime.terrain.maxX - 12);
     const tz = clamp(z, runtime.terrain.minZ + 12, runtime.terrain.maxZ - 12);
@@ -300,6 +302,7 @@ async function bootstrap(): Promise<void> {
     playerY = ty;
     runtime.scene.updateStreaming(tx, tz);
     applySave();
+    syncDebugHandle();
   };
 
   const enterVehicle = (): void => {
@@ -308,6 +311,7 @@ async function bootstrap(): Promise<void> {
     playerY = playerVehicle.y;
     playerZ = playerVehicle.z;
     void triggerLightHaptic();
+    syncDebugHandle();
   };
 
   const exitVehicle = (): void => {
@@ -322,6 +326,7 @@ async function bootstrap(): Promise<void> {
     playerZ = exit.z;
     speedKph = 0;
     void triggerLightHaptic();
+    syncDebugHandle();
   };
 
   const toggleVehicle = (): void => {
@@ -355,7 +360,7 @@ async function bootstrap(): Promise<void> {
       hud.setLandmarks(runtime.manifest.landmarks);
       hud.setState(save.locale, save.qualityTier, timeOfDay, activeRegionId);
       applySave();
-      debugHandle.regionId = activeRegionId;
+      syncDebugHandle();
     } finally {
       switchingRegion = false;
     }
@@ -366,6 +371,7 @@ async function bootstrap(): Promise<void> {
     runtime.scene.applyQuality(save.qualityTier);
     hud.setState(save.locale, save.qualityTier, timeOfDay, activeRegionId);
     applySave();
+    syncDebugHandle();
   };
 
   const toggleQuality = (): void => {
@@ -377,6 +383,7 @@ async function bootstrap(): Promise<void> {
     timeOfDay = mode;
     runtime.scene.setTimeOfDay(timeOfDay);
     hud.setState(save.locale, save.qualityTier, timeOfDay, activeRegionId);
+    syncDebugHandle();
   };
 
   const toggleTimeOfDay = (): void => {
@@ -389,6 +396,7 @@ async function bootstrap(): Promise<void> {
     hud.setState(save.locale, save.qualityTier, timeOfDay, activeRegionId);
     applySave();
     void triggerLightHaptic();
+    syncDebugHandle();
   };
 
   const togglePause = (): void => {
@@ -396,6 +404,7 @@ async function bootstrap(): Promise<void> {
     hud.openModal(paused ? 'pause' : 'none');
     if (paused) applySave();
     void triggerLightHaptic();
+    syncDebugHandle();
   };
 
   let fpsSmoothed = 60;
@@ -605,6 +614,7 @@ async function bootstrap(): Promise<void> {
     closeModal: () => {
       paused = false;
       hud.openModal('none');
+      syncDebugHandle();
     },
     enterVehicle,
     exitVehicle,
@@ -614,6 +624,41 @@ async function bootstrap(): Promise<void> {
     getCrashCount: () => crashLog.list().length,
   };
   window.__game = debugHandle;
+
+  syncDebugHandle = (): void => {
+    const tel = runtime.scene.getTelemetry();
+    const activeSanctuary = findSanctuaryZone(playerX, playerZ, runtime.manifest.sanctuaryZones);
+    debugHandle.paused = paused;
+    debugHandle.regionId = activeRegionId;
+    debugHandle.qualityTier = save.qualityTier;
+    debugHandle.timeOfDay = timeOfDay;
+    debugHandle.locale = save.locale;
+    debugHandle.physicsReady = physicsReady;
+    debugHandle.inVehicle = inVehicle;
+    debugHandle.speedKph = speedKph;
+    debugHandle.trafficCount = runtime.traffic.getAgents().length;
+    debugHandle.sanctuaryId = activeSanctuary?.id ?? null;
+    debugHandle.player = { x: playerX, y: playerY, z: playerZ };
+    debugHandle.vehicle = {
+      x: playerVehicle.x,
+      y: playerVehicle.y,
+      z: playerVehicle.z,
+      heading: playerVehicle.heading,
+      speed: playerVehicle.speed,
+    };
+    debugHandle.perf = {
+      fps: fpsSmoothed,
+      frameMs: frameMsSmoothed,
+      drawCalls: tel.drawCalls,
+      triangles: tel.triangles,
+      geometries: tel.geometries,
+      textures: tel.textures,
+      pixelRatio: tel.pixelRatio,
+      loadedTiles: tel.loadedTiles,
+      activeBuildings: tel.activeBuildings,
+    };
+  };
+  syncDebugHandle();
 
   let lastTimeMs = performance.now();
   let lastHudUpdateMs = 0;

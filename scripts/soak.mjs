@@ -1,7 +1,8 @@
 // Extended driving & tile-streaming soak test (default 10 min via SOAK_MINUTES=10).
 // Enters the Sarı Taksi in Esenler / Namık Kemal, drives continuously across 300m tiles,
 // checks JS heap drift, GPU geometry/texture leaks, draw-call ceiling, and zero console errors.
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { chromium } from 'playwright';
 import { preview } from 'vite';
 
@@ -9,6 +10,7 @@ const SOAK_MINUTES = Number(process.env.SOAK_MINUTES || '10');
 const SAMPLE_INTERVAL_MS = 15000;
 const TOTAL_MS = Math.max(15000, Math.round(SOAK_MINUTES * 60 * 1000));
 const OUT_REPORT = process.env.SOAK_OUT || 'soak-report.json';
+mkdirSync(dirname(OUT_REPORT), { recursive: true });
 
 const server = process.env.URL
   ? null
