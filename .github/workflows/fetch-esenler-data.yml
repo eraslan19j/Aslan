@@ -1,6 +1,8 @@
-name: Fetch & Inspect Esenler (Namık Kemal) Data
+name: Fetch & Build Esenler (Namık Kemal) Data
 
-# Downloads osm_data.zip, verifies SHA-256, inspects layers, and builds offline 300m tiles.
+# Downloads osm_data.zip, verifies SHA-256, inspects GPKG layers,
+# supplements missing OSM POIs/worship via Overpass + Copernicus DEM GLO-30,
+# and builds offline 300m tiles under public/derived-data/esenler-namik-kemal/.
 on:
   workflow_dispatch:
   push:
@@ -8,9 +10,7 @@ on:
       - arena/**
       - main
     paths:
-      - scripts/inspect-esenler-zip.py
-      - scripts/build-esenler-region.mjs
-      - scripts/sample-copernicus-dem.py
+      - scripts/build-esenler-region.py
       - .github/workflows/fetch-esenler-data.yml
 
 permissions:
@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   esenler-data:
-    name: Inspect / Build Esenler (Namık Kemal) Offline Pack
+    name: Build Esenler (Namık Kemal) Offline Pack
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -28,26 +28,21 @@ jobs:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
 
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Download, verify SHA-256, and inspect osm_data.zip
-        run: python3 scripts/inspect-esenler-zip.py public/derived-data/esenler-namik-kemal/source-inspection.json
+      - name: Install Python geospatial libraries (shapely, rasterio, pyproj)
+        run: pip install --quiet shapely rasterio pyproj
 
-      - name: Build Esenler 300m offline pack (when builder script is present)
-        if: hashFiles('scripts/build-esenler-region.mjs') != ''
-        run: |
-          pip install --quiet rasterio
-          node scripts/build-esenler-region.mjs
+      - name: Verify SHA-256, inspect GPKG, sample Copernicus DEM, and build 300m tiles
+        run: python3 scripts/build-esenler-region.py
 
-      - name: Commit inspection / derived data back to current branch
+      - name: Show generated bundle size
+        run: du -sh public/derived-data/esenler-namik-kemal
+
+      - name: Commit Esenler offline derived data pack to current branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -55,7 +50,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to Esenler derived data."
           else
-            git commit -m "data(esenler): verify SHA-256 and update Esenler Namik Kemal derived pack [skip ci]"
+            git commit -m "data(esenler): harvest verified osm_data.zip + Copernicus DEM + Overpass offline pack [skip ci]"
             git pull --rebase origin "${GITHUB_REF_NAME}" || true
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
