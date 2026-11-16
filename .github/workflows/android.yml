@@ -58,19 +58,34 @@ jobs:
 
       - name: Inspect and verify Debug APK (API 36 + sensorLandscape)
         run: |
+          set -euo pipefail
           APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK_PATH"
           cp "$APK_PATH" istanbul-streets-debug.apk
-          ls -lh istanbul-streets-debug.apk
+          APK_SIZE_BYTES=$(stat -c%s istanbul-streets-debug.apk)
+          APK_SIZE_MB=$(awk "BEGIN {printf \"%.2f\", ${APK_SIZE_BYTES}/1048576}")
           AAPT2="${ANDROID_HOME}/build-tools/36.0.0/aapt2"
-          "$AAPT2" dump badging istanbul-streets-debug.apk | tee apk-badging.txt
+          "$AAPT2" dump badging istanbul-streets-debug.apk > apk-badging.txt
           grep -q "name='com.istanbulstreets.game'" apk-badging.txt
           grep -q "targetSdkVersion:'36'" apk-badging.txt
-          "$AAPT2" dump xmltree istanbul-streets-debug.apk --file AndroidManifest.xml | grep -i "screenOrientation"
-          echo "APK VERIFIED: com.istanbulstreets.game, targetSdkVersion=36"
+          ORIENTATION=$("$AAPT2" dump xmltree istanbul-streets-debug.apk --file AndroidManifest.xml | grep -i "screenOrientation" | head -n 1 || true)
+          echo "$ORIENTATION" | grep -qi "0x6"
+          {
+            echo "## Istanbul Streets — M0 Debug APK (Android 16 / API 36)"
+            echo ""
+            echo "- **Package:** \`com.istanbulstreets.game\`"
+            echo "- **Target SDK:** \`36\` (Android 16) · **Min SDK:** \`24\` (Android 7.0+)"
+            echo "- **Orientation:** \`sensorLandscape\` (\`0x6\` verified via \`aapt2\`)"
+            echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
+            echo "- **Commit:** \`${GITHUB_SHA}\`"
+            echo ""
+            echo "### Kurulum (Android Telefon)"
+            echo "1. Aşağıdaki \`istanbul-streets-debug.apk\` dosyasını indirin ve dokunarak kurun."
+            echo "2. Detaylı rehber: \`docs/USER_TASKS.md\`"
+          } > release-notes.md
+          cat release-notes.md
 
-      - name: Build Signed Release AAB (only when keystore secrets are configured)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Build Signed Release AAB (when keystore secrets are configured)
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -78,6 +93,10 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          if [ -z "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "No release keystore secret configured yet; skipping signed AAB build."
+            exit 0
+          fi
           KEYSTORE_FILE="${RUNNER_TEMP}/upload-keystore.jks"
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_FILE"
           trap 'rm -f "$KEYSTORE_FILE"' EXIT
@@ -94,20 +113,26 @@ jobs:
           path: |
             istanbul-streets-debug.apk
             apk-badging.txt
+            release-notes.md
 
       - name: Upload Signed Release AAB artifact (if built)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: istanbul-streets-release-aab
           path: istanbul-streets-release.aab
+          if-no-files-found: ignore
 
-      - name: Attach APK/AAB to GitHub Release on v* tags
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish M0 Pre-release APK to GitHub Releases
+        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.0.1-m0' }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.0.1-m0 (M0 Debug APK - API 36)' }}
+          body_path: release-notes.md
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |
             istanbul-streets-debug.apk
             istanbul-streets-release.aab
+            apk-badging.txt
           fail_on_unmatched_files: false
-          generate_release_notes: true

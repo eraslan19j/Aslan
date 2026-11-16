@@ -131,6 +131,7 @@ try {
   };
 
   console.log('SMOKE_REPORT', JSON.stringify(report, null, 2));
+  writeFileSync('smoke-report.json', JSON.stringify(report, null, 2));
 
   if (errors.length > 0) fail(`${errors.length} console/page error(s)`);
   if (!snapshot.hasCanvas || snapshot.canvasW === 0 || snapshot.canvasH === 0) {

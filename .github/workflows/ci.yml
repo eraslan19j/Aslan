@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify:
@@ -46,10 +46,26 @@ jobs:
           OUT: 'smoke.png'
         run: npm run smoke
 
-      - name: Upload smoke screenshot
+      - name: Record smoke metrics to job summary and commit comment
+        if: always() && hashFiles('smoke-report.json') != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "### Headless Chromium Smoke Report (SwiftShader)"
+            echo '```json'
+            cat smoke-report.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          BODY=$(printf "CI Smoke Report (\`%s\`):\n\`\`\`json\n%s\n\`\`\`" "${GITHUB_SHA::7}" "$(cat smoke-report.json)")
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -f body="$BODY" > /dev/null || true
+
+      - name: Upload smoke artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: smoke-screenshot
-          path: smoke.png
+          name: smoke-artifacts
+          path: |
+            smoke.png
+            smoke-report.json
           if-no-files-found: ignore
