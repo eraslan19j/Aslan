@@ -1,5 +1,6 @@
 name: Fetch & Inspect Esenler (Namık Kemal) Data
 
+# Downloads osm_data.zip, verifies SHA-256, inspects layers, and builds offline 300m tiles.
 on:
   workflow_dispatch:
   push:
