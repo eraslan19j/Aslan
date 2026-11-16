@@ -88,11 +88,11 @@
       "nameTr": "Ayasofya-i Kebir Cami-i Şerifi",
       "nameEn": "Hagia Sophia Grand Mosque",
       "kind": "mosque",
-      "x": 413.7,
-      "y": 48.5,
-      "z": -37.1,
-      "lon": 28.980175,
-      "lat": 41.008583,
+      "x": 385.2,
+      "y": 46,
+      "z": -38.8,
+      "lon": 28.979836,
+      "lat": 41.008599,
       "sanctuaryRadiusMeters": 68
     },
     {
@@ -179,8 +179,8 @@
       "id": "ayasofya",
       "nameTr": "Ayasofya-i Kebir Cami-i Şerifi (Güvenli Alan)",
       "nameEn": "Hagia Sophia Grand Mosque (Safe Zone)",
-      "x": 413.7,
-      "z": -37.1,
+      "x": 385.2,
+      "z": -38.8,
       "radiusMeters": 68
     },
     {
