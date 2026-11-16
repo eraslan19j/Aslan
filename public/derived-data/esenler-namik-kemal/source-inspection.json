@@ -1,0 +1,38 @@
+{
+  "sourceUrl": "https://github.com/eraslan19j/ist/releases/download/v1.1-esenler-data/osm_data.zip",
+  "byteSize": 886185,
+  "sha256": "8849228b90c2ac807e707bfc91e1b6d0bddb40107afb4962951b20654f621fff",
+  "sha256Verified": true,
+  "zipMembers": [
+    {
+      "filename": "osm_data.gpkg",
+      "fileSize": 2805760,
+      "compressSize": 885627
+    },
+    {
+      "filename": "manifest.json",
+      "fileSize": 757,
+      "compressSize": 332
+    }
+  ],
+  "files": {
+    "manifest.json": {
+      "format": "json",
+      "size": 757,
+      "topKeys": [
+        "version",
+        "generator",
+        "bbox",
+        "categories",
+        "feature_counts",
+        "files",
+        "network_info"
+      ]
+    },
+    "osm_data.gpkg": {
+      "format": ".gpkg",
+      "size": 2805760,
+      "magicHex": "53514c69746520666f726d6174203300100001010040202000000051000002ad"
+    }
+  }
+}
