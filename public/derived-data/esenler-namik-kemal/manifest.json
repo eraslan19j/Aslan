@@ -1,0 +1,384 @@
+{
+  "schemaVersion": 1,
+  "regionId": "esenler-namik-kemal",
+  "nameTr": "Esenler · Namık Kemal Mahallesi",
+  "nameEn": "Esenler · Namik Kemal District",
+  "bounds": {
+    "south": 41.02078,
+    "north": 41.041305,
+    "west": 28.884949,
+    "east": 28.90839
+  },
+  "origin": {
+    "lon": 28.89667,
+    "lat": 41.031042
+  },
+  "tileSize": 300,
+  "spawn": {
+    "x": -37.0,
+    "z": 13.2,
+    "heading": 0.386,
+    "labelTr": "Namık Kemal Merkez Cadde",
+    "labelEn": "Namik Kemal Main Street"
+  },
+  "availableTiles": [
+    "t_-1_-1",
+    "t_-1_-2",
+    "t_-1_-3",
+    "t_-1_0",
+    "t_-1_1",
+    "t_-1_2",
+    "t_-1_3",
+    "t_-2_-1",
+    "t_-2_-2",
+    "t_-2_-3",
+    "t_-2_0",
+    "t_-2_1",
+    "t_-2_2",
+    "t_-2_3",
+    "t_-3_-1",
+    "t_-3_-2",
+    "t_-3_-3",
+    "t_-3_0",
+    "t_-3_1",
+    "t_-3_2",
+    "t_-3_3",
+    "t_-4_-1",
+    "t_-4_-2",
+    "t_-4_-3",
+    "t_-4_-4",
+    "t_-4_-5",
+    "t_-4_0",
+    "t_-4_1",
+    "t_-4_2",
+    "t_0_-1",
+    "t_0_-2",
+    "t_0_-3",
+    "t_0_-4",
+    "t_0_0",
+    "t_0_1",
+    "t_0_2",
+    "t_0_3",
+    "t_0_6",
+    "t_1_-1",
+    "t_1_-2",
+    "t_1_-3",
+    "t_1_-4",
+    "t_1_0",
+    "t_1_1",
+    "t_1_2",
+    "t_1_3",
+    "t_2_-1",
+    "t_2_-2",
+    "t_2_-3",
+    "t_2_-4",
+    "t_2_0",
+    "t_2_1",
+    "t_2_2",
+    "t_2_3",
+    "t_3_-3",
+    "t_3_-4",
+    "t_3_0",
+    "t_3_1"
+  ],
+  "landmarks": [
+    {
+      "id": "nk-merkez-cadde",
+      "nameTr": "Namık Kemal Merkez Cadde",
+      "nameEn": "Namik Kemal Main Street",
+      "kind": "station",
+      "x": -37.0,
+      "y": 47.0,
+      "z": 13.2,
+      "lon": 28.896229,
+      "lat": 41.030923
+    },
+    {
+      "id": "namik-kemal-ibadethane-1",
+      "nameTr": "Namık Kemal Merkez Camii",
+      "nameEn": "Namik Kemal Central Mosque",
+      "kind": "mosque",
+      "x": 413.9,
+      "y": 48.7,
+      "z": -244.8,
+      "lon": 28.901599,
+      "lat": 41.033241,
+      "sanctuaryRadiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-2",
+      "nameTr": "Namık Kemal Camii #2",
+      "nameEn": "Namik Kemal Mosque #2",
+      "kind": "mosque",
+      "x": -83.9,
+      "y": 67.9,
+      "z": 434.1,
+      "lon": 28.895671,
+      "lat": 41.027142,
+      "sanctuaryRadiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-3",
+      "nameTr": "Namık Kemal Camii #3",
+      "nameEn": "Namik Kemal Mosque #3",
+      "kind": "mosque",
+      "x": 2.1,
+      "y": 51.6,
+      "z": -591.7,
+      "lon": 28.896695,
+      "lat": 41.036357,
+      "sanctuaryRadiusMeters": 52
+    },
+    {
+      "id": "nk-school-1",
+      "nameTr": "Semt Okulu",
+      "nameEn": "District School",
+      "kind": "monument",
+      "x": -794.7,
+      "y": 85.0,
+      "z": 182.1,
+      "lon": 28.887206,
+      "lat": 41.029406
+    },
+    {
+      "id": "nk-tea_house-1",
+      "nameTr": "Mahalle Çay Ocağı",
+      "nameEn": "Neighborhood Tea House",
+      "kind": "station",
+      "x": -692.4,
+      "y": 79.9,
+      "z": 445.7,
+      "lon": 28.888425,
+      "lat": 41.027039
+    },
+    {
+      "id": "nk-school-2",
+      "nameTr": "Semt Okulu 2",
+      "nameEn": "District School #2",
+      "kind": "monument",
+      "x": 443.5,
+      "y": 39.3,
+      "z": 626.4,
+      "lon": 28.901951,
+      "lat": 41.025415
+    },
+    {
+      "id": "nk-tea_house-2",
+      "nameTr": "Mahalle Çay Ocağı 2",
+      "nameEn": "Neighborhood Tea House #2",
+      "kind": "station",
+      "x": -677.2,
+      "y": 82.3,
+      "z": -297.2,
+      "lon": 28.888606,
+      "lat": 41.033712
+    },
+    {
+      "id": "nk-bakkal-1",
+      "nameTr": "Mahalle Bakkalı",
+      "nameEn": "Corner Bakkal",
+      "kind": "bazaar",
+      "x": -239.5,
+      "y": 40.8,
+      "z": -627.1,
+      "lon": 28.893818,
+      "lat": 41.036675
+    },
+    {
+      "id": "nk-bakkal-2",
+      "nameTr": "Mahalle Bakkalı 2",
+      "nameEn": "Corner Bakkal #2",
+      "kind": "bazaar",
+      "x": -512.3,
+      "y": 83.9,
+      "z": -22.4,
+      "lon": 28.890569,
+      "lat": 41.031244
+    },
+    {
+      "id": "nk-park-1",
+      "nameTr": "Namık Kemal Parkı",
+      "nameEn": "Namik Kemal Park",
+      "kind": "park",
+      "x": -441.0,
+      "y": 83.6,
+      "z": 249.6,
+      "lon": 28.891419,
+      "lat": 41.0288
+    },
+    {
+      "id": "nk-park-2",
+      "nameTr": "Namık Kemal Parkı 2",
+      "nameEn": "Namik Kemal Park #2",
+      "kind": "park",
+      "x": -487.1,
+      "y": 83.6,
+      "z": 199.6,
+      "lon": 28.890869,
+      "lat": 41.029249
+    },
+    {
+      "id": "nk-bazaar-1",
+      "nameTr": "Semt Pazar Yeri",
+      "nameEn": "Weekly Market Square",
+      "kind": "bazaar",
+      "x": 363.9,
+      "y": 28.5,
+      "z": 937.0,
+      "lon": 28.901003,
+      "lat": 41.022625
+    }
+  ],
+  "sanctuaryZones": [
+    {
+      "id": "namik-kemal-ibadethane-1",
+      "nameTr": "Namık Kemal Merkez Camii (Güvenli Alan)",
+      "nameEn": "Namik Kemal Central Mosque (Safe Zone)",
+      "x": 413.9,
+      "z": -244.8,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-2",
+      "nameTr": "Namık Kemal Camii #2 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #2 (Safe Zone)",
+      "x": -83.9,
+      "z": 434.1,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-3",
+      "nameTr": "Namık Kemal Camii #3 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #3 (Safe Zone)",
+      "x": 2.1,
+      "z": -591.7,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-4",
+      "nameTr": "Namık Kemal Camii #4 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #4 (Safe Zone)",
+      "x": -681.6,
+      "z": 538.8,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-5",
+      "nameTr": "Namık Kemal Camii #5 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #5 (Safe Zone)",
+      "x": 65.0,
+      "z": 556.3,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-6",
+      "nameTr": "Namık Kemal Camii #6 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #6 (Safe Zone)",
+      "x": -180.9,
+      "z": -305.3,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-7",
+      "nameTr": "Namık Kemal Camii #7 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #7 (Safe Zone)",
+      "x": 267.3,
+      "z": -514.6,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-8",
+      "nameTr": "Namık Kemal Camii #8 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #8 (Safe Zone)",
+      "x": -55.0,
+      "z": 111.8,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-9",
+      "nameTr": "Namık Kemal Camii #9 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #9 (Safe Zone)",
+      "x": -700.2,
+      "z": -381.8,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-10",
+      "nameTr": "Namık Kemal Camii #10 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #10 (Safe Zone)",
+      "x": -718.5,
+      "z": 230.7,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-11",
+      "nameTr": "Namık Kemal Camii #11 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #11 (Safe Zone)",
+      "x": -352.7,
+      "z": -843.4,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-12",
+      "nameTr": "Namık Kemal Camii #12 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #12 (Safe Zone)",
+      "x": -856.3,
+      "z": 1159.5,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-13",
+      "nameTr": "Namık Kemal Camii #13 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #13 (Safe Zone)",
+      "x": 449.4,
+      "z": 727.3,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-14",
+      "nameTr": "Namık Kemal Camii #14 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #14 (Safe Zone)",
+      "x": 764.2,
+      "z": -392.9,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-15",
+      "nameTr": "Namık Kemal Camii #15 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #15 (Safe Zone)",
+      "x": 894.0,
+      "z": -675.5,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-16",
+      "nameTr": "Namık Kemal Camii #16 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #16 (Safe Zone)",
+      "x": 110.3,
+      "z": -951.7,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-17",
+      "nameTr": "Namık Kemal Camii #17 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #17 (Safe Zone)",
+      "x": 482.4,
+      "z": -878.4,
+      "radiusMeters": 52
+    },
+    {
+      "id": "namik-kemal-ibadethane-18",
+      "nameTr": "Namık Kemal Camii #18 (Güvenli Alan)",
+      "nameEn": "Namik Kemal Mosque #18 (Safe Zone)",
+      "x": 657.9,
+      "z": 697.4,
+      "radiusMeters": 52
+    }
+  ],
+  "dataMode": "real-osm",
+  "attributions": [
+    "© OpenStreetMap contributors (ODbL 1.0) — via eraslan19j/ist v1.1-esenler-data + Overpass",
+    "Copernicus DEM GLO-30 — © DLR e.V. & Airbus Defence and Space GmbH (EU / ESA)",
+    "Kaynak: İBB Açık Veri Portalı (İBB Açık Veri Lisansı)"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "generatedAtIso": "2026-11-16T21:47:02.354707+00:00",
+  "regionId": "esenler-namik-kemal",
+  "dataSource": "osm_data.zip (SHA-256 8849228b90c2...) + Overpass supplement + Copernicus DEM GLO-30",
+  "tileCount": 58,
+  "buildingCount": 4474,
+  "heightFromTag": 30,
+  "heightFromLevels": 58,
+  "heightInferred": 4386,
+  "roadSegmentCount": 3233,
+  "tramSegmentCount": 0,
+  "roadGraphNodes": 2687,
+  "roadGraphEdges": 5790,
+  "parkCount": 242,
+  "waterCount": 3,
+  "landmarkCount": 13,
+  "sanctuaryCount": 18,
+  "elevationSource": "Copernicus DEM GLO-30 (AWS s3://copernicus-dem-30m, N41 E028, 2-pass smoothed DSM)",
+  "elevationMinMeters": 26.7,
+  "elevationMaxMeters": 99.5
+}

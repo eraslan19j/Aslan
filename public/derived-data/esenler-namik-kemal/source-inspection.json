@@ -3,36 +3,1005 @@
   "byteSize": 886185,
   "sha256": "8849228b90c2ac807e707bfc91e1b6d0bddb40107afb4962951b20654f621fff",
   "sha256Verified": true,
-  "zipMembers": [
-    {
-      "filename": "osm_data.gpkg",
-      "fileSize": 2805760,
-      "compressSize": 885627
+  "archiveManifest": {
+    "version": 1,
+    "generator": "avral_osm_download",
+    "bbox": {
+      "west": 28.887,
+      "south": 41.025,
+      "east": 28.904,
+      "north": 41.037
     },
-    {
-      "filename": "manifest.json",
-      "fileSize": 757,
-      "compressSize": 332
+    "categories": [
+      "buildings",
+      "roads",
+      "paths",
+      "landuse",
+      "natural",
+      "waterways",
+      "amenities",
+      "shops",
+      "tourism"
+    ],
+    "feature_counts": {
+      "buildings": 4464,
+      "roads": 376,
+      "paths": 259,
+      "landuse": 118,
+      "natural": 19,
+      "waterways": 1,
+      "amenities": 108,
+      "shops": 56,
+      "tourism": 8,
+      "road_network_edges": 2600,
+      "road_network_nodes": 1013
+    },
+    "files": [
+      {
+        "filename": "osm_data.gpkg",
+        "size_bytes": 2805760
+      }
+    ],
+    "network_info": {
+      "network_type": "all",
+      "edges": 2600,
+      "nodes": 1013
     }
-  ],
-  "files": {
-    "manifest.json": {
-      "format": "json",
-      "size": 757,
-      "topKeys": [
-        "version",
-        "generator",
-        "bbox",
-        "categories",
-        "feature_counts",
-        "files",
-        "network_info"
+  },
+  "gpkgLayers": {
+    "buildings": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 4464,
+      "columns": [
+        "fid",
+        "geom",
+        "element",
+        "id",
+        "addr_city",
+        "addr_postcode",
+        "building",
+        "name",
+        "name_tr",
+        "website",
+        "addr_district",
+        "amenity",
+        "religion",
+        "layer",
+        "addr_neighbourhood",
+        "building_levels",
+        "name_en",
+        "name_pl",
+        "operator",
+        "height",
+        "building_min_level",
+        "building_colour",
+        "check_date",
+        "roof_colour",
+        "roof_material",
+        "roof_shape",
+        "coffee",
+        "roof_levels",
+        "denomination",
+        "wikidata",
+        "addr_street",
+        "building_material",
+        "addr_housenumber",
+        "fee",
+        "grades",
+        "opening_hours",
+        "operator_type",
+        "phone",
+        "wheelchair",
+        "name_ar",
+        "internet_access",
+        "outdoor_seating",
+        "alt_name",
+        "image",
+        "wikimedia_commons",
+        "wikipedia",
+        "shop",
+        "location",
+        "building_levels_underground",
+        "barrier",
+        "power",
+        "source",
+        "bar",
+        "email",
+        "fax",
+        "internet_access_fee",
+        "rooms",
+        "stars",
+        "tourism",
+        "leisure",
+        "voltage",
+        "healthcare",
+        "operator_wikidata",
+        "addr_unit",
+        "frequency",
+        "substation",
+        "ref",
+        "access",
+        "air_conditioning",
+        "baby_feeding",
+        "internet_access_ssid",
+        "operator_tr",
+        "type"
+      ],
+      "geometryTypes": {
+        "Point": 1,
+        "Polygon": 4463
+      },
+      "keyValueCounts": {
+        "building": {
+          "yes": 4362,
+          "university": 21,
+          "apartments": 20,
+          "residential": 12,
+          "roof": 11,
+          "school": 10,
+          "mosque": 8,
+          "dormitory": 3,
+          "service": 3,
+          "commercial": 2,
+          "industrial": 2,
+          "train_station": 2,
+          "warehouse": 2,
+          "house": 1,
+          "hospital": 1
+        },
+        "type": {
+          "multipolygon": 4
+        },
+        "amenity": {
+          "place_of_worship": 9,
+          "cafe": 4,
+          "restaurant": 3,
+          "school": 1,
+          "clinic": 1,
+          "library": 1
+        },
+        "shop": {
+          "department_store": 1,
+          "convenience": 1,
+          "supermarket": 1
+        },
+        "leisure": {
+          "sports_hall": 1
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "element": "node",
+          "id": "6208061909",
+          "building": "university",
+          "name": "(YTU) Yildiz Technical University Faculty of Art and Design",
+          "name_tr": "(YTÜ) Yıldız Teknik Üniversitesi Sanat ve Tasarım Fakültesi",
+          "website": "https://sts.yildiz.edu.tr/"
+        },
+        {
+          "fid": "2",
+          "element": "relation",
+          "id": "7552020",
+          "building": "university",
+          "type": "multipolygon"
+        },
+        {
+          "fid": "3",
+          "element": "relation",
+          "id": "7552074",
+          "building": "university",
+          "name": "İktisadi Idari Bilimler Fakültesi",
+          "building_levels": "2",
+          "type": "multipolygon"
+        }
       ]
     },
-    "osm_data.gpkg": {
-      "format": ".gpkg",
-      "size": 2805760,
-      "magicHex": "53514c69746520666f726d6174203300100001010040202000000051000002ad"
+    "roads": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 376,
+      "columns": [
+        "fid",
+        "geom",
+        "element",
+        "id",
+        "highway",
+        "name",
+        "maxspeed",
+        "maxspeed_hgv",
+        "minspeed",
+        "oneway",
+        "lit",
+        "surface",
+        "bridge",
+        "destination",
+        "lane_markings",
+        "lanes",
+        "layer",
+        "sidewalk_both",
+        "sidewalk_both_surface",
+        "smoothness",
+        "paving_stones_material",
+        "bicycle",
+        "foot",
+        "horse",
+        "motor_vehicle",
+        "width",
+        "sidewalk_left",
+        "sidewalk_left_surface",
+        "sidewalk_right",
+        "maxspeed_type",
+        "junction",
+        "service",
+        "sidewalk",
+        "maxheight"
+      ],
+      "geometryTypes": {
+        "LineString": 376
+      },
+      "keyValueCounts": {
+        "highway": {
+          "residential": 274,
+          "secondary": 41,
+          "tertiary": 23,
+          "primary": 20,
+          "living_street": 15,
+          "trunk": 2,
+          "unclassified": 1
+        },
+        "surface": {
+          "asphalt": 70,
+          "paving_stones": 4
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "element": "way",
+          "id": "22793515",
+          "highway": "trunk",
+          "maxspeed": "110",
+          "maxspeed_hgv": "90",
+          "minspeed": "40",
+          "oneway": "yes"
+        },
+        {
+          "fid": "2",
+          "element": "way",
+          "id": "77410595",
+          "highway": "residential",
+          "name": "79. Sokak",
+          "oneway": "yes",
+          "lit": "yes"
+        },
+        {
+          "fid": "3",
+          "element": "way",
+          "id": "77410605",
+          "highway": "residential",
+          "name": "87. Sokak",
+          "oneway": "no"
+        }
+      ]
+    },
+    "paths": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 259,
+      "columns": [
+        "fid",
+        "geom",
+        "element",
+        "id",
+        "crossing",
+        "crossing_markings",
+        "highway",
+        "name",
+        "bridge",
+        "layer",
+        "surface",
+        "footway",
+        "foot",
+        "access",
+        "bicycle",
+        "horse",
+        "motor_vehicle",
+        "handrail",
+        "incline",
+        "step_count",
+        "paving_stones_material",
+        "ramp",
+        "smoothness",
+        "noname",
+        "area",
+        "tunnel",
+        "type"
+      ],
+      "geometryTypes": {
+        "Polygon": 2,
+        "LineString": 257
+      },
+      "keyValueCounts": {
+        "highway": {
+          "footway": 222,
+          "steps": 18,
+          "cycleway": 10,
+          "pedestrian": 8,
+          "track": 1
+        },
+        "type": {
+          "multipolygon": 1
+        },
+        "surface": {
+          "paving_stones": 14,
+          "concrete": 7,
+          "asphalt": 4
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "element": "relation",
+          "id": "9225612",
+          "highway": "pedestrian",
+          "area": "yes",
+          "type": "multipolygon"
+        },
+        {
+          "fid": "2",
+          "element": "way",
+          "id": "228194589",
+          "highway": "footway"
+        },
+        {
+          "fid": "3",
+          "element": "way",
+          "id": "228194603",
+          "highway": "footway"
+        }
+      ]
+    },
+    "landuse": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 118,
+      "columns": [
+        "fid",
+        "geom",
+        "element",
+        "id",
+        "construction",
+        "landuse",
+        "name",
+        "addr_city",
+        "addr_district",
+        "addr_housenumber",
+        "addr_neighbourhood",
+        "addr_postcode",
+        "addr_street",
+        "operator",
+        "residential",
+        "website",
+        "industrial",
+        "type"
+      ],
+      "geometryTypes": {
+        "Polygon": 118
+      },
+      "keyValueCounts": {
+        "landuse": {
+          "grass": 82,
+          "residential": 17,
+          "industrial": 9,
+          "meadow": 3,
+          "construction": 2,
+          "forest": 2,
+          "railway": 1,
+          "brownfield": 1,
+          "religious": 1
+        },
+        "type": {
+          "multipolygon": 1
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "element": "relation",
+          "id": "7567936",
+          "landuse": "grass",
+          "type": "multipolygon"
+        },
+        {
+          "fid": "2",
+          "element": "way",
+          "id": "515740263",
+          "construction": "residential",
+          "landuse": "construction"
+        },
+        {
+          "fid": "3",
+          "element": "way",
+          "id": "521855840",
+          "landuse": "grass"
+        }
+      ]
+    },
+    "natural": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 19,
+      "columns": [
+        "fid",
+        "geom",
+        "element",
+        "id",
+        "natural",
+        "image",
+        "leisure",
+        "name",
+        "tourism",
+        "water"
+      ],
+      "geometryTypes": {
+        "Point": 7,
+        "LineString": 4,
+        "Polygon": 8
+      },
+      "keyValueCounts": {
+        "natural": {
+          "tree": 7,
+          "tree_row": 4,
+          "wood": 3,
+          "scrub": 3,
+          "water": 1,
+          "bare_rock": 1
+        },
+        "leisure": {
+          "park": 1
+        },
+        "water": {
+          "pond": 1
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "element": "node",
+          "id": "8807554745",
+          "natural": "tree"
+        },
+        {
+          "fid": "2",
+          "element": "node",
+          "id": "8807554748",
+          "natural": "tree"
+        },
+        {
+          "fid": "3",
+          "element": "node",
+          "id": "8807554749",
+          "natural": "tree"
+        }
+      ]
+    },
+    "waterways": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 1,
+      "columns": [
+        "fid",
+        "geom",
+        "element",
+        "id",
+        "intermittent",
+        "name",
+        "waterway"
+      ],
+      "geometryTypes": {
+        "LineString": 1
+      },
+      "keyValueCounts": {
+        "waterway": {
+          "stream": 1
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "element": "way",
+          "id": "951516092",
+          "intermittent": "no",
+          "name": "Ayvalıdere",
+          "waterway": "stream"
+        }
+      ]
+    },
+    "amenities": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 108,
+      "columns": [
+        "fid",
+        "geom",
+        "element",
+        "id",
+        "amenity",
+        "brand",
+        "brand_wikidata",
+        "brand_wikipedia",
+        "cuisine",
+        "name",
+        "takeaway",
+        "healthcare",
+        "phone",
+        "addr_city",
+        "addr_district",
+        "addr_housenumber",
+        "addr_neighbourhood",
+        "addr_street",
+        "dispensing",
+        "opening_hours",
+        "operator",
+        "operator_wikidata",
+        "operator_wikipedia",
+        "name_ar",
+        "barrier",
+        "fee",
+        "indoor",
+        "addr_postcode",
+        "branch",
+        "fax",
+        "fuel_diesel",
+        "fuel_lpg",
+        "source",
+        "website",
+        "wheelchair",
+        "layer",
+        "shop",
+        "cash_in",
+        "building",
+        "religion",
+        "parking",
+        "building_levels",
+        "check_date",
+        "internet_access",
+        "coffee",
+        "roof_levels",
+        "denomination",
+        "roof_shape",
+        "wikidata",
+        "atm",
+        "outdoor_seating",
+        "education",
+        "image",
+        "internet_access_fee",
+        "wikimedia_commons",
+        "wikipedia",
+        "operator_type",
+        "operator_en",
+        "operator_short",
+        "operator_tr",
+        "alt_name",
+        "bus",
+        "name_tr",
+        "network",
+        "official_name",
+        "old_name",
+        "public_transport",
+        "access",
+        "surface",
+        "grades",
+        "opening_date",
+        "air_conditioning",
+        "baby_feeding",
+        "internet_access_ssid",
+        "name_en",
+        "name_pl",
+        "type"
+      ],
+      "geometryTypes": {
+        "Point": 52,
+        "Polygon": 56
+      },
+      "keyValueCounts": {
+        "amenity": {
+          "parking": 19,
+          "pharmacy": 16,
+          "school": 15,
+          "place_of_worship": 10,
+          "atm": 9,
+          "fuel": 5,
+          "cafe": 5,
+          "restaurant": 4,
+          "bank": 4,
+          "fast_food": 3,
+          "fountain": 2,
+          "clinic": 2,
+          "parking_entrance": 2,
+          "festival_grounds": 2,
+          "bus_station": 2
+        },
+        "shop": {
+          "fuel": 2
+        },
+        "type": {
+          "multipolygon": 1
+        },
+        "building": {
+          "yes": 11,
+          "mosque": 8
+        },
+        "surface": {
+          "asphalt": 3
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "element": "node",
+          "id": "4303106698",
+          "amenity": "fast_food",
+          "brand": "Domino's",
+          "brand_wikidata": "Q839466",
+          "brand_wikipedia": "en:Domino's Pizza",
+          "cuisine": "pizza",
+          "name": "Domino's",
+          "takeaway": "yes"
+        },
+        {
+          "fid": "2",
+          "element": "node",
+          "id": "4303107092",
+          "amenity": "pharmacy",
+          "healthcare": "pharmacy"
+        },
+        {
+          "fid": "3",
+          "element": "node",
+          "id": "4303108296",
+          "amenity": "fountain",
+          "name": "Çukur Çeşme"
+        }
+      ]
+    },
+    "shops": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 56,
+      "columns": [
+        "fid",
+        "geom",
+        "element",
+        "id",
+        "name",
+        "opening_hours",
+        "shop",
+        "addr_city",
+        "addr_district",
+        "addr_housenumber",
+        "addr_neighbourhood",
+        "addr_postcode",
+        "addr_street",
+        "phone",
+        "website",
+        "brand",
+        "brand_wikidata",
+        "brand_wikipedia",
+        "name_tr",
+        "operator",
+        "internet_access",
+        "name_en",
+        "name_ar",
+        "email",
+        "smoking",
+        "amenity",
+        "branch",
+        "layer",
+        "not_brand_wikidata",
+        "brand_tr",
+        "building",
+        "building_levels"
+      ],
+      "geometryTypes": {
+        "Point": 52,
+        "Polygon": 4
+      },
+      "keyValueCounts": {
+        "shop": {
+          "supermarket": 17,
+          "convenience": 16,
+          "bakery": 3,
+          "department_store": 3,
+          "sewing": 3,
+          "fabric": 3,
+          "fuel": 2,
+          "greengrocer": 1,
+          "copyshop": 1,
+          "butcher": 1,
+          "optician": 1,
+          "stationery": 1,
+          "electrical": 1,
+          "furniture": 1,
+          "confectionery": 1
+        },
+        "amenity": {
+          "fuel": 2
+        },
+        "building": {
+          "yes": 2,
+          "supermarket": 1
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "element": "node",
+          "id": "4303089229",
+          "name": "Sinanlar Ekmek Fırını",
+          "opening_hours": "Mo-Su 06:00-22:00",
+          "shop": "bakery"
+        },
+        {
+          "fid": "2",
+          "element": "node",
+          "id": "4303106607",
+          "name": "Semt Manavı",
+          "opening_hours": "Mo-Su 10:00-22:00",
+          "shop": "greengrocer"
+        },
+        {
+          "fid": "3",
+          "element": "node",
+          "id": "4303106797",
+          "name": "Happy Center",
+          "shop": "supermarket",
+          "phone": "+90 212 611 9172",
+          "website": "https://www.happycenter.com.tr/kurumsal/istanbul/esenler"
+        }
+      ]
+    },
+    "tourism": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 8,
+      "columns": [
+        "fid",
+        "geom",
+        "element",
+        "id",
+        "artwork_type",
+        "tourism",
+        "inscription",
+        "subject_wikidata",
+        "subject_wikipedia",
+        "image",
+        "leisure",
+        "name",
+        "natural",
+        "addr_city",
+        "addr_district",
+        "addr_housenumber",
+        "addr_neighbourhood",
+        "addr_postcode",
+        "addr_street",
+        "bar",
+        "building",
+        "building_levels",
+        "email",
+        "fax",
+        "internet_access",
+        "internet_access_fee",
+        "phone",
+        "rooms",
+        "stars",
+        "website",
+        "wikidata"
+      ],
+      "geometryTypes": {
+        "Point": 5,
+        "Polygon": 3
+      },
+      "keyValueCounts": {
+        "leisure": {
+          "park": 1
+        },
+        "natural": {
+          "wood": 1
+        },
+        "building": {
+          "yes": 2
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "element": "node",
+          "id": "9431469042",
+          "artwork_type": "statue",
+          "tourism": "artwork"
+        },
+        {
+          "fid": "2",
+          "element": "node",
+          "id": "9431469043",
+          "artwork_type": "statue",
+          "tourism": "artwork"
+        },
+        {
+          "fid": "3",
+          "element": "node",
+          "id": "9431469044",
+          "artwork_type": "statue",
+          "tourism": "artwork"
+        }
+      ]
+    },
+    "road_network_edges": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 2600,
+      "columns": [
+        "fid",
+        "geom",
+        "u",
+        "v",
+        "key",
+        "osmid",
+        "highway",
+        "name",
+        "oneway",
+        "reversed",
+        "length",
+        "lanes",
+        "tunnel",
+        "maxspeed",
+        "service",
+        "bridge",
+        "width",
+        "junction",
+        "access"
+      ],
+      "geometryTypes": {
+        "LineString": 2600
+      },
+      "keyValueCounts": {
+        "highway": {
+          "residential": 930,
+          "footway": 850,
+          "service": 251,
+          "secondary": 208,
+          "tertiary": 102,
+          "cycleway": 76,
+          "primary_link": 34,
+          "living_street": 34,
+          "primary": 26,
+          "secondary_link": 17,
+          "['steps', 'footway']": 16,
+          "pedestrian": 14,
+          "steps": 8,
+          "['steps', 'residential']": 6,
+          "['footway', 'service']": 6
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "u": "910860393",
+          "v": "910860398",
+          "key": "0",
+          "osmid": "984959907",
+          "highway": "primary",
+          "name": "Otogar Bağlantı Yolu Caddesi",
+          "oneway": "1",
+          "reversed": "False",
+          "length": "49.320794252997956"
+        },
+        {
+          "fid": "2",
+          "u": "910860393",
+          "v": "9445165164",
+          "key": "0",
+          "osmid": "77410662",
+          "highway": "primary_link",
+          "oneway": "1",
+          "reversed": "False",
+          "length": "68.6386078246918"
+        },
+        {
+          "fid": "3",
+          "u": "910860398",
+          "v": "911134708",
+          "key": "0",
+          "osmid": "[315881064, 315881065, 315881063]",
+          "highway": "primary_link",
+          "name": "Otogar Kavşağı",
+          "oneway": "1",
+          "reversed": "False",
+          "length": "381.7822070490705",
+          "lanes": "1",
+          "tunnel": "yes"
+        }
+      ]
+    },
+    "road_network_nodes": {
+      "dataType": "features",
+      "srsId": 4326,
+      "geomColumn": "geom",
+      "rowCount": 1013,
+      "columns": [
+        "fid",
+        "geom",
+        "osmid",
+        "y",
+        "x",
+        "street_count",
+        "highway",
+        "ref",
+        "railway"
+      ],
+      "geometryTypes": {
+        "Point": 1013
+      },
+      "keyValueCounts": {
+        "highway": {
+          "crossing": 32,
+          "elevator": 3,
+          "motorway_junction": 2,
+          "traffic_signals": 1
+        }
+      },
+      "sampleRows": [
+        {
+          "fid": "1",
+          "osmid": "910860393",
+          "y": "41.0366786",
+          "x": "28.891236",
+          "street_count": "3"
+        },
+        {
+          "fid": "2",
+          "osmid": "910860398",
+          "y": "41.0365414",
+          "x": "28.8917952",
+          "street_count": "3"
+        },
+        {
+          "fid": "3",
+          "osmid": "911133032",
+          "y": "41.0350306",
+          "x": "28.8885543",
+          "street_count": "3"
+        }
+      ]
     }
+  },
+  "overpassSupplement": {
+    "ran": true,
+    "worshipAdded": 18,
+    "parksAdded": 248,
+    "waterAdded": 3,
+    "poisAdded": 139
+  },
+  "summary": {
+    "hasBuildingsInGpkg": true,
+    "hasRoadsInGpkg": true,
+    "hasParks": true,
+    "hasWater": true,
+    "worshipSanctuariesDetected": 18,
+    "anonymizedPoisSelected": 13,
+    "elevationSource": "Copernicus DEM GLO-30 (AWS s3://copernicus-dem-30m, N41 E028, 2-pass smoothed DSM)"
   }
 }
