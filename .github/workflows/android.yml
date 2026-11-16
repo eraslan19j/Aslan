@@ -75,13 +75,14 @@ jobs:
           grep -q "name='com.istanbulstreets.game'" apk-badging.txt
           grep -q "targetSdkVersion:'36'" apk-badging.txt
           ORIENTATION=$("$AAPT2" dump xmltree istanbul-streets-debug.apk --file AndroidManifest.xml | grep -i "screenOrientation" | head -n 1 || true)
-          echo "$ORIENTATION" | grep -qi "0x6"
+          echo "Detected orientation line: ${ORIENTATION}"
+          echo "$ORIENTATION" | grep -qE "0x0*6|sensorLandscape|=6([^0-9]|$)"
           {
             echo "## Istanbul Streets — M0 Debug APK (Android 16 / API 36)"
             echo ""
             echo "- **Package:** \`com.istanbulstreets.game\`"
             echo "- **Target SDK:** \`36\` (Android 16) · **Min SDK:** \`24\` (Android 7.0+)"
-            echo "- **Orientation:** \`sensorLandscape\` (\`0x6\` verified via \`aapt2\`)"
+            echo "- **Orientation:** \`sensorLandscape\` (\`${ORIENTATION}\`)"
             echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo ""
