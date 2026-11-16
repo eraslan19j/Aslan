@@ -1,0 +1,349 @@
+{
+  "generatedAtIso": "2026-11-16T22:09:28.219Z",
+  "diffWarnThresholdPct": 6,
+  "totalScreenshots": 14,
+  "totalErrors": 0,
+  "regressionWarnings": 0,
+  "hudWarnings": 1,
+  "screenshots": [
+    {
+      "file": "esenler_01_start.png",
+      "regionId": "esenler-namik-kemal",
+      "label": "Başlangıç (3. Şahıs)",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "esenler-namik-kemal",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 59,
+        "triangles": 67391,
+        "loadedTiles": 9,
+        "activeBuildings": 2414
+      },
+      "uniqueColors": 559,
+      "brightFrac": 0.4059,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "esenler_02_street.png",
+      "regionId": "esenler-namik-kemal",
+      "label": "Sokak Seviyesi",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "esenler-namik-kemal",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 59,
+        "triangles": 67391,
+        "loadedTiles": 9,
+        "activeBuildings": 2414
+      },
+      "uniqueColors": 632,
+      "brightFrac": 0.2819,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "esenler_03_overview.png",
+      "regionId": "esenler-namik-kemal",
+      "label": "Geniş Görünüm",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "esenler-namik-kemal",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 66,
+        "triangles": 69931,
+        "loadedTiles": 9,
+        "activeBuildings": 2414
+      },
+      "uniqueColors": 881,
+      "brightFrac": 0.2565,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "esenler_04_night.png",
+      "regionId": "esenler-namik-kemal",
+      "label": "Gece Modu",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "esenler-namik-kemal",
+        "qualityTier": "normal",
+        "timeOfDay": "night",
+        "drawCalls": 59,
+        "triangles": 67391,
+        "loadedTiles": 9,
+        "activeBuildings": 2414
+      },
+      "uniqueColors": 863,
+      "brightFrac": 0.0742,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "esenler_05_lite.png",
+      "regionId": "esenler-namik-kemal",
+      "label": "Lite Modu",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "esenler-namik-kemal",
+        "qualityTier": "lite",
+        "timeOfDay": "day",
+        "drawCalls": 49,
+        "triangles": 39860,
+        "loadedTiles": 9,
+        "activeBuildings": 2414
+      },
+      "uniqueColors": 463,
+      "brightFrac": 0.5103,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "esenler_06_touch_20x9.png",
+      "regionId": "esenler-namik-kemal",
+      "label": "20:9 Yatay Dokunmatik",
+      "viewport": "880x396",
+      "telemetry": {
+        "regionId": "esenler-namik-kemal",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 59,
+        "triangles": 67391,
+        "loadedTiles": 9,
+        "activeBuildings": 2414
+      },
+      "uniqueColors": 545,
+      "brightFrac": 0.3976,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "esenler_07_driving_20x9.png",
+      "regionId": "esenler-namik-kemal",
+      "label": "20:9 Sürüş Modu (Sarı Taksi)",
+      "viewport": "880x396",
+      "telemetry": {
+        "regionId": "esenler-namik-kemal",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 54,
+        "triangles": 66731,
+        "loadedTiles": 9,
+        "activeBuildings": 2414
+      },
+      "uniqueColors": 501,
+      "brightFrac": 0.3381,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "esenler_08_diagnostics_20x9.png",
+      "regionId": "esenler-namik-kemal",
+      "label": "20:9 Tanılama Paneli (Ayarlar)",
+      "viewport": "880x396",
+      "telemetry": {
+        "regionId": "esenler-namik-kemal",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 59,
+        "triangles": 67391,
+        "loadedTiles": 9,
+        "activeBuildings": 2414
+      },
+      "uniqueColors": 221,
+      "brightFrac": 0.0241,
+      "hudIssues": [
+        "Button \"RAPORU KOPYALA\" clips outside viewport",
+        "Button \"Kapat\" clips outside viewport"
+      ],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "fatih_01_start.png",
+      "regionId": "fatih-sultanahmet-eminonu",
+      "label": "Başlangıç (3. Şahıs)",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "fatih-sultanahmet-eminonu",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 63,
+        "triangles": 54510,
+        "loadedTiles": 9,
+        "activeBuildings": 1382
+      },
+      "uniqueColors": 569,
+      "brightFrac": 0.6395,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "fatih_02_street.png",
+      "regionId": "fatih-sultanahmet-eminonu",
+      "label": "Sokak Seviyesi",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "fatih-sultanahmet-eminonu",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 76,
+        "triangles": 57788,
+        "loadedTiles": 9,
+        "activeBuildings": 1382
+      },
+      "uniqueColors": 607,
+      "brightFrac": 0.4693,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "fatih_03_overview.png",
+      "regionId": "fatih-sultanahmet-eminonu",
+      "label": "Geniş Görünüm",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "fatih-sultanahmet-eminonu",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 48,
+        "triangles": 56568,
+        "loadedTiles": 9,
+        "activeBuildings": 1382
+      },
+      "uniqueColors": 752,
+      "brightFrac": 0.722,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "fatih_04_night.png",
+      "regionId": "fatih-sultanahmet-eminonu",
+      "label": "Gece Modu",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "fatih-sultanahmet-eminonu",
+        "qualityTier": "normal",
+        "timeOfDay": "night",
+        "drawCalls": 76,
+        "triangles": 57788,
+        "loadedTiles": 9,
+        "activeBuildings": 1382
+      },
+      "uniqueColors": 710,
+      "brightFrac": 0.0146,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "fatih_05_lite.png",
+      "regionId": "fatih-sultanahmet-eminonu",
+      "label": "Lite Modu",
+      "viewport": "1280x720",
+      "telemetry": {
+        "regionId": "fatih-sultanahmet-eminonu",
+        "qualityTier": "lite",
+        "timeOfDay": "day",
+        "drawCalls": 65,
+        "triangles": 40757,
+        "loadedTiles": 9,
+        "activeBuildings": 1382
+      },
+      "uniqueColors": 461,
+      "brightFrac": 0.6679,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    },
+    {
+      "file": "fatih_06_touch_20x9.png",
+      "regionId": "fatih-sultanahmet-eminonu",
+      "label": "20:9 Yatay Dokunmatik",
+      "viewport": "880x396",
+      "telemetry": {
+        "regionId": "fatih-sultanahmet-eminonu",
+        "qualityTier": "normal",
+        "timeOfDay": "day",
+        "drawCalls": 76,
+        "triangles": 57788,
+        "loadedTiles": 9,
+        "activeBuildings": 1382
+      },
+      "uniqueColors": 535,
+      "brightFrac": 0.6822,
+      "hudIssues": [],
+      "regression": {
+        "hasReference": false,
+        "diffPct": null,
+        "warning": false
+      },
+      "errors": []
+    }
+  ]
+}
