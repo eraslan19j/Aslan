@@ -1,10 +1,13 @@
 {
-  "generatedAtIso": "2026-11-16T22:08:13.730Z",
+  "generatedAtIso": "2026-11-16T22:21:43.964Z",
   "note": "Android x86_64 KVM emulator (SwiftShader GPU) validates layout, landscape, cutout, touch input, Back key, and crash-free launch — NOT real-device FPS.",
   "appAliveAfterBack": true,
   "fatalCount": 0,
   "anrCount": 0,
   "chromiumErrorCount": 0,
+  "bootLines": [
+    "11-16 22:21:15.425 I/Capacitor/Console( 3435): File: https://localhost/assets/index-B-n_WBIi.js - Line 9 - Msg: ISTANBUL_BOOT {\"version\":\"0.2.0\",\"regionId\":\"esenler-namik-kemal\",\"qualityTier\":\"lite\",\"touchUi\":true,\"viewport\":\"866x412\",\"canvas\":\"866x412\",\"glError\":0,\"gpu\":{\"renderer\":\"Android Emulator OpenGL ES Translator (Google SwiftShader)\",\"vendor\":\"Google (Google Inc.)\"}}"
+  ],
   "fatals": [],
   "anrs": [],
   "chromiumErrors": [],
@@ -14,24 +17,24 @@
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 175,
-      "brightFrac": 0.0722
+      "uniqueColors": 342,
+      "brightFrac": 0.0291
     },
     {
       "file": "qa-out/android/emulator_02_after_joystick.png",
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 175,
-      "brightFrac": 0.0722
+      "uniqueColors": 340,
+      "brightFrac": 0.0291
     },
     {
       "file": "qa-out/android/emulator_03_pause_back.png",
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 175,
-      "brightFrac": 0.0722
+      "uniqueColors": 203,
+      "brightFrac": 0.0308
     }
   ]
 }
