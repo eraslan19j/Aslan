@@ -990,18 +990,18 @@
   },
   "overpassSupplement": {
     "ran": true,
-    "worshipAdded": 18,
-    "parksAdded": 248,
-    "waterAdded": 3,
-    "poisAdded": 139
+    "worshipAdded": 10,
+    "parksAdded": 146,
+    "waterAdded": 2,
+    "poisAdded": 83
   },
   "summary": {
     "hasBuildingsInGpkg": true,
     "hasRoadsInGpkg": true,
     "hasParks": true,
     "hasWater": true,
-    "worshipSanctuariesDetected": 18,
-    "anonymizedPoisSelected": 13,
+    "worshipSanctuariesDetected": 10,
+    "anonymizedPoisSelected": 12,
     "elevationSource": "Copernicus DEM GLO-30 (AWS s3://copernicus-dem-30m, N41 E028, 2-pass smoothed DSM)"
   }
 }
