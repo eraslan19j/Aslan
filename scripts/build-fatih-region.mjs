@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { join } from 'node:path';
 
 const REGION_ID = 'fatih-sultanahmet-eminonu';
-const OUT_DIR = join(process.cwd(), 'public', 'regions', REGION_ID);
+const OUT_DIR = join(process.cwd(), 'public', 'derived-data', REGION_ID);
 const TILES_DIR = join(OUT_DIR, 'tiles');
 const CACHE_OSM_PATH = process.env.OSM_CACHE_PATH || '/tmp/fatih-overpass-cache.json';
 const TERRAIN_PATH = join(OUT_DIR, 'terrain.json');

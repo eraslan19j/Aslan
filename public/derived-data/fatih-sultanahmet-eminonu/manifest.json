@@ -190,6 +190,14 @@
       "x": 191,
       "z": 316.1,
       "radiusMeters": 78
+    },
+    {
+      "id": "yeni-cami",
+      "nameTr": "Yeni Cami (Güvenli Alan)",
+      "nameEn": "New Mosque (Eminönü) (Safe Zone)",
+      "x": -276.4,
+      "z": -662.4,
+      "radiusMeters": 55
     }
   ],
   "attributions": [

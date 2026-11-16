@@ -460,6 +460,8 @@ def main():
         key_val_counts = collections.defaultdict(collections.Counter)
 
         t_lower = table_name.lower()
+        # Skip redundant graph tables for mesh extraction (already represented cleanly in 'roads' + 'paths')
+        skip_for_geometry = t_lower in ("road_network_edges", "road_network_nodes")
         rows = cur.execute(f'SELECT * FROM "{table_name}"').fetchall()
         for idx, row in enumerate(rows):
             rec = dict(zip(col_names, row))
@@ -507,6 +509,8 @@ def main():
             if geom is None or geom.is_empty:
                 continue
             gtype_counts[geom.geom_type] += 1
+            if skip_for_geometry:
+                continue
             tr = get_crs_transformer(conn, g_srs or srs_id or 4326, srs_cache)
 
             fid = f"gpkg_{table_name}_{rec.get('fid') or rec.get('ogc_fid') or rec.get('osm_id') or idx}"
@@ -616,30 +620,41 @@ def main():
 
     conn.close()
 
-    # Fallback bbox from source manifest if needed
-    if bbox["west"] > 900:
-        mb = src_manifest.get("bbox")
-        if isinstance(mb, dict):
-            bbox = {
-                "south": float(mb.get("south") or mb.get("min_lat") or 41.031),
-                "north": float(mb.get("north") or mb.get("max_lat") or 41.044),
-                "west": float(mb.get("west") or mb.get("min_lon") or 28.876),
-                "east": float(mb.get("east") or mb.get("max_lon") or 28.894),
-            }
-        elif isinstance(mb, list) and len(mb) == 4:
-            bbox = {"west": float(mb[0]), "south": float(mb[1]), "east": float(mb[2]), "north": float(mb[3])}
-
-    # Round bbox cleanly
-    bounds = {
-        "south": round(bbox["south"], 6),
-        "north": round(bbox["north"], 6),
-        "west": round(bbox["west"], 6),
-        "east": round(bbox["east"], 6),
-    }
+    # Use exact official archiveManifest bbox when available so outlier highway vertices don't stretch DEM
+    mb = src_manifest.get("bbox")
+    if isinstance(mb, dict) and all(k in mb for k in ("west", "south", "east", "north")):
+        bounds = {
+            "south": round(float(mb["south"]), 6),
+            "north": round(float(mb["north"]), 6),
+            "west": round(float(mb["west"]), 6),
+            "east": round(float(mb["east"]), 6),
+        }
+    else:
+        bounds = {
+            "south": round(bbox["south"], 6),
+            "north": round(bbox["north"], 6),
+            "west": round(bbox["west"], 6),
+            "east": round(bbox["east"], 6),
+        }
     origin = {
         "lon": round((bounds["west"] + bounds["east"]) / 2.0, 6),
         "lat": round((bounds["south"] + bounds["north"]) / 2.0, 6),
     }
+
+    # Filter out geometries far outside official Esenler bbox (e.g., long cross-district highways)
+    pad_deg = 0.0025
+    def in_bounds(lon: float, lat: float) -> bool:
+        return (
+            (bounds["west"] - pad_deg) <= lon <= (bounds["east"] + pad_deg)
+            and (bounds["south"] - pad_deg) <= lat <= (bounds["north"] + pad_deg)
+        )
+
+    raw_buildings = [b for b in raw_buildings if in_bounds(b["ring"][0][0], b["ring"][0][1])]
+    raw_roads = [
+        {**r, "pts": [p for p in r["pts"] if in_bounds(p[0], p[1])]}
+        for r in raw_roads
+    ]
+    raw_roads = [r for r in raw_roads if len(r["pts"]) >= 2]
 
     print(
         f"GPKG parsed: buildings={len(raw_buildings)}, roads={len(raw_roads)}, "
@@ -888,11 +903,14 @@ def main():
         elif a["kind"] == "water":
             water_count += 1
 
-    # Deduplicate ALL amenity=place_of_worship -> automatic Sanctuary Zones!
+    # Deduplicate ALL amenity=place_of_worship -> automatic Sanctuary Zones! (sorted nearest to center first)
+    raw_worship.sort(key=lambda w: math.hypot(*ll_to_local(w["lon"], w["lat"])))
     sanctuary_zones = []
     landmarks = []
     worship_centers = []
     for w in raw_worship:
+        if not in_bounds(w["lon"], w["lat"]):
+            continue
         wx, wz = ll_to_local(w["lon"], w["lat"])
         if any(math.hypot(wx - ox, wz - oz) < 42.0 for ox, oz in worship_centers):
             continue
@@ -935,7 +953,10 @@ def main():
     }
     used_poi_pos = list(worship_centers)
     cat_counts = collections.Counter()
+    raw_pois.sort(key=lambda p: math.hypot(*ll_to_local(p["lon"], p["lat"])))
     for poi in raw_pois:
+        if not in_bounds(poi["lon"], poi["lat"]):
+            continue
         cat = poi["cat"]
         if cat not in poi_templates:
             continue
