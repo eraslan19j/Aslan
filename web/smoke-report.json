@@ -10,11 +10,11 @@
     "trafficCount": 10,
     "crashCount": 0,
     "perf": {
-      "fps": 20.64500571445865,
-      "frameMs": 445.36203926493084,
-      "drawCalls": 44,
-      "triangles": 39380,
-      "geometries": 43,
+      "fps": 46.67663081797984,
+      "frameMs": 175.9299985478146,
+      "drawCalls": 50,
+      "triangles": 39872,
+      "geometries": 47,
       "textures": 6,
       "pixelRatio": 1,
       "loadedTiles": 9,
@@ -22,7 +22,7 @@
     }
   },
   "initialRegion": "esenler-namik-kemal",
-  "walkDist": 5.32,
+  "walkDist": 7.73,
   "driveDist": 3.1,
   "driveSpeedKph": 31,
   "exitedOk": true,
@@ -32,7 +32,7 @@
   "qualityToggleOk": true,
   "hasAttributions": true,
   "pauseToggleOk": true,
-  "uniqueColors": 492,
-  "brightFrac": 0.5054,
+  "uniqueColors": 511,
+  "brightFrac": 0.5396,
   "errors": []
 }
