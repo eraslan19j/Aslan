@@ -3,7 +3,7 @@
 ## 1. Yığın (Stack) ve Sabit Sürümler
 - **Web / Oyun Motoru:** Vite `7.3.8` + TypeScript `5.9.3` + Three.js `0.187.0`
 - **Fizik:** Rapier3D (`@dimforge/rapier3d-compat` `0.21.0`, gömülü WASM — ek harici binary indirme yok)
-- **Test & Kalite:** Vitest `4.1.12` (Node ortamı, saf çekirdek) + ESLint `9/10` + `typescript-eslint` + Playwright Chromium (CI headless smoke + soak)
+- **Test & Kalite:** Vitest `5.1.0` (Node ortamı, saf çekirdek) + ESLint `10.15.0` + `typescript-eslint` + Playwright Chromium (CI headless smoke + soak)
 - **Mobil Paketleme:** Capacitor `8.6.2` (`@capacitor/core`, `@capacitor/android`, `@capacitor/app`, `@capacitor/preferences`, `@capacitor/haptics`)
   - **Android Hedef:** `compileSdkVersion = 36`, `targetSdkVersion = 36` (Android 16), `minSdkVersion = 24` (Android 7.0+)
   - **App ID:** `com.istanbulstreets.game`

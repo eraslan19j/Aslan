@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Istanbul Streets</string>
+    <string name="title_activity_main">Istanbul Streets</string>
+    <string name="package_name">com.istanbulstreets.game</string>
+    <string name="custom_url_scheme">com.istanbulstreets.game</string>
+</resources>

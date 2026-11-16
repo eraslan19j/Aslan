@@ -1,0 +1,113 @@
+name: Android APK / AAB (API 36)
+
+on:
+  push:
+    branches:
+      - main
+      - 'arena/**'
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK (API 36)
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 16 (API 36) platform & build-tools
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Build Debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Inspect and verify Debug APK (API 36 + sensorLandscape)
+        run: |
+          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK_PATH"
+          cp "$APK_PATH" istanbul-streets-debug.apk
+          ls -lh istanbul-streets-debug.apk
+          AAPT2="${ANDROID_HOME}/build-tools/36.0.0/aapt2"
+          "$AAPT2" dump badging istanbul-streets-debug.apk | tee apk-badging.txt
+          grep -q "name='com.istanbulstreets.game'" apk-badging.txt
+          grep -q "targetSdkVersion:'36'" apk-badging.txt
+          "$AAPT2" dump xmltree istanbul-streets-debug.apk --file AndroidManifest.xml | grep -i "screenOrientation"
+          echo "APK VERIFIED: com.istanbulstreets.game, targetSdkVersion=36"
+
+      - name: Build Signed Release AAB (only when keystore secrets are configured)
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYSTORE_FILE="${RUNNER_TEMP}/upload-keystore.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_FILE"
+          trap 'rm -f "$KEYSTORE_FILE"' EXIT
+          export ANDROID_KEYSTORE_PATH="$KEYSTORE_FILE"
+          cd android
+          ./gradlew bundleRelease --no-daemon
+          cp app/build/outputs/bundle/release/app-release.aab ../istanbul-streets-release.aab
+          ls -lh ../istanbul-streets-release.aab
+
+      - name: Upload Debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: istanbul-streets-debug-apk
+          path: |
+            istanbul-streets-debug.apk
+            apk-badging.txt
+
+      - name: Upload Signed Release AAB artifact (if built)
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: istanbul-streets-release-aab
+          path: istanbul-streets-release.aab
+
+      - name: Attach APK/AAB to GitHub Release on v* tags
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            istanbul-streets-debug.apk
+            istanbul-streets-release.aab
+          fail_on_unmatched_files: false
+          generate_release_notes: true

@@ -15,8 +15,8 @@ Her önemli teknik, ürün veya politika kararı burada tarih ve kanıtla kayıt
 - **Karar:** Uyumluluk ve kararlılık için `package.json`'da sabit sürümler:
   - `three@0.187.0`, `@types/three@0.187.0`
   - `@dimforge/rapier3d-compat@0.21.0`
-  - `vite@7.3.8`, `vitest@4.1.12`, `typescript@5.9.3`
-  - `eslint@9.x` veya `10.x` + `typescript-eslint@8.73.0`
+  - `vite@7.3.8`, `vitest@5.1.0`, `typescript@5.9.3`
+  - `eslint@10.15.0` + `typescript-eslint@8.73.0`
   - `@capacitor/*@8.x`
 - **Sonuç:** Sıfır `--legacy-peer-deps` gereksinimi, temiz CI kurulumu.
 
