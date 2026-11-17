@@ -25,8 +25,9 @@ describe('Street Prop Placement Audit — Zero Props on Asphalt Roads (v0.8.0)',
 
         for (let i = 0; i < props.length; i += 1) {
           const p = props[i]!;
-          // Strictly clear of EVERY road asphalt carriageway & intersection mouth!
-          if (!isPointClearOfTileRoads(tile, p.x, p.z, 0.72)) {
+          const minRoadClear = p.kind === 'tree' ? 2.2 : 1.1;
+          // Strictly clear of EVERY road asphalt carriageway, curb lip & highway median!
+          if (!isPointClearOfTileRoads(tile, p.x, p.z, minRoadClear)) {
             roadViolations += 1;
           }
           // Strictly clear of building footprints

@@ -332,21 +332,30 @@ export function createIstanbulFacadeTextures(anisotropy = 4): FacadeTextureSet {
         gCtx.strokeStyle = neonHex;
         gCtx.lineWidth = 2.5;
         gCtx.strokeRect(sx + 2, signY + 2, sw - 4, 28);
+        // Flip horizontally in texture space so CCW outer building walls read cleanly left-to-right!
+        gCtx.save();
+        gCtx.translate(sx + sw * 0.5, signY + 17);
+        gCtx.scale(-1, 1);
         gCtx.fillStyle = '#ffffff';
         gCtx.font = 'bold 16px sans-serif';
         gCtx.textAlign = 'center';
         gCtx.textBaseline = 'middle';
-        gCtx.fillText(label, sx + sw * 0.5, signY + 17);
+        gCtx.fillText(label, 0, 0);
+        gCtx.restore();
 
         // Luminous neon signboard border + lettering in emissive map for vivid Istanbul nightlife!
         gEmCtx.strokeStyle = neonHex;
         gEmCtx.lineWidth = 2.5;
         gEmCtx.strokeRect(sx + 2, signY + 2, sw - 4, 28);
+        gEmCtx.save();
+        gEmCtx.translate(sx + sw * 0.5, signY + 17);
+        gEmCtx.scale(-1, 1);
         gEmCtx.fillStyle = neonHex;
         gEmCtx.font = 'bold 16px sans-serif';
         gEmCtx.textAlign = 'center';
         gEmCtx.textBaseline = 'middle';
-        gEmCtx.fillText(label, sx + sw * 0.5, signY + 17);
+        gEmCtx.fillText(label, 0, 0);
+        gEmCtx.restore();
 
         // Striped sloped shop awning
         const awnY = signY + 32;

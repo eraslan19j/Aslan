@@ -113,7 +113,22 @@ npm run cap:sync   -> PASS (Capacitor 8.6.2 synced to Android project in 0.101s)
 |---|---|---|---|
 | **CI (Web + Unit + Smoke + 15-Shot Visual QA + 3-Min Soak)** | `44128296967` | **PASS** | **61/61 Vitest**, **0 console errors**, **0 HUD warnings**, `version: "0.7.0"`, `frameMs: 224.53 ms` (`-42%` vs `v0.6.0`), `driveDist: 2.69 m` (`28 km/h`, `Gear 1`, `4009 RPM`), `cameraCycleOk: true`, `drivingModeToggleOk: true`, `transmissionToggleOk: true`, `audioToggleOk: true`, `driverVisibleInCabin: true`, **15/15 PNGs** (`esenler_07_driving_20x9.png`, `esenler_09_sunset_driving.png`, `esenler_08_diagnostics_20x9.png` visually inspected); 3-min Soak `maxDrawCalls: 83`, `texDrift: 0`, `heapGrowthMb: -10.71 MB`, `errors: []` |
 | **Android API 36 Debug APK & GitHub Release `v0.7.0`** | `44128296916` | **PASS** | `com.istanbulstreets.game`, `versionCode 9` (`v0.7.0`), `targetSdkVersion 36`, `sensorLandscape`, `public/audio/engine-worklet.js` & `NativeGameBoostPlugin` synced cleanly |
-| **Android Emulator QA (x86_64 KVM)** | `44128296890` → final commit | **Verified / Fixed timing** | `ISTANBUL_BOOT` `v0.7.0`, `glError: 0`, `nativeHw` reported (`cpuCores: 2`, `sdkInt: 34`, `audioSampleRate: 48000`, `refreshRateHz: 60`, `gameMode: "standard"`), `2400x1080` landscape, `fatalCount: 0`, `anrCount: 0`, `chromiumErrorCount: 0`, `appAliveAfterBack: true` |
+| **Android Emulator QA (x86_64 KVM)** | `44131393592` | **PASS** | `ISTANBUL_BOOT` `v0.7.0`, `glError: 0`, `nativeHw` reported (`cpuCores: 2`, `sdkInt: 34`, `audioSampleRate: 48000`, `refreshRateHz: 60`, `gameMode: "standard"`), `2400x1080` landscape, `fatalCount: 0`, `anrCount: 0`, `chromiumErrorCount: 0`, `appAliveAfterBack: true` |
+
+---
+
+## 7. `v0.8.0` Street Grip, Road-Clear Props, Upgraded NPC Fleet, Physical Perimeter Barriers & Visual Modernization
+
+**Release Version:** `0.8.0` (`versionCode 10`, Android API 36 `sensorLandscape`)  
+**Unit & Integration Tests:** `16` test suites / **`67/67` tests PASS** (added `src/core/world/worldBounds.test.ts`, `src/render/streetProps.test.ts`, and `src/core/v080DrivingAndTraffic.test.ts`).
+
+### Key Systems Delivered & Verified
+- **Planted High-Speed `street` Handling (`src/core/vehiclePhysics.ts`, `src/core/vehicle.ts`):** Rear-biased Street traction (`gripFrontMult: 1.2`, `gripRearMult: 1.38`), `driftRearRelease: 0` on normal throttle (preserving intentional handbrake slides + dedicated `drift` / `sim` modes), lateral ESC stabilization + high-speed steering lock taper (`< 22°` peak slip during full-lock turns above `110 km/h`).
+- **100% Road-Clear Street Props Across All 103 Tiles (`src/render/tileMeshBuilder.ts`, `src/render/streetProps.test.ts`):** Pure deterministic `planTileStreetProps()` checks every road carriageway segment, curb lip, highway median, intersection mouth, building footprint, and prop-to-prop spacing (`>= 2.2 m` road clearance for every tree, `>= 1.1 m` for every streetlamp/sign/bench/bin) — verified `0` violations across all `44` Esenler + `59` Fatih tiles.
+- **Upgraded NPC Vehicles — Player Visuals & Mechanics (`src/core/traffic.ts`, `src/render/vehicleMesh.ts`, `src/render/RegionWorldScene.ts`):** Shared `InstancedMesh` rotating & front-steering 5-spoke alloy wheels (`+1` draw call for 144 wheels), dynamic crimson brake lights + high-mount 3rd LED brake bar, metallic clearcoat sheen, suspension pitch/roll, real mass-weighted collision knockback impulse & spin recovery, and seamless momentum transfer on car takeover.
+- **Zero Invisible Walls — Unified Perimeter & Physical 3D Roadblocks (`src/core/world/worldBounds.ts`, `src/render/RegionWorldScene.ts`, `src/ui/MinimapRenderer.ts`):** Canonical `PlayableWorldBounds` shared identically by player, NPC traffic, pedestrians, and minimap; physical red/white Istanbul municipal concrete jersey barricades + cones + pulsing amber hazard beacons (`2` draw calls total) with exact `BuildingSpatialGrid` polygon colliders at every perimeter exit road, while 100% of NPC cars & pedestrians stay strictly inside bounds.
+- **Modernized Visuals & Articulated Character Animations (`src/render/characterMesh.ts`, `src/render/RegionWorldScene.ts`, `src/render/proceduralTextures.ts`):** Vice-inspired GPU `ShaderMaterial` atmospheric sky dome + solar/lunar scattering + twinkling night starfield `Points`; articulated multi-joint protagonist (`thigh`/`shin` knee bend, `upperArm`/`forearm` elbow curl + steering grip, bomber jacket, aviator shades — batched into `10` draw calls); striding instanced pedestrians (`4` draw calls for up to 56 walkers); smoked-glass apartment balconies and crisp glowing `KAFE`/`FIRIN`/`MARKET` neon shopfronts.
+
 
 
 

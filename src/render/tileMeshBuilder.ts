@@ -1132,20 +1132,20 @@ export function planTileStreetProps(tile: RegionTileData): PlannedStreetProp[] {
     cx /= n;
     cz /= n;
     const h = hashString(area.id);
-    if (canPlace(cx, cz, 2.2, 1.85, 3.2)) {
+    if (canPlace(cx, cz, 2.2, 2.4, 3.4)) {
       placed.push({ kind: 'tree', x: cx, z: cz, dirX: 0, dirZ: 1, seed: h });
       treeCount += 1;
-      if (canPlace(cx + 2.6, cz, 1.1, 1.25, 1.8)) {
+      if (canPlace(cx + 2.6, cz, 1.1, 1.4, 1.8)) {
         placed.push({ kind: 'bench', x: cx + 2.6, z: cz, dirX: 0, dirZ: 1, seed: h });
       }
-      if (canPlace(cx - 2.4, cz + 1.4, 1.0, 1.2, 1.6)) {
+      if (canPlace(cx - 2.4, cz + 1.4, 1.0, 1.4, 1.6)) {
         placed.push({ kind: 'shrub', x: cx - 2.4, z: cz + 1.4, dirX: 0, dirZ: 1, seed: h });
       }
     }
     for (let i = 0; i < n && treeCount < 32; i += Math.max(2, Math.floor(n / 3))) {
       const px = cx * 0.55 + area.ring[i * 2]! * 0.45;
       const pz = cz * 0.55 + area.ring[i * 2 + 1]! * 0.45;
-      if (Math.hypot(px - cx, pz - cz) > 6 && canPlace(px, pz, 2.2, 1.85, 3.8)) {
+      if (Math.hypot(px - cx, pz - cz) > 6 && canPlace(px, pz, 2.2, 2.4, 3.8)) {
         placed.push({ kind: 'tree', x: px, z: pz, dirX: 0, dirZ: 1, seed: h + i * 17 });
         treeCount += 1;
       }
@@ -1169,8 +1169,8 @@ export function planTileStreetProps(tile: RegionTileData): PlannedStreetProp[] {
     let accDist = 14;
     const spacing = 36;
     const roadHalfW = Math.max(1.5, road.width * 0.5);
-    const lampOffset = roadHalfW + 0.92;
-    const treeOffset = roadHalfW + 1.68;
+    const lampOffset = roadHalfW + 1.28;
+    const treeOffset = roadHalfW + 2.55;
     let sideToggle = hashString(road.id) % 2 === 0 ? 1 : -1;
 
     // Traffic/crosswalk sign cleanly behind curb away from intersection mouth
@@ -1184,7 +1184,7 @@ export function planTileStreetProps(tile: RegionTileData): PlannedStreetProp[] {
       const snz = (sx1 - sx0) / sLen;
       const signX = sx0 + ((sx1 - sx0) / sLen) * 6.5 + snx * lampOffset;
       const signZ = sz0 + ((sz1 - sz0) / sLen) * 6.5 + snz * lampOffset;
-      if (canPlace(signX, signZ, 0.85, 0.78, 2.4)) {
+      if (canPlace(signX, signZ, 0.85, 1.15, 2.4)) {
         placed.push({
           kind: 'sign',
           x: signX,
@@ -1219,7 +1219,7 @@ export function planTileStreetProps(tile: RegionTileData): PlannedStreetProp[] {
           const lx = rx + nx * lampOffset * sideToggle;
           const lz = rz + nz * lampOffset * sideToggle;
 
-          if (canPlace(lx, lz, 0.9, 0.78, 4.5)) {
+          if (canPlace(lx, lz, 0.9, 1.15, 4.5)) {
             placed.push({
               kind: 'lamp',
               x: lx,
@@ -1232,10 +1232,10 @@ export function planTileStreetProps(tile: RegionTileData): PlannedStreetProp[] {
 
             const oppTreeX = rx - nx * treeOffset * sideToggle;
             const oppTreeZ = rz - nz * treeOffset * sideToggle;
-            const oppFurnX = rx - nx * (lampOffset + 0.25) * sideToggle;
-            const oppFurnZ = rz - nz * (lampOffset + 0.25) * sideToggle;
+            const oppFurnX = rx - nx * (lampOffset + 0.35) * sideToggle;
+            const oppFurnZ = rz - nz * (lampOffset + 0.35) * sideToggle;
 
-            if (lampCount % 2 === 0 && treeCount < 42 && canPlace(oppTreeX, oppTreeZ, 1.95, 1.48, 3.8)) {
+            if (lampCount % 2 === 0 && treeCount < 42 && canPlace(oppTreeX, oppTreeZ, 1.95, 2.4, 3.8)) {
               placed.push({
                 kind: 'tree',
                 x: oppTreeX,
@@ -1245,7 +1245,7 @@ export function planTileStreetProps(tile: RegionTileData): PlannedStreetProp[] {
                 seed: hashString(road.id) + lampCount * 31,
               });
               treeCount += 1;
-            } else if (lampCount % 3 === 1 && canPlace(oppFurnX, oppFurnZ, 1.0, 0.92, 2.5)) {
+            } else if (lampCount % 3 === 1 && canPlace(oppFurnX, oppFurnZ, 1.0, 1.25, 2.5)) {
               placed.push({
                 kind: 'bench',
                 x: oppFurnX,
@@ -1254,7 +1254,7 @@ export function planTileStreetProps(tile: RegionTileData): PlannedStreetProp[] {
                 dirZ: nz * sideToggle,
                 seed: hashString(road.id) + lampCount,
               });
-            } else if (lampCount % 3 === 2 && canPlace(oppFurnX, oppFurnZ, 0.8, 0.82, 2.2)) {
+            } else if (lampCount % 3 === 2 && canPlace(oppFurnX, oppFurnZ, 0.8, 1.18, 2.2)) {
               placed.push({
                 kind: 'trashBin',
                 x: oppFurnX,
