@@ -12,15 +12,15 @@
     "activeMissionPhase": null,
     "crashCount": 0,
     "perf": {
-      "fps": 42.862129332878695,
-      "frameMs": 176.67107454399837,
-      "drawCalls": 111,
-      "triangles": 293180,
-      "geometries": 87,
+      "fps": 27.44025263475711,
+      "frameMs": 389.14270748533096,
+      "drawCalls": 100,
+      "triangles": 261335,
+      "geometries": 76,
       "textures": 13,
       "pixelRatio": 1,
-      "loadedTiles": 25,
-      "activeBuildings": 4131
+      "loadedTiles": 20,
+      "activeBuildings": 3945
     }
   },
   "initialRegion": "esenler-namik-kemal",
@@ -40,7 +40,7 @@
   "qualityToggleOk": true,
   "hasAttributions": true,
   "pauseToggleOk": true,
-  "uniqueColors": 807,
-  "brightFrac": 0.3122,
+  "uniqueColors": 806,
+  "brightFrac": 0.3121,
   "errors": []
 }

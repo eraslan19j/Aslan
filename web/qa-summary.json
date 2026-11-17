@@ -1,5 +1,5 @@
 {
-  "generatedAtIso": "2026-11-17T13:35:15.274Z",
+  "generatedAtIso": "2026-11-17T13:54:30.679Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 15,
   "totalErrors": 0,
@@ -20,12 +20,12 @@
         "loadedTiles": 25,
         "activeBuildings": 4131
       },
-      "uniqueColors": 827,
+      "uniqueColors": 828,
       "brightFrac": 0.4113,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.07,
         "warning": false
       },
       "errors": []
@@ -44,12 +44,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2402
       },
-      "uniqueColors": 906,
-      "brightFrac": 0.3612,
+      "uniqueColors": 903,
+      "brightFrac": 0.3613,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -72,8 +72,8 @@
       "brightFrac": 0.4188,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.03,
         "warning": false
       },
       "errors": []
@@ -92,12 +92,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2402
       },
-      "uniqueColors": 1310,
-      "brightFrac": 0.1053,
+      "uniqueColors": 1303,
+      "brightFrac": 0.1041,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.45,
         "warning": false
       },
       "errors": []
@@ -116,12 +116,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2402
       },
-      "uniqueColors": 745,
+      "uniqueColors": 744,
       "brightFrac": 0.4813,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -140,12 +140,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2402
       },
-      "uniqueColors": 734,
+      "uniqueColors": 732,
       "brightFrac": 0.4279,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -164,12 +164,12 @@
         "loadedTiles": 25,
         "activeBuildings": 4131
       },
-      "uniqueColors": 793,
-      "brightFrac": 0.3625,
+      "uniqueColors": 779,
+      "brightFrac": 0.3629,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.13,
         "warning": false
       },
       "errors": []
@@ -188,12 +188,12 @@
         "loadedTiles": 25,
         "activeBuildings": 4131
       },
-      "uniqueColors": 531,
-      "brightFrac": 0.0405,
+      "uniqueColors": 534,
+      "brightFrac": 0.0406,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.34,
         "warning": false
       },
       "errors": []
@@ -212,12 +212,12 @@
         "loadedTiles": 25,
         "activeBuildings": 4131
       },
-      "uniqueColors": 1071,
-      "brightFrac": 0.1052,
+      "uniqueColors": 1051,
+      "brightFrac": 0.1045,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 3.23,
         "warning": false
       },
       "errors": []
@@ -236,12 +236,12 @@
         "loadedTiles": 24,
         "activeBuildings": 2811
       },
-      "uniqueColors": 710,
+      "uniqueColors": 712,
       "brightFrac": 0.8345,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -260,12 +260,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 682,
+      "uniqueColors": 681,
       "brightFrac": 0.8562,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -285,11 +285,11 @@
         "activeBuildings": 1377
       },
       "uniqueColors": 1361,
-      "brightFrac": 0.7717,
+      "brightFrac": 0.7716,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -308,12 +308,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 1009,
-      "brightFrac": 0.0255,
+      "uniqueColors": 978,
+      "brightFrac": 0.0221,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 1.07,
         "warning": false
       },
       "errors": []
@@ -332,12 +332,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 647,
+      "uniqueColors": 644,
       "brightFrac": 0.8501,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -356,12 +356,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 651,
-      "brightFrac": 0.8354,
+      "uniqueColors": 647,
+      "brightFrac": 0.8353,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.03,
         "warning": false
       },
       "errors": []
