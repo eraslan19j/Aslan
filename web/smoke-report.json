@@ -1,8 +1,8 @@
 {
   "snapshot": {
     "hasCanvas": true,
-    "canvasW": 168,
-    "canvasH": 168,
+    "canvasW": 1280,
+    "canvasH": 720,
     "version": "0.3.0",
     "regionId": "esenler-namik-kemal",
     "regionLoaded": true,
@@ -12,8 +12,8 @@
     "activeMissionPhase": "pickup",
     "crashCount": 0,
     "perf": {
-      "fps": 41.48751378513849,
-      "frameMs": 154.31597924164873,
+      "fps": 39.703306084303584,
+      "frameMs": 249.91556412667455,
       "drawCalls": 72,
       "triangles": 110096,
       "geometries": 58,
@@ -29,7 +29,7 @@
   "hasMinimap": true,
   "cameraCycleOk": true,
   "audioToggleOk": true,
-  "walkDist": 1.69,
+  "walkDist": 1.21,
   "driveDist": 2.85,
   "driveSpeedKph": 31,
   "exitedOk": true,
@@ -39,7 +39,7 @@
   "qualityToggleOk": true,
   "hasAttributions": true,
   "pauseToggleOk": true,
-  "uniqueColors": 1005,
-  "brightFrac": 0.4269,
+  "uniqueColors": 1003,
+  "brightFrac": 0.4268,
   "errors": []
 }
