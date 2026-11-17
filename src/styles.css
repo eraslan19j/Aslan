@@ -609,11 +609,11 @@ canvas {
     font-size: 10.5px;
   }
   .minimap-wrap.touch-pos {
-    top: calc(96px + var(--safe-top));
+    top: calc(108px + var(--safe-top));
   }
   .minimap-wrap.touch-pos .minimap-canvas {
-    width: 80px;
-    height: 80px;
+    width: 76px;
+    height: 76px;
   }
   .speed-cluster {
     top: calc(40px + var(--safe-top));
