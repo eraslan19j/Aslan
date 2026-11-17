@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "regionId": "esenler-namik-kemal",
-  "nameTr": "Esenler · Namık Kemal Mahallesi",
-  "nameEn": "Esenler · Namik Kemal District",
+  "nameTr": "Tepe Mahallesi",
+  "nameEn": "Hillside Quarter",
   "bounds": {
     "south": 41.025,
     "north": 41.037,
@@ -18,8 +18,8 @@
     "x": 39.0,
     "z": -35.4,
     "heading": 0.664,
-    "labelTr": "Namık Kemal Merkez Cadde",
-    "labelEn": "Namik Kemal Main Street"
+    "labelTr": "Ana Cadde",
+    "labelEn": "Main Avenue"
   },
   "availableTiles": [
     "t_-1_-1",
@@ -70,8 +70,8 @@
   "landmarks": [
     {
       "id": "nk-merkez-cadde",
-      "nameTr": "Namık Kemal Merkez Cadde",
-      "nameEn": "Namik Kemal Main Street",
+      "nameTr": "Ana Cadde",
+      "nameEn": "Main Avenue",
       "kind": "station",
       "x": 39.0,
       "y": 47.2,
@@ -81,8 +81,8 @@
     },
     {
       "id": "namik-kemal-ibadethane-1",
-      "nameTr": "Namık Kemal Merkez Camii",
-      "nameEn": "Namik Kemal Central Mosque",
+      "nameTr": "Merkez Camii",
+      "nameEn": "Central Mosque",
       "kind": "mosque",
       "x": 44.2,
       "y": 52.1,
@@ -93,8 +93,8 @@
     },
     {
       "id": "namik-kemal-ibadethane-2",
-      "nameTr": "Namık Kemal Camii #2",
-      "nameEn": "Namik Kemal Mosque #2",
+      "nameTr": "Mahalle Camii #2",
+      "nameEn": "Quarter Mosque #2",
       "kind": "mosque",
       "x": -83.1,
       "y": 44.5,
@@ -105,8 +105,8 @@
     },
     {
       "id": "namik-kemal-ibadethane-3",
-      "nameTr": "Namık Kemal Camii #3",
-      "nameEn": "Namik Kemal Mosque #3",
+      "nameTr": "Mahalle Camii #3",
+      "nameEn": "Quarter Mosque #3",
       "kind": "mosque",
       "x": 14.4,
       "y": 66.8,
@@ -117,7 +117,7 @@
     },
     {
       "id": "nk-bakkal-1",
-      "nameTr": "Mahalle Bakkalı",
+      "nameTr": "Köşe Bakkalı",
       "nameEn": "Corner Bakkal",
       "kind": "bazaar",
       "x": -6.7,
@@ -128,8 +128,8 @@
     },
     {
       "id": "nk-park-1",
-      "nameTr": "Namık Kemal Parkı",
-      "nameEn": "Namik Kemal Park",
+      "nameTr": "Semt Parkı",
+      "nameEn": "District Park",
       "kind": "park",
       "x": 148.3,
       "y": 36.0,
@@ -139,7 +139,7 @@
     },
     {
       "id": "nk-bakkal-2",
-      "nameTr": "Mahalle Bakkalı 2",
+      "nameTr": "Köşe Bakkalı 2",
       "nameEn": "Corner Bakkal #2",
       "kind": "bazaar",
       "x": -78.3,
@@ -150,8 +150,8 @@
     },
     {
       "id": "nk-park-2",
-      "nameTr": "Namık Kemal Parkı 2",
-      "nameEn": "Namik Kemal Park #2",
+      "nameTr": "Yeşil Park",
+      "nameEn": "Green Park",
       "kind": "park",
       "x": 172.7,
       "y": 36.3,
@@ -172,8 +172,8 @@
     },
     {
       "id": "nk-tea_house-1",
-      "nameTr": "Mahalle Çay Ocağı",
-      "nameEn": "Neighborhood Tea House",
+      "nameTr": "Çay Ocağı",
+      "nameEn": "Tea House",
       "kind": "station",
       "x": -256.9,
       "y": 82.0,
@@ -194,8 +194,8 @@
     },
     {
       "id": "nk-tea_house-2",
-      "nameTr": "Mahalle Çay Ocağı 2",
-      "nameEn": "Neighborhood Tea House #2",
+      "nameTr": "Çay Ocağı 2",
+      "nameEn": "Tea House #2",
       "kind": "station",
       "x": -578.9,
       "y": 82.8,
@@ -207,80 +207,80 @@
   "sanctuaryZones": [
     {
       "id": "namik-kemal-ibadethane-1",
-      "nameTr": "Namık Kemal Merkez Camii (Güvenli Alan)",
-      "nameEn": "Namik Kemal Central Mosque (Safe Zone)",
+      "nameTr": "Merkez Camii (Güvenli Alan)",
+      "nameEn": "Central Mosque (Safe Zone)",
       "x": 44.2,
       "z": 105.9,
       "radiusMeters": 52
     },
     {
       "id": "namik-kemal-ibadethane-2",
-      "nameTr": "Namık Kemal Camii #2 (Güvenli Alan)",
-      "nameEn": "Namik Kemal Mosque #2 (Safe Zone)",
+      "nameTr": "Mahalle Camii #2 (Güvenli Alan)",
+      "nameEn": "Quarter Mosque #2 (Safe Zone)",
       "x": -83.1,
       "z": -308.4,
       "radiusMeters": 52
     },
     {
       "id": "namik-kemal-ibadethane-3",
-      "nameTr": "Namık Kemal Camii #3 (Güvenli Alan)",
-      "nameEn": "Namik Kemal Mosque #3 (Safe Zone)",
+      "nameTr": "Mahalle Camii #3 (Güvenli Alan)",
+      "nameEn": "Quarter Mosque #3 (Safe Zone)",
       "x": 14.4,
       "z": 429.5,
       "radiusMeters": 52
     },
     {
       "id": "namik-kemal-ibadethane-4",
-      "nameTr": "Namık Kemal Camii #4 (Güvenli Alan)",
-      "nameEn": "Namik Kemal Mosque #4 (Safe Zone)",
+      "nameTr": "Mahalle Camii #4 (Güvenli Alan)",
+      "nameEn": "Quarter Mosque #4 (Safe Zone)",
       "x": 512.1,
       "z": -249.5,
       "radiusMeters": 52
     },
     {
       "id": "namik-kemal-ibadethane-5",
-      "nameTr": "Namık Kemal Camii #5 (Güvenli Alan)",
-      "nameEn": "Namik Kemal Mosque #5 (Safe Zone)",
+      "nameTr": "Mahalle Camii #5 (Güvenli Alan)",
+      "nameEn": "Quarter Mosque #5 (Safe Zone)",
       "x": 163.2,
       "z": 551.6,
       "radiusMeters": 52
     },
     {
       "id": "namik-kemal-ibadethane-6",
-      "nameTr": "Namık Kemal Camii #6 (Güvenli Alan)",
-      "nameEn": "Namik Kemal Mosque #6 (Safe Zone)",
+      "nameTr": "Mahalle Camii #6 (Güvenli Alan)",
+      "nameEn": "Quarter Mosque #6 (Safe Zone)",
       "x": 100.4,
       "z": -596.3,
       "radiusMeters": 52
     },
     {
       "id": "namik-kemal-ibadethane-7",
-      "nameTr": "Namık Kemal Camii #7 (Güvenli Alan)",
-      "nameEn": "Namik Kemal Mosque #7 (Safe Zone)",
+      "nameTr": "Mahalle Camii #7 (Güvenli Alan)",
+      "nameEn": "Quarter Mosque #7 (Safe Zone)",
       "x": 365.5,
       "z": -519.3,
       "radiusMeters": 52
     },
     {
       "id": "namik-kemal-ibadethane-8",
-      "nameTr": "Namık Kemal Camii #8 (Güvenli Alan)",
-      "nameEn": "Namik Kemal Mosque #8 (Safe Zone)",
+      "nameTr": "Mahalle Camii #8 (Güvenli Alan)",
+      "nameEn": "Quarter Mosque #8 (Safe Zone)",
       "x": -620.2,
       "z": 226.0,
       "radiusMeters": 52
     },
     {
       "id": "namik-kemal-ibadethane-9",
-      "nameTr": "Namık Kemal Camii #9 (Güvenli Alan)",
-      "nameEn": "Namik Kemal Mosque #9 (Safe Zone)",
+      "nameTr": "Mahalle Camii #9 (Güvenli Alan)",
+      "nameEn": "Quarter Mosque #9 (Safe Zone)",
       "x": -602.0,
       "z": -386.4,
       "radiusMeters": 52
     },
     {
       "id": "namik-kemal-ibadethane-10",
-      "nameTr": "Namık Kemal Camii #10 (Güvenli Alan)",
-      "nameEn": "Namik Kemal Mosque #10 (Safe Zone)",
+      "nameTr": "Mahalle Camii #10 (Güvenli Alan)",
+      "nameEn": "Quarter Mosque #10 (Safe Zone)",
       "x": -583.4,
       "z": 534.1,
       "radiusMeters": 52

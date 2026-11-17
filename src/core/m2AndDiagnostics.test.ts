@@ -53,6 +53,36 @@ describe('M2 vehicle driving physics', () => {
     const exit = computeSafeExitPosition(car, grid, flatElev);
     expect(Number.isFinite(exit.x)).toBe(true);
     expect(Number.isFinite(exit.y)).toBe(true);
+    expect(Math.abs(car.wheelSpin)).toBeGreaterThan(1);
+  });
+
+  it('slides smoothly along a building wall on glancing contact instead of dead-stopping', () => {
+    const grid = new BuildingSpatialGrid();
+    // Long building wall along X = 2.0 (car starts at X = 0.8 heading almost parallel to wall)
+    grid.addTile('t_wall', [
+      { id: 'w1', minX: 2, maxX: 12, minZ: -50, maxZ: 100, ring: [2, -50, 12, -50, 12, 100, 2, 100] },
+    ]);
+    const bounds = { minX: -200, maxX: 200, minZ: -200, maxZ: 200 };
+    const flatElev = (): number => 40;
+    const car = createVehicleState('player-taxi', 'taxi', 0.8, 40, 0, 0.14);
+    car.speed = 14;
+
+    let collidedOnce = false;
+    for (let i = 0; i < 45; i += 1) {
+      const res = stepPlayerVehicle(
+        car,
+        { throttle: 1, brake: 0, steer: 0, handbrake: false },
+        1 / 60,
+        bounds,
+        flatElev,
+        grid,
+      );
+      if (res.collided) collidedOnce = true;
+    }
+
+    expect(collidedOnce).toBe(true);
+    expect(car.speed).toBeGreaterThan(8);
+    expect(car.z).toBeGreaterThan(8);
   });
 });
 

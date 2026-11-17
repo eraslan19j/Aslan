@@ -44,7 +44,7 @@ import {
 } from './runtime/nativeBridge';
 import { HudOverlay } from './ui/HudOverlay';
 
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.2.1';
 const WALK_SPEED = 7.2;
 const SPRINT_SPEED = 14.5;
 const PLAYER_RADIUS = 0.7;
@@ -583,7 +583,7 @@ async function bootstrap(): Promise<void> {
     }
     if (!best) return '';
     const name = save.locale === 'tr' ? best.nameTr : best.nameEn;
-    return `${name} · ${Math.round(bestDist)} m`;
+    return bestDist < 25 ? name : `${name} · ${Math.round(bestDist)} m`;
   };
 
   const debugHandle: GameDebugHandle = {

@@ -11,7 +11,11 @@ export interface VehicleSpec {
   brakeDecel: number; // m/s^2
   drag: number; // 1/s
   turnRate: number; // rad/s at nominal speed
-  collisionRadius: number; // meters
+  /** Half-width collision circle radius (matches true car width so narrow alleys stay drivable). */
+  collisionRadius: number;
+  /** Front/rear axle offset along heading for oriented 2-circle capsule collision. */
+  axleOffset: number;
+  wheelRadius: number;
   length: number;
   width: number;
   height: number;
@@ -20,13 +24,15 @@ export interface VehicleSpec {
 export const VEHICLE_SPECS: Record<VehicleArchetype, VehicleSpec> = {
   taxi: {
     archetype: 'taxi',
-    maxForwardSpeed: 23.5, // ~85 km/h
-    maxReverseSpeed: 7.5,
-    accel: 12.2,
-    brakeDecel: 19.0,
-    drag: 1.05,
-    turnRate: 2.35,
-    collisionRadius: 1.55,
+    maxForwardSpeed: 24.5, // ~88 km/h
+    maxReverseSpeed: 8.0,
+    accel: 13.0,
+    brakeDecel: 20.0,
+    drag: 0.98,
+    turnRate: 2.45,
+    collisionRadius: 0.88,
+    axleOffset: 1.08,
+    wheelRadius: 0.35,
     length: 4.3,
     width: 1.85,
     height: 1.48,
@@ -35,24 +41,28 @@ export const VEHICLE_SPECS: Record<VehicleArchetype, VehicleSpec> = {
     archetype: 'dolmus',
     maxForwardSpeed: 19.5, // ~70 km/h
     maxReverseSpeed: 6.5,
-    accel: 9.8,
-    brakeDecel: 16.5,
-    drag: 1.15,
-    turnRate: 2.05,
-    collisionRadius: 1.75,
+    accel: 10.2,
+    brakeDecel: 17.0,
+    drag: 1.1,
+    turnRate: 2.1,
+    collisionRadius: 0.98,
+    axleOffset: 1.35,
+    wheelRadius: 0.38,
     length: 5.0,
     width: 2.0,
     height: 2.05,
   },
   sedan: {
     archetype: 'sedan',
-    maxForwardSpeed: 21.5, // ~77 km/h
-    maxReverseSpeed: 7.0,
-    accel: 11.0,
-    brakeDecel: 18.0,
-    drag: 1.1,
-    turnRate: 2.25,
-    collisionRadius: 1.5,
+    maxForwardSpeed: 22.0, // ~79 km/h
+    maxReverseSpeed: 7.2,
+    accel: 11.5,
+    brakeDecel: 18.5,
+    drag: 1.05,
+    turnRate: 2.3,
+    collisionRadius: 0.86,
+    axleOffset: 1.02,
+    wheelRadius: 0.34,
     length: 4.2,
     width: 1.8,
     height: 1.42,
@@ -71,6 +81,8 @@ export interface PlayerVehicleState {
   speed: number;
   /** Visual wheel steering angle (-1..1). */
   steerVisual: number;
+  /** Cumulative rolling rotation of wheels in radians. */
+  wheelSpin: number;
   /** Pitch slope in radians from terrain gradient. */
   pitch: number;
   /** True when brakes/reverse lights are active. */
@@ -114,6 +126,7 @@ export function createVehicleState(
     heading,
     speed: 0,
     steerVisual: 0,
+    wheelSpin: 0,
     pitch: 0,
     braking: false,
   };
@@ -135,7 +148,7 @@ export function stepPlayerVehicle(
   const fwdX = Math.sin(v.heading);
   const fwdZ = Math.cos(v.heading);
 
-  // Measure slope along vehicle forward direction (2m wheelbase sample)
+  // Measure slope along vehicle forward direction (3.6m wheelbase sample)
   const frontY = sampleElev(v.x + fwdX * 1.8, v.z + fwdZ * 1.8);
   const rearY = sampleElev(v.x - fwdX * 1.8, v.z - fwdZ * 1.8);
   const slopeSin = clamp((frontY - rearY) / 3.6, -0.35, 0.35);
@@ -159,7 +172,7 @@ export function stepPlayerVehicle(
     if (v.speed > 0.5) {
       v.speed = Math.max(0, v.speed - brake * spec.brakeDecel * dt);
     } else {
-      v.speed -= brake * (spec.accel * 0.62) * dt;
+      v.speed -= brake * (spec.accel * 0.65) * dt;
     }
   } else {
     // Natural rolling resistance
@@ -168,23 +181,24 @@ export function stepPlayerVehicle(
     if (Math.abs(v.speed) < 0.08) v.speed = 0;
   }
 
-  // Gentle slope gravity assist/resistance (keeps narrow Esenler climbs punchy)
+  // Gentle slope gravity assist/resistance (keeps narrow hillside climbs punchy)
   if (Math.abs(v.speed) > 0.1 || throttle > 0.02) {
-    v.speed -= slopeSin * 3.8 * dt;
+    v.speed -= slopeSin * 3.4 * dt;
   }
 
   v.speed = clamp(v.speed, -spec.maxReverseSpeed, spec.maxForwardSpeed);
   v.braking = braking;
-  v.steerVisual += (steer - v.steerVisual) * Math.min(1, dt * 10);
+  v.steerVisual += (steer - v.steerVisual) * Math.min(1, dt * 11);
 
-  // Speed-sensitive steering (turns crisply in tight Esenler alleys, stays stable at speed)
+  // Speed-sensitive steering (crisp in tight streets, composed at avenue speed)
   const absSpeed = Math.abs(v.speed);
   if (absSpeed > 0.25 && Math.abs(steer) > 0.01) {
     const dirSign = v.speed >= 0 ? 1 : -1;
-    const lowSpeedFactor = clamp(absSpeed / 4.0, 0.25, 1.0);
+    const lowSpeedFactor = clamp(absSpeed / 3.8, 0.3, 1.0);
     const highSpeedStability = 1 - clamp((absSpeed - 12) / 28, 0, 0.42);
     const handbrakeBoost = input.handbrake ? 1.38 : 1.0;
-    v.heading += steer * dirSign * spec.turnRate * lowSpeedFactor * highSpeedStability * handbrakeBoost * dt;
+    v.heading +=
+      steer * dirSign * spec.turnRate * lowSpeedFactor * highSpeedStability * handbrakeBoost * dt;
   }
 
   const nextFwdX = Math.sin(v.heading);
@@ -192,21 +206,73 @@ export function stepPlayerVehicle(
   let nextX = clamp(v.x + nextFwdX * v.speed * dt, bounds.minX + 10, bounds.maxX - 10);
   let nextZ = clamp(v.z + nextFwdZ * v.speed * dt, bounds.minZ + 10, bounds.maxZ - 10);
 
-  const resolved = spatialGrid.resolveCircle(nextX, nextZ, spec.collisionRadius);
-  nextX = resolved.x;
-  nextZ = resolved.z;
+  // Oriented dual-circle collision (front + rear axles) against exact 2D building polygons
+  const frontOrigX = nextX + nextFwdX * spec.axleOffset;
+  const frontOrigZ = nextZ + nextFwdZ * spec.axleOffset;
+  const frontRes = spatialGrid.resolveCircle(frontOrigX, frontOrigZ, spec.collisionRadius);
+  const frontPushX = frontRes.x - frontOrigX;
+  const frontPushZ = frontRes.z - frontOrigZ;
+  nextX += frontPushX;
+  nextZ += frontPushZ;
 
-  if (resolved.collided) {
-    // Dampen impact velocity smoothly so car slides off walls without getting wedged
-    v.speed *= 0.35;
+  const rearOrigX = nextX - nextFwdX * spec.axleOffset;
+  const rearOrigZ = nextZ - nextFwdZ * spec.axleOffset;
+  const rearRes = spatialGrid.resolveCircle(rearOrigX, rearOrigZ, spec.collisionRadius);
+  const rearPushX = rearRes.x - rearOrigX;
+  const rearPushZ = rearRes.z - rearOrigZ;
+  nextX += rearPushX;
+  nextZ += rearPushZ;
+
+  const collided = frontRes.collided || rearRes.collided;
+  if (collided) {
+    // Combine surface push normals for physically accurate tangent wall-sliding
+    let nx = 0;
+    let nz = 0;
+    if (frontRes.collided) {
+      nx += frontRes.normalX;
+      nz += frontRes.normalZ;
+    }
+    if (rearRes.collided) {
+      nx += rearRes.normalX;
+      nz += rearRes.normalZ;
+    }
+    const nLen = Math.hypot(nx, nz);
+    if (nLen > 1e-5) {
+      nx /= nLen;
+      nz /= nLen;
+
+      const vx = nextFwdX * v.speed;
+      const vz = nextFwdZ * v.speed;
+      const vn = vx * nx + vz * nz;
+
+      // Only cancel velocity pointing INTO the wall; preserve smooth tangential sliding!
+      if (vn < 0) {
+        const slideVx = vx - vn * nx;
+        const slideVz = vz - vn * nz;
+        const slideSpeed = slideVx * nextFwdX + slideVz * nextFwdZ;
+        // dt-scaled scrape friction: light drag on glancing scrapes, firm stop on head-on impacts
+        const impactCos = Math.abs(nextFwdX * nx + nextFwdZ * nz);
+        const wallDrag = impactCos > 0.78 ? 16.0 : 1.05;
+        v.speed = slideSpeed * Math.exp(-wallDrag * dt);
+
+        // Rotate heading gently away from the wall toward parallel tangent on shallow scrapes
+        if (impactCos < 0.72 && Math.abs(v.speed) > 1.2) {
+          const turnTowardNormal = nextFwdZ * nx - nextFwdX * nz;
+          v.heading += Math.sign(turnTowardNormal) * impactCos * 2.2 * dt;
+        }
+      }
+    } else {
+      v.speed *= 0.8;
+    }
   }
 
   v.x = nextX;
   v.z = nextZ;
   v.y = sampleElev(v.x, v.z);
+  v.wheelSpin += (v.speed * dt) / spec.wheelRadius;
 
   return {
-    collided: resolved.collided,
+    collided,
     speedKph: Math.round(Math.abs(v.speed) * 3.6),
   };
 }
@@ -220,16 +286,16 @@ export function computeSafeExitPosition(
   const leftX = Math.cos(v.heading);
   const leftZ = -Math.sin(v.heading);
   const candidates = [
-    { x: v.x + leftX * 2.3, z: v.z + leftZ * 2.3 },
-    { x: v.x - leftX * 2.3, z: v.z - leftZ * 2.3 },
-    { x: v.x - Math.sin(v.heading) * 3.1, z: v.z - Math.cos(v.heading) * 3.1 },
+    { x: v.x + leftX * 2.2, z: v.z + leftZ * 2.2 },
+    { x: v.x - leftX * 2.2, z: v.z - leftZ * 2.2 },
+    { x: v.x - Math.sin(v.heading) * 2.9, z: v.z - Math.cos(v.heading) * 2.9 },
   ];
   for (const c of candidates) {
-    const res = spatialGrid.resolveCircle(c.x, c.z, 0.75);
+    const res = spatialGrid.resolveCircle(c.x, c.z, 0.7);
     if (!res.collided) {
       return { x: res.x, y: sampleElev(res.x, res.z), z: res.z };
     }
   }
-  const fallback = spatialGrid.resolveCircle(v.x, v.z, 0.75);
+  const fallback = spatialGrid.resolveCircle(v.x, v.z, 0.7);
   return { x: fallback.x, y: sampleElev(fallback.x, fallback.z), z: fallback.z };
 }

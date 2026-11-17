@@ -110,6 +110,7 @@ describe('core/world/collision', () => {
     const hit = grid.resolveCircle(9.6, 15, 0.8);
     expect(hit.collided).toBe(true);
     expect(hit.x).toBeLessThanOrEqual(9.21);
+    expect(hit.normalX).toBeLessThan(-0.9);
 
     const clear = grid.resolveCircle(0, 0, 0.8);
     expect(clear.collided).toBe(false);
@@ -117,5 +118,24 @@ describe('core/world/collision', () => {
     grid.removeTile('t_0_0');
     expect(grid.getActiveBoxCount()).toBe(0);
     expect(grid.resolveCircle(9.6, 15, 0.8).collided).toBe(false);
+  });
+
+  it('uses exact 2D polygon rings so empty AABB corners on diagonal buildings NEVER block streets', () => {
+    // A 45-degree rotated thin rectangle from (0,0) to (20,20) has huge empty AABB corners at (0,20) and (20,0)
+    const ring = [0, 2, 2, 0, 20, 18, 18, 20, 0, 2];
+    const grid = new BuildingSpatialGrid(24);
+    grid.addTile('t_diag', [
+      { id: 'diag1', minX: 0, maxX: 20, minZ: 0, maxZ: 20, ring },
+    ]);
+
+    // Empty AABB corner at (3, 17) is >8m away from the true diagonal wall — must NOT collide!
+    const streetPoint = grid.resolveCircle(3, 17, 1.0);
+    expect(streetPoint.collided).toBe(false);
+
+    // Point touching actual diagonal edge near (10, 10) MUST collide and push cleanly outward
+    const wallHit = grid.resolveCircle(9.5, 11.2, 0.88);
+    expect(wallHit.collided).toBe(true);
+    expect(wallHit.normalX).toBeLessThan(0);
+    expect(wallHit.normalZ).toBeGreaterThan(0);
   });
 });

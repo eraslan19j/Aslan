@@ -78,15 +78,17 @@ jobs:
           echo "Detected orientation line: ${ORIENTATION}"
           echo "$ORIENTATION" | grep -qE "0x0*6|sensorLandscape|=6([^0-9]|$)"
           {
-            echo "## Istanbul Streets — v0.2.0 Debug APK (Esenler Namık Kemal + Fatih · M2 Sürüş & Trafik · API 36)"
+            echo "## Istanbul Streets — v0.2.1 Debug APK (Exact Polygon Collision + Visual Overhaul + API 36)"
             echo ""
             echo "- **Package:** \`com.istanbulstreets.game\`"
             echo "- **Target SDK:** \`36\` (Android 16) · **Min SDK:** \`24\` (Android 7.0+)"
             echo "- **Orientation:** \`sensorLandscape\` (\`${ORIENTATION}\`)"
             echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
-            echo "- **Default Region:** Esenler / Namık Kemal Mahallesi (SHA-256 verified \`osm_data.zip\` + Copernicus DEM + Overpass, 100% offline 300m tiles)"
-            echo "- **Second Region:** Fatih (Sultanahmet–Eminönü) — Duraklat menüsünden geçiş"
-            echo "- **M2 Features:** Sürülebilir Sarı Taksi (BİN/İN + 20:9 dokunmatik sürüş kontrolleri), gerçek yol grafı AI trafiği, tüm ibadethanelerde otomatik Güvenli Alan, Ayarlar içi Tanılama Paneli (RAPORU KOPYALA)"
+            echo "- **Bölgeler:** Tepe Mahallesi (varsayılan) + Tarihî Yarımada (Duraklat menüsünden geçiş) — %100 çevrimdışı 300m karolar"
+            echo "- **v0.2.1 Düzeltme & Görsel Yenileme:**"
+            echo "  - Düz yoldaki görünmez duvar hatası giderildi (eksen-hizalı AABB yerine tam 2B bina poligonu çarpışması + çift-aks kapsül + pürüzsüz duvar kayması)"
+            echo "  - Eklemli yürüyen/koşan karakter, damalı Sarı Taksi (TAKSİ tabelası + dönen tekerlekler + süspansiyon)"
+            echo "  - Prosedürel İstanbul cepheleri (zemin kat dükkan/tente + balkonlar + çatılar), şeritli/kaldırımlı asfalt, sokak lambaları, ağaçlar ve 3B gökyüzü kubbesi"
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo ""
             echo "### Kurulum (Yalnızca Android Telefon)"
@@ -137,9 +139,9 @@ jobs:
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.2.0' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.2.1' }}
           target_commitish: ${{ github.sha }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.2.0 (Esenler Namik Kemal + Fatih · M2 Driving APK - API 36)' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.2.1 (Visual Overhaul + Exact Polygon Driving Fix - API 36)' }}
           body_path: release-notes.md
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |

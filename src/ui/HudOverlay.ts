@@ -594,6 +594,13 @@ export class HudOverlay {
       grid.className = 'diag-grid';
       grid.dataset.testid = 'diagnostics-grid';
 
+      const activeReg = REGION_REGISTRY.find((r) => r.id === snap.regionId);
+      const regionLabel = activeReg
+        ? this.locale === 'tr'
+          ? activeReg.nameTr
+          : activeReg.nameEn
+        : snap.regionId;
+
       const entries: [string, string][] = [
         ['FPS / Frame', `${snap.fps} FPS (${snap.frameMs} ms)`],
         ['Draw / Tris', `${snap.drawCalls} / ${snap.triangles}`],
@@ -607,7 +614,7 @@ export class HudOverlay {
         ['GPU / Renderer', snap.gpuRenderer],
         ['WebView', snap.webViewVersion],
         ['Device', snap.deviceModel],
-        ['Mode / Quality', `${snap.qualityTier} · ${snap.timeOfDay} · ${snap.regionId}`],
+        ['Mode / Quality', `${snap.qualityTier} · ${snap.timeOfDay} · ${regionLabel}`],
       ];
       for (const [k, v] of entries) {
         const item = document.createElement('div');
@@ -646,7 +653,7 @@ export class HudOverlay {
 
       const list = document.createElement('ul');
       const items = [
-        '© OpenStreetMap contributors (ODbL 1.0) — Esenler / Namık Kemal (v1.1-esenler-data + Overpass) & Fatih binaları, yolları ve ibadethane güvenli alanları',
+        '© OpenStreetMap contributors (ODbL 1.0) — İstanbul açık harita verileri (binalar, yollar ve ibadethane güvenli alanları)',
         'Türetilmiş veri klasörü: public/derived-data/ (LICENSE-ODbL.md)',
         'Copernicus DEM GLO-30 — © DLR e.V. & Airbus Defence and Space GmbH (EU / ESA) — arazi yüksekliği',
         'Kaynak: İBB Açık Veri Portalı (İBB Açık Veri Lisansı)',

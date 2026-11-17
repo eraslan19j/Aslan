@@ -56,6 +56,8 @@ try {
   await page.waitForTimeout(800);
 
   const initialRegion = await page.evaluate(() => window.__game.regionId);
+  const initialHudText = await page.getByTestId('location-telemetry').innerText();
+  const hudFreeOfDirectDistrictName = !/esenler|namık/i.test(initialHudText);
   const initialPos = await page.evaluate(() => ({ ...window.__game.player }));
 
   // 1. On-foot walk in Esenler Namık Kemal
@@ -202,6 +204,8 @@ try {
   const report = {
     snapshot,
     initialRegion,
+    initialHudText,
+    hudFreeOfDirectDistrictName,
     walkDist: Number(walkDist.toFixed(2)),
     driveDist: Number(driveDist.toFixed(2)),
     driveSpeedKph: driveState.speedKph,
@@ -223,6 +227,9 @@ try {
   if (errors.length > 0) fail(`${errors.length} console/page error(s)`);
   if (initialRegion !== 'esenler-namik-kemal') {
     fail(`Expected default start region esenler-namik-kemal, got ${initialRegion}`);
+  }
+  if (!hudFreeOfDirectDistrictName) {
+    fail(`HUD leaked direct district name: ${initialHudText}`);
   }
   if (!snapshot.hasCanvas || snapshot.canvasW === 0 || snapshot.canvasH === 0) {
     fail('Canvas missing or zero size');

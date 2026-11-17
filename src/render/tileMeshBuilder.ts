@@ -14,32 +14,42 @@ export interface BuiltTileGroup {
   geometries: THREE.BufferGeometry[];
 }
 
-const PALETTE_HEX: Record<BuildingPalette, number> = {
-  limestone: 0xebe0ce,
-  terracotta: 0xd48e6f,
-  ottoman_wood: 0xc9a378,
-  commercial: 0xd8d2c7,
-  civic: 0xe3dfd7,
-  landmark: 0xf1e8d8,
+export interface TileMaterialBundle {
+  upperBuildingMat: THREE.Material;
+  groundRoofMat: THREE.Material;
+  roadMat: THREE.Material;
+  areaMat: THREE.Material;
+  propsMat: THREE.Material;
+}
+
+// Sunlit, varied Istanbul residential & historic neighborhood wall palettes
+const PALETTE_VARIANTS: Record<BuildingPalette, readonly number[]> = {
+  limestone: [0xf2e8d8, 0xebdec9, 0xe4d7c3, 0xf4eee4],
+  terracotta: [0xde9e7e, 0xd48e6f, 0xe4b08e, 0xcf8468],
+  ottoman_wood: [0xd9b890, 0xcfa77d, 0xe2c8a4, 0xc79a72],
+  commercial: [0xe3ded5, 0xd6dce2, 0xeae2d2, 0xd9d4ca],
+  civic: [0xeae6de, 0xdce2e8, 0xe5dfd4, 0xded9cf],
+  landmark: [0xf5ecdc, 0xeee2cc, 0xf2e8d6, 0xeadbc2],
 };
 
 const ROOF_HEX: Record<BuildingPalette, number> = {
-  limestone: 0xb0664d,
-  terracotta: 0x9e543e,
-  ottoman_wood: 0x87543d,
-  commercial: 0x858991,
-  civic: 0x89929c,
-  landmark: 0x7d8a96,
+  limestone: 0xb96c50,
+  terracotta: 0xa65a42,
+  ottoman_wood: 0x945d44,
+  commercial: 0x8e9299,
+  civic: 0x929aa4,
+  landmark: 0x83909c,
 };
 
+// Multiplied against createAsphaltRoadTexture() (which already holds charcoal asphalt + curbs + white dashes)
 const ROAD_RGB: Record<RoadClass, [number, number, number]> = {
-  primary: [0.17, 0.18, 0.21],
-  secondary: [0.21, 0.22, 0.25],
-  tertiary: [0.25, 0.26, 0.29],
-  residential: [0.29, 0.3, 0.33],
-  service: [0.36, 0.36, 0.38],
-  pedestrian: [0.58, 0.55, 0.49],
-  tram: [0.78, 0.22, 0.18],
+  primary: [0.46, 0.48, 0.52],
+  secondary: [0.51, 0.53, 0.57],
+  tertiary: [0.56, 0.58, 0.61],
+  residential: [0.6, 0.61, 0.64],
+  service: [0.67, 0.66, 0.64],
+  pedestrian: [0.88, 0.84, 0.77],
+  tram: [0.85, 0.36, 0.32],
 };
 
 const ROAD_LIFT: Record<RoadClass, number> = {
@@ -51,6 +61,15 @@ const ROAD_LIFT: Record<RoadClass, number> = {
   service: 0.26,
   pedestrian: 0.23,
 };
+
+function hashString(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i += 1) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
 
 function pushTri(
   pos: number[],
@@ -85,6 +104,47 @@ function pushTri(
   col.push(r, g, b, r, g, b, r, g, b);
 }
 
+function pushQuadWall(
+  pos: number[],
+  nor: number[],
+  uv: number[],
+  col: number[],
+  x0: number,
+  z0: number,
+  x1: number,
+  z1: number,
+  yBot: number,
+  yTop: number,
+  nx: number,
+  nz: number,
+  u0: number,
+  u1: number,
+  vBot: number,
+  vTop: number,
+  r: number,
+  g: number,
+  b: number,
+): void {
+  pushTri(
+    pos, nor, uv, col,
+    x0, yBot, z0,
+    x1, yTop, z1,
+    x1, yBot, z1,
+    nx, 0, nz,
+    u0, vBot, u1, vTop, u1, vBot,
+    r, g, b,
+  );
+  pushTri(
+    pos, nor, uv, col,
+    x0, yBot, z0,
+    x0, yTop, z0,
+    x1, yTop, z1,
+    nx, 0, nz,
+    u0, vBot, u0, vTop, u1, vTop,
+    r, g, b,
+  );
+}
+
 /** Signed area of 2D ring in XZ plane to guarantee consistent outward-facing wall normals. */
 function signedAreaXZ(ring: readonly number[]): number {
   let area = 0;
@@ -96,19 +156,48 @@ function signedAreaXZ(ring: readonly number[]): number {
   return area * 0.5;
 }
 
-function buildBatchedBuildingsGeometry(tile: RegionTileData): THREE.BufferGeometry | null {
-  if (tile.buildings.length === 0) return null;
+function finalizeGeometry(
+  pos: number[],
+  nor: number[],
+  uv: number[],
+  col: number[],
+): THREE.BufferGeometry | null {
+  if (pos.length === 0) return null;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  geo.computeBoundingSphere();
+  return geo;
+}
 
-  const pos: number[] = [];
-  const nor: number[] = [];
-  const uv: number[] = [];
-  const col: number[] = [];
+/**
+ * Compiles all tile buildings into two crisp architectural meshes:
+ * 1. Upper apartment walls (balconies, PVC windows, curtains, stucco repeating vertically)
+ * 2. Ground-floor Istanbul shopfronts (striped awnings, stone plinths) + textured roofs & parapets
+ */
+function buildBatchedBuildingsGeometries(tile: RegionTileData): {
+  upperGeo: THREE.BufferGeometry | null;
+  groundRoofGeo: THREE.BufferGeometry | null;
+} {
+  if (tile.buildings.length === 0) return { upperGeo: null, groundRoofGeo: null };
+
+  const uPos: number[] = [];
+  const uNor: number[] = [];
+  const uUv: number[] = [];
+  const uCol: number[] = [];
+
+  const gPos: number[] = [];
+  const gNor: number[] = [];
+  const gUv: number[] = [];
+  const gCol: number[] = [];
+
   const wallColor = new THREE.Color();
   const roofColor = new THREE.Color();
 
   for (const b of tile.buildings) {
     let n = Math.floor(b.ring.length / 2);
-    // Strip duplicate closing vertex if present
     if (
       n > 3 &&
       Math.abs(b.ring[0]! - b.ring[(n - 1) * 2]!) < 0.05 &&
@@ -118,15 +207,17 @@ function buildBatchedBuildingsGeometry(tile: RegionTileData): THREE.BufferGeomet
     }
     if (n < 3) continue;
 
-    wallColor.setHex(PALETTE_HEX[b.palette] ?? PALETTE_HEX.limestone);
-    roofColor.setHex(ROOF_HEX[b.palette] ?? ROOF_HEX.limestone);
-
-    // 5.5m foundation skirt ensures zero floating corners on steep Esenler/Fatih slopes
-    const y0 = b.baseY - 5.5;
-    const y1 = b.baseY + b.height;
     const area = signedAreaXZ(b.ring.slice(0, n * 2));
     if (Math.abs(area) < 0.5) continue;
     const reverse = area < 0;
+
+    const hash = hashString(b.id);
+    const variants = PALETTE_VARIANTS[b.palette] ?? PALETTE_VARIANTS.limestone;
+    wallColor.setHex(variants[hash % variants.length]!);
+    // Subtle organic hue/brightness jitter per apartment block
+    const tintMul = 0.94 + ((hash >>> 8) % 13) * 0.01;
+    wallColor.multiplyScalar(tintMul);
+    roofColor.setHex(ROOF_HEX[b.palette] ?? ROOF_HEX.limestone);
 
     const ptsX: number[] = [];
     const ptsZ: number[] = [];
@@ -136,7 +227,15 @@ function buildBatchedBuildingsGeometry(tile: RegionTileData): THREE.BufferGeomet
       ptsZ.push(b.ring[idx * 2 + 1]!);
     }
 
-    // Side walls (verified outward right-handed winding matching (nx, 0, nz))
+    const ySkirt = b.baseY - 5.5;
+    const yGroundBase = b.baseY - 0.15;
+    const groundHeight = Math.min(3.75, Math.max(2.6, b.height * 0.42));
+    const yGroundTop = Math.min(b.baseY + b.height, b.baseY + groundHeight);
+    const yRoof = b.baseY + b.height;
+    const parapetH = b.height > 5.0 ? 0.45 : 0.25;
+    const yParapet = yRoof + parapetH;
+    const uSeed = ((hash >>> 16) % 4) * 0.25;
+
     for (let i = 0; i < n; i += 1) {
       const j = (i + 1) % n;
       const x0 = ptsX[i]!;
@@ -150,36 +249,62 @@ function buildBatchedBuildingsGeometry(tile: RegionTileData): THREE.BufferGeomet
 
       const nx = dz / len;
       const nz = -dx / len;
-      const shade = 0.86 + 0.14 * Math.max(0, nx * 0.6 - nz * 0.8);
-      const r = wallColor.r * shade;
-      const g = wallColor.g * shade;
-      const bl = wallColor.b * shade;
+      const shade = 0.84 + 0.16 * Math.max(0, nx * 0.62 - nz * 0.78);
+      const wr = wallColor.r * shade;
+      const wg = wallColor.g * shade;
+      const wb = wallColor.b * shade;
 
-      const uSpan = Math.max(1, len / 4.5);
-      const vSpan = Math.max(1, (b.height + 5.5) / 3.4);
-
-      // Outward CCW winding: (p0_bot, p1_top, p1_bot) and (p0_bot, p0_top, p1_top)
-      pushTri(
-        pos, nor, uv, col,
-        x0, y0, z0,
-        x1, y1, z1,
-        x1, y0, z1,
-        nx, 0, nz,
-        0, 0, uSpan, vSpan, uSpan, 0,
-        r, g, bl,
+      // Ground-floor stone skirt for sloped hillsides (mapped cleanly to stone plinth band v = 0.01..0.08)
+      const gU0 = uSeed;
+      const gU1 = uSeed + Math.max(0.5, len / 10.5);
+      pushQuadWall(
+        gPos, gNor, gUv, gCol,
+        x0, z0, x1, z1,
+        ySkirt, yGroundBase,
+        nx, nz,
+        gU0, gU1, 0.01, 0.08,
+        0.72 * shade, 0.71 * shade, 0.69 * shade,
       );
-      pushTri(
-        pos, nor, uv, col,
-        x0, y0, z0,
-        x0, y1, z0,
-        x1, y1, z1,
-        nx, 0, nz,
-        0, 0, 0, vSpan, uSpan, vSpan,
-        r, g, bl,
+
+      // Street-level Istanbul shopfront / residential lobby band (v = 0.06..0.67)
+      pushQuadWall(
+        gPos, gNor, gUv, gCol,
+        x0, z0, x1, z1,
+        yGroundBase, yGroundTop,
+        nx, nz,
+        gU0, gU1, 0.06, 0.67,
+        Math.min(1, wr * 1.03),
+        Math.min(1, wg * 1.03),
+        Math.min(1, wb * 1.02),
+      );
+
+      // Upper repeating apartment stories with balconies & PVC windows
+      const upperH = yRoof - yGroundTop;
+      if (upperH > 0.4) {
+        const uSpan = Math.max(0.75, len / 10.2);
+        const vSpan = Math.max(0.5, upperH / 6.4);
+        pushQuadWall(
+          uPos, uNor, uUv, uCol,
+          x0, z0, x1, z1,
+          yGroundTop, yRoof,
+          nx, nz,
+          uSeed, uSeed + uSpan, 0, vSpan,
+          wr, wg, wb,
+        );
+      }
+
+      // Crisp architectural roof parapet trim band (mapped to stone/roof band v = 0.74..0.82)
+      pushQuadWall(
+        gPos, gNor, gUv, gCol,
+        x0, z0, x1, z1,
+        yRoof, yParapet,
+        nx, nz,
+        0, Math.max(0.5, len / 6), 0.74, 0.82,
+        wr * 0.9, wg * 0.89, wb * 0.87,
       );
     }
 
-    // Roof polygon via ShapeUtils earcut triangulation (upward +Y winding)
+    // Textured roof slab (v = 0.74..0.98 in groundRoofMat)
     const contour: THREE.Vector2[] = [];
     for (let i = 0; i < n; i += 1) {
       contour.push(new THREE.Vector2(ptsX[i]!, ptsZ[i]!));
@@ -189,26 +314,30 @@ function buildBatchedBuildingsGeometry(tile: RegionTileData): THREE.BufferGeomet
       const i0 = tri[0]!;
       const i1 = tri[1]!;
       const i2 = tri[2]!;
+      const x0 = ptsX[i0]!;
+      const z0 = ptsZ[i0]!;
+      const x1 = ptsX[i2]!;
+      const z1 = ptsZ[i2]!;
+      const x2 = ptsX[i1]!;
+      const z2 = ptsZ[i1]!;
       pushTri(
-        pos, nor, uv, col,
-        ptsX[i0]!, y1, ptsZ[i0]!,
-        ptsX[i2]!, y1, ptsZ[i2]!,
-        ptsX[i1]!, y1, ptsZ[i1]!,
+        gPos, gNor, gUv, gCol,
+        x0, yParapet - 0.06, z0,
+        x1, yParapet - 0.06, z1,
+        x2, yParapet - 0.06, z2,
         0, 1, 0,
-        0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
+        (x0 % 8) / 8, 0.74 + Math.abs((z0 % 8) / 8) * 0.23,
+        (x1 % 8) / 8, 0.74 + Math.abs((z1 % 8) / 8) * 0.23,
+        (x2 % 8) / 8, 0.74 + Math.abs((z2 % 8) / 8) * 0.23,
         roofColor.r, roofColor.g, roofColor.b,
       );
     }
   }
 
-  if (pos.length === 0) return null;
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  geo.computeBoundingSphere();
-  return geo;
+  return {
+    upperGeo: finalizeGeometry(uPos, uNor, uUv, uCol),
+    groundRoofGeo: finalizeGeometry(gPos, gNor, gUv, gCol),
+  };
 }
 
 function buildBatchedRoadsGeometry(
@@ -226,9 +355,20 @@ function buildBatchedRoadsGeometry(
     const ptCount = Math.floor(road.points.length / 2);
     if (ptCount < 2) continue;
 
-    const halfW = road.width * 0.5;
-    const yLift = ROAD_LIFT[road.roadClass] ?? 0.24;
+    // Slight curb apron width boost makes sidewalks & curb seams meet building fronts cleanly
+    const halfW = road.width * 0.5 + (road.roadClass === 'tram' ? 0 : 0.45);
+    const yLift = ROAD_LIFT[road.roadClass] ?? 0.26;
     const [r, g, b] = ROAD_RGB[road.roadClass] ?? ROAD_RGB.residential;
+    const hasCenterLine =
+      road.roadClass === 'primary' ||
+      road.roadClass === 'secondary' ||
+      road.roadClass === 'tertiary' ||
+      road.roadClass === 'residential';
+    // Narrow service/pedestrian streets sample the asphalt texture without center lane stripe
+    const uLeft = hasCenterLine ? 0.0 : 0.14;
+    const uRight = hasCenterLine ? 1.0 : 0.46;
+
+    let distSoFar = 0;
 
     for (let i = 1; i < ptCount; i += 1) {
       const sx0 = road.points[(i - 1) * 2]!;
@@ -242,7 +382,6 @@ function buildBatchedRoadsGeometry(
 
       const px = (-totalDz / totalLen) * halfW;
       const pz = (totalDx / totalLen) * halfW;
-      // Subdivide segments >10m so roads hug curved Esenler hillsides without terrain clipping
       const steps = Math.max(1, Math.min(8, Math.ceil(totalLen / 10)));
 
       for (let s = 0; s < steps; s += 1) {
@@ -252,6 +391,11 @@ function buildBatchedRoadsGeometry(
         const z0 = sz0 + totalDz * t0;
         const x1 = sx0 + totalDx * t1;
         const z1 = sz0 + totalDz * t1;
+
+        const segLen = totalLen / steps;
+        const v0 = distSoFar / 8.0;
+        const v1 = (distSoFar + segLen) / 8.0;
+        distSoFar += segLen;
 
         const ax = x0 - px;
         const az = z0 - pz;
@@ -267,14 +411,14 @@ function buildBatchedRoadsGeometry(
         const yc = sampleTerrainElevation(terrain, cx, cz) + yLift;
         const yd = sampleTerrainElevation(terrain, dxp, dzp) + yLift;
 
-        // Outward upward (+Y) CCW winding: (a, b, c) and (a, c, d)
+        // Upward (+Y) CCW winding: (a, b, c) and (a, c, d) with continuous world-meter V UVs
         pushTri(
           pos, nor, uv, col,
           ax, ya, az,
           bx, yb, bz,
           cx, yc, cz,
           0, 1, 0,
-          0, 0, 1, 0, 1, 1,
+          uLeft, v0, uRight, v0, uRight, v1,
           r, g, b,
         );
         pushTri(
@@ -283,21 +427,14 @@ function buildBatchedRoadsGeometry(
           cx, yc, cz,
           dxp, yd, dzp,
           0, 1, 0,
-          0, 0, 1, 1, 0, 1,
+          uLeft, v0, uRight, v1, uLeft, v1,
           r, g, b,
         );
       }
     }
   }
 
-  if (pos.length === 0) return null;
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  geo.computeBoundingSphere();
-  return geo;
+  return finalizeGeometry(pos, nor, uv, col);
 }
 
 function buildBatchedAreasGeometry(
@@ -329,11 +466,11 @@ function buildBatchedAreasGeometry(
     const tris = THREE.ShapeUtils.triangulateShape(contour, []);
     const [r, g, b] =
       area.kind === 'park'
-        ? [0.27, 0.53, 0.29]
+        ? [0.32, 0.62, 0.34]
         : area.kind === 'water'
-          ? [0.14, 0.36, 0.54]
-          : [0.68, 0.65, 0.59];
-    const yLift = area.kind === 'water' ? 0.15 : 0.18;
+          ? [0.16, 0.42, 0.62]
+          : [0.76, 0.73, 0.67];
+    const yLift = area.kind === 'water' ? 0.16 : 0.2;
 
     for (const tri of tris) {
       const p0 = contour[tri[0]!]!;
@@ -349,43 +486,245 @@ function buildBatchedAreasGeometry(
         p2.x, y2, p2.y,
         p1.x, y1, p1.y,
         0, 1, 0,
-        0, 0, 1, 0, 0, 1,
+        p0.x / 10, p0.y / 10, p2.x / 10, p2.y / 10, p1.x / 10, p1.y / 10,
         r, g, b,
       );
     }
   }
 
-  if (pos.length === 0) return null;
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  geo.computeBoundingSphere();
-  return geo;
+  return finalizeGeometry(pos, nor, uv, col);
+}
+
+/** Appends a fast vertical 4-sided box prism into batched prop geometry arrays. */
+function appendBoxProp(
+  pos: number[],
+  nor: number[],
+  uv: number[],
+  col: number[],
+  cx: number,
+  yBot: number,
+  cz: number,
+  hx: number,
+  h: number,
+  hz: number,
+  r: number,
+  g: number,
+  b: number,
+): void {
+  const yTop = yBot + h;
+  const x0 = cx - hx;
+  const x1 = cx + hx;
+  const z0 = cz - hz;
+  const z1 = cz + hz;
+
+  // 4 vertical faces (slight directional tint for crisp stylized shading)
+  pushQuadWall(pos, nor, uv, col, x0, z1, x1, z1, yBot, yTop, 0, 1, 0, 1, 0, 1, r, g, b);
+  pushQuadWall(pos, nor, uv, col, x1, z0, x0, z0, yBot, yTop, 0, -1, 0, 1, 0, 1, r * 0.85, g * 0.85, b * 0.85);
+  pushQuadWall(pos, nor, uv, col, x1, z1, x1, z0, yBot, yTop, 1, 0, 0, 1, 0, 1, r * 0.94, g * 0.94, b * 0.94);
+  pushQuadWall(pos, nor, uv, col, x0, z0, x0, z1, yBot, yTop, -1, 0, 0, 1, 0, 1, r * 0.8, g * 0.8, b * 0.8);
+
+  // Top face (+Y)
+  pushTri(
+    pos, nor, uv, col,
+    x0, yTop, z0,
+    x0, yTop, z1,
+    x1, yTop, z1,
+    0, 1, 0,
+    0, 0, 0, 1, 1, 1,
+    Math.min(1, r * 1.08), Math.min(1, g * 1.08), Math.min(1, b * 1.08),
+  );
+  pushTri(
+    pos, nor, uv, col,
+    x0, yTop, z0,
+    x1, yTop, z1,
+    x1, yTop, z0,
+    0, 1, 0,
+    0, 0, 1, 1, 1, 0,
+    Math.min(1, r * 1.08), Math.min(1, g * 1.08), Math.min(1, b * 1.08),
+  );
+}
+
+/** Checks if a point is clear of all building bounding boxes in this tile. */
+function isClearOfBuildings(tile: RegionTileData, px: number, pz: number, margin: number): boolean {
+  for (const b of tile.buildings) {
+    if (
+      px >= b.minX - margin &&
+      px <= b.maxX + margin &&
+      pz >= b.minZ - margin &&
+      pz <= b.maxZ + margin
+    ) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
- * Compiles one 300m x 300m offline tile into at most 3 draw calls (buildings, roads/tram, parks).
+ * Compiles batched Mediterranean park/street trees and galvanized Istanbul street lamps
+ * into a single vertex-colored mesh per tile (only +1 draw call per tile!).
+ */
+function buildBatchedStreetPropsGeometry(
+  tile: RegionTileData,
+  terrain: TerrainGrid,
+): THREE.BufferGeometry | null {
+  const pos: number[] = [];
+  const nor: number[] = [];
+  const uv: number[] = [];
+  const col: number[] = [];
+
+  const appendTree = (tx: number, tz: number, seed: number): void => {
+    const baseY = sampleTerrainElevation(terrain, tx, tz) + 0.12;
+    const scale = 0.88 + (seed % 5) * 0.09;
+    // Bark trunk
+    appendBoxProp(pos, nor, uv, col, tx, baseY, tz, 0.22 * scale, 2.3 * scale, 0.22 * scale, 0.34, 0.24, 0.17);
+    // Layered lush Mediterranean plane-tree crown (lower darker foliage + sunlit upper crown)
+    const gShift = ((seed >>> 4) % 5) * 0.025;
+    appendBoxProp(
+      pos, nor, uv, col,
+      tx, baseY + 2.0 * scale, tz,
+      1.35 * scale, 1.55 * scale, 1.35 * scale,
+      0.18 + gShift * 0.4, 0.44 + gShift, 0.2,
+    );
+    appendBoxProp(
+      pos, nor, uv, col,
+      tx + 0.12, baseY + 3.2 * scale, tz - 0.1,
+      1.05 * scale, 1.25 * scale, 1.05 * scale,
+      0.26 + gShift * 0.5, 0.56 + gShift, 0.25,
+    );
+  };
+
+  const appendStreetLamp = (lx: number, lz: number, dirX: number, dirZ: number): void => {
+    const baseY = sampleTerrainElevation(terrain, lx, lz) + 0.2;
+    // Galvanized dark steel post
+    appendBoxProp(pos, nor, uv, col, lx, baseY, lz, 0.09, 5.6, 0.09, 0.24, 0.27, 0.31);
+    // Horizontal bracket reaching toward road
+    const armX = lx + dirX * 0.65;
+    const armZ = lz + dirZ * 0.65;
+    appendBoxProp(pos, nor, uv, col, armX, baseY + 5.45, armZ, 0.55, 0.1, 0.55, 0.26, 0.29, 0.34);
+    // Warm lantern head
+    const headX = lx + dirX * 1.05;
+    const headZ = lz + dirZ * 1.05;
+    appendBoxProp(pos, nor, uv, col, headX, baseY + 5.26, headZ, 0.24, 0.16, 0.24, 1.0, 0.89, 0.62);
+  };
+
+  // 1. Place park trees inside OSM parks (capped cleanly per tile)
+  let treeCount = 0;
+  for (const area of tile.areas) {
+    if (area.kind !== 'park' || treeCount >= 32) continue;
+    const n = Math.floor(area.ring.length / 2);
+    if (n < 3) continue;
+    let cx = 0;
+    let cz = 0;
+    for (let i = 0; i < n; i += 1) {
+      cx += area.ring[i * 2]!;
+      cz += area.ring[i * 2 + 1]!;
+    }
+    cx /= n;
+    cz /= n;
+    const h = hashString(area.id);
+    if (isClearOfBuildings(tile, cx, cz, 2.2)) {
+      appendTree(cx, cz, h);
+      treeCount += 1;
+    }
+    // Add 1–2 extra trees partway toward vertices for larger parks
+    for (let i = 0; i < n && treeCount < 32; i += Math.max(2, Math.floor(n / 3))) {
+      const px = cx * 0.55 + area.ring[i * 2]! * 0.45;
+      const pz = cz * 0.55 + area.ring[i * 2 + 1]! * 0.45;
+      if (Math.hypot(px - cx, pz - cz) > 6 && isClearOfBuildings(tile, px, pz, 2.2)) {
+        appendTree(px, pz, h + i * 17);
+        treeCount += 1;
+      }
+    }
+  }
+
+  // 2. Place street lamps & occasional boulevard trees along main roads (always clear of buildings & driving lanes)
+  let lampCount = 0;
+  for (const road of tile.roads) {
+    if (
+      road.roadClass !== 'primary' &&
+      road.roadClass !== 'secondary' &&
+      road.roadClass !== 'tertiary'
+    ) {
+      continue;
+    }
+    if (lampCount >= 22) break;
+    const ptCount = Math.floor(road.points.length / 2);
+    if (ptCount < 2) continue;
+
+    let accDist = 14;
+    const spacing = 36;
+    const halfW = road.width * 0.5 + 0.35;
+    let sideToggle = hashString(road.id) % 2 === 0 ? 1 : -1;
+
+    for (let i = 1; i < ptCount && lampCount < 22; i += 1) {
+      const x0 = road.points[(i - 1) * 2]!;
+      const z0 = road.points[(i - 1) * 2 + 1]!;
+      const x1 = road.points[i * 2]!;
+      const z1 = road.points[i * 2 + 1]!;
+      const dx = x1 - x0;
+      const dz = z1 - z0;
+      const len = Math.hypot(dx, dz);
+      if (len < 2) continue;
+
+      const nx = -dz / len;
+      const nz = dx / len;
+      let cursor = spacing - accDist;
+      while (cursor <= len && lampCount < 22) {
+        const t = cursor / len;
+        const rx = x0 + dx * t;
+        const rz = z0 + dz * t;
+        const lx = rx + nx * halfW * sideToggle;
+        const lz = rz + nz * halfW * sideToggle;
+
+        if (isClearOfBuildings(tile, lx, lz, 0.85)) {
+          appendStreetLamp(lx, lz, -nx * sideToggle, -nz * sideToggle);
+          lampCount += 1;
+          // Occasional curbside tree opposite the lamp when sidewalk space allows
+          if (lampCount % 2 === 0 && treeCount < 42) {
+            const tx = rx - nx * (halfW + 0.9) * sideToggle;
+            const tz = rz - nz * (halfW + 0.9) * sideToggle;
+            if (isClearOfBuildings(tile, tx, tz, 1.8)) {
+              appendTree(tx, tz, hashString(road.id) + lampCount * 31);
+              treeCount += 1;
+            }
+          }
+        }
+        sideToggle *= -1;
+        cursor += spacing;
+      }
+      accDist = (accDist + len) % spacing;
+    }
+  }
+
+  return finalizeGeometry(pos, nor, uv, col);
+}
+
+/**
+ * Compiles one 300m x 300m offline tile into at most 5 draw calls:
+ * upper buildings, ground shopfronts+roofs, textured asphalt roads, parks, and street props (trees+lamps).
  */
 export function buildTileMeshes(
   tile: RegionTileData,
   terrain: TerrainGrid,
-  materials: {
-    buildingMat: THREE.Material;
-    roadMat: THREE.Material;
-    areaMat: THREE.Material;
-  },
+  materials: TileMaterialBundle,
   shadowsEnabled: boolean,
+  includeProps = true,
 ): BuiltTileGroup {
   const group = new THREE.Group();
   group.name = `tile:${tile.key}`;
   const geometries: THREE.BufferGeometry[] = [];
 
-  const bGeo = buildBatchedBuildingsGeometry(tile);
-  if (bGeo) {
-    geometries.push(bGeo);
-    const mesh = new THREE.Mesh(bGeo, materials.buildingMat);
+  const { upperGeo, groundRoofGeo } = buildBatchedBuildingsGeometries(tile);
+  if (upperGeo) {
+    geometries.push(upperGeo);
+    const mesh = new THREE.Mesh(upperGeo, materials.upperBuildingMat);
+    mesh.castShadow = shadowsEnabled;
+    mesh.receiveShadow = shadowsEnabled;
+    group.add(mesh);
+  }
+  if (groundRoofGeo) {
+    geometries.push(groundRoofGeo);
+    const mesh = new THREE.Mesh(groundRoofGeo, materials.groundRoofMat);
     mesh.castShadow = shadowsEnabled;
     mesh.receiveShadow = shadowsEnabled;
     group.add(mesh);
@@ -405,6 +744,17 @@ export function buildTileMeshes(
     const mesh = new THREE.Mesh(aGeo, materials.areaMat);
     mesh.receiveShadow = shadowsEnabled;
     group.add(mesh);
+  }
+
+  if (includeProps) {
+    const pGeo = buildBatchedStreetPropsGeometry(tile, terrain);
+    if (pGeo) {
+      geometries.push(pGeo);
+      const mesh = new THREE.Mesh(pGeo, materials.propsMat);
+      mesh.castShadow = shadowsEnabled;
+      mesh.receiveShadow = shadowsEnabled;
+      group.add(mesh);
+    }
   }
 
   return {

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { findSanctuaryZone } from '../sanctuary';
+import { BuildingSpatialGrid } from './collision';
 import { worldToTileCoord } from './geo';
 import { DEFAULT_REGION_ID, REGION_REGISTRY } from './regions';
 import { sampleTerrainElevation } from './terrain';
@@ -12,6 +13,7 @@ import type {
   RoadGraph,
   TerrainGrid,
 } from './types';
+import { createVehicleState, stepPlayerVehicle } from '../vehicle';
 
 const DERIVED_ROOT = join(process.cwd(), 'public', 'derived-data');
 
@@ -67,6 +69,59 @@ describe('offline derived-data region packs (Esenler default + Fatih secondary)'
     ) as RegionTileData;
     expect(spawnTile.buildings.length).toBeGreaterThan(10);
     expect(spawnTile.roads.length).toBeGreaterThan(5);
+
+    // Player-facing labels must NOT expose "Esenler" / "Namık Kemal" directly
+    expect(manifest.nameTr).not.toMatch(/esenler|namık/i);
+    expect(manifest.spawn.labelTr).not.toMatch(/esenler|namık/i);
+    for (const reg of REGION_REGISTRY) {
+      expect(reg.nameTr).not.toMatch(/esenler|namık/i);
+      expect(reg.nameEn).not.toMatch(/esenler|namik/i);
+    }
+
+    // Regression test for invisible straight-road AABB wall bug:
+    // Driving straight down the main spawn avenue with exact polygon collision must clear >= 24m smoothly!
+    const grid = new BuildingSpatialGrid(28);
+    for (const tileKey of ['t_0_-1', 't_0_0']) {
+      const t = JSON.parse(
+        readFileSync(join(dir, 'tiles', `${tileKey}.json`), 'utf8'),
+      ) as RegionTileData;
+      grid.addTile(
+        tileKey,
+        t.buildings.map((b) => ({
+          id: b.id,
+          minX: b.minX,
+          maxX: b.maxX,
+          minZ: b.minZ,
+          maxZ: b.maxZ,
+          ring: b.ring,
+        })),
+      );
+    }
+    const taxi = createVehicleState(
+      'player-taxi',
+      'taxi',
+      manifest.spawn.x,
+      spawnElev,
+      manifest.spawn.z,
+      manifest.spawn.heading,
+    );
+    let phantomHits = 0;
+    for (let i = 0; i < 150; i += 1) {
+      const r = stepPlayerVehicle(
+        taxi,
+        { throttle: 1, brake: 0, steer: 0, handbrake: false },
+        1 / 60,
+        { minX: terrain.minX, maxX: terrain.maxX, minZ: terrain.minZ, maxZ: terrain.maxZ },
+        (x, z) => sampleTerrainElevation(terrain, x, z),
+        grid,
+      );
+      const dist = Math.hypot(taxi.x - manifest.spawn.x, taxi.z - manifest.spawn.z);
+      if (dist < 24 && r.collided) phantomHits += 1;
+      if (dist >= 25) break;
+    }
+    const drivenDist = Math.hypot(taxi.x - manifest.spawn.x, taxi.z - manifest.spawn.z);
+    expect(phantomHits).toBe(0);
+    expect(drivenDist).toBeGreaterThanOrEqual(24);
   });
 
   it('validates Fatih (Sultanahmet-Eminonu) secondary pack under public/derived-data', () => {

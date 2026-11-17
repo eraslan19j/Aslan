@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import type { TimeOfDay } from '../core/diagnostics';
 import { damp } from '../core/math';
 import { getQualityPreset, type QualityTier } from '../core/quality';
-import { createRng } from '../core/rng';
 import type { TrafficAgent } from '../core/traffic';
 import type { PlayerVehicleState } from '../core/vehicle';
 import { BuildingSpatialGrid } from '../core/world/collision';
@@ -15,7 +14,25 @@ import type {
   RegionTileData,
   TerrainGrid,
 } from '../core/world/types';
+import {
+  animateCharacterRig,
+  createCharacterRig,
+  type CharacterRig,
+} from './characterMesh';
+import {
+  createAsphaltRoadTexture,
+  createContactShadowTexture,
+  createIstanbulFacadeTextures,
+  createParkGrassTexture,
+  createSkyDomeTexture,
+  createUrbanGroundTexture,
+} from './proceduralTextures';
 import { buildTileMeshes, type BuiltTileGroup } from './tileMeshBuilder';
+import {
+  createPlayerTaxiRig,
+  updatePlayerTaxiRig,
+  type PlayerTaxiRig,
+} from './vehicleMesh';
 
 export type QaCameraMode = 'follow' | 'street' | 'overview';
 
@@ -32,115 +49,12 @@ export interface WorldTelemetry {
 }
 
 const TRAFFIC_COLORS = [
-  new THREE.Color(0xf5b800), // Istanbul taxi yellow
-  new THREE.Color(0x2b6cb0), // Dolmus blue
-  new THREE.Color(0xdbe2ea), // Silver civilian
-  new THREE.Color(0x8c3b3b), // Burgundy civilian
-  new THREE.Color(0x3a4a5e), // Slate civilian
+  new THREE.Color(0xf6b800), // Istanbul taxi yellow
+  new THREE.Color(0x2867a8), // Dolmus blue
+  new THREE.Color(0xe2e8f0), // Pearl silver sedan
+  new THREE.Color(0x9a3737), // Burgundy sedan
+  new THREE.Color(0x3a4a5e), // Graphite slate sedan
 ];
-
-function createFacadeTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.fillStyle = '#f3f0ea';
-    ctx.fillRect(0, 0, 256, 256);
-
-    // Subtle horizontal floor cornice lines
-    ctx.fillStyle = 'rgba(60,55,50,0.08)';
-    for (let y = 0; y < 256; y += 64) {
-      ctx.fillRect(0, y, 256, 3);
-    }
-
-    const rng = createRng(34011);
-    const cols = 4;
-    const rows = 4;
-    const cellW = 256 / cols;
-    const cellH = 256 / rows;
-    for (let r = 0; r < rows; r += 1) {
-      for (let c = 0; c < cols; c += 1) {
-        // Keep top-left corner clean for roof UVs (0.02, 0.02)
-        const wx = c * cellW + 14;
-        const wy = r * cellH + 14;
-        const ww = cellW - 28;
-        const wh = cellH - 26;
-        // Crisp light window frame + daytime reflective sky-blue/slate glass
-        ctx.fillStyle = '#d4cec4';
-        ctx.fillRect(wx - 2, wy - 2, ww + 4, wh + 4);
-        const roll = rng.next();
-        ctx.fillStyle = roll < 0.35 ? '#7c9ab8' : roll < 0.72 ? '#59748f' : '#8ea6ba';
-        ctx.fillRect(wx, wy, ww, wh);
-        // Subtle window mullion
-        ctx.fillStyle = 'rgba(240,240,240,0.45)';
-        ctx.fillRect(wx + ww * 0.48, wy, 2, wh);
-      }
-    }
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
-function createWindowEmissiveTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, 256, 256);
-    const rng = createRng(34011);
-    const cols = 4;
-    const rows = 4;
-    const cellW = 256 / cols;
-    const cellH = 256 / rows;
-    for (let r = 0; r < rows; r += 1) {
-      for (let c = 0; c < cols; c += 1) {
-        if (rng.next() < 0.45) {
-          ctx.fillStyle = '#ffd17a';
-          ctx.fillRect(c * cellW + 14, r * cellH + 14, cellW - 28, cellH - 26);
-        }
-      }
-    }
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
-function createSkyTexture(mode: TimeOfDay): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 32;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  if (ctx) {
-    const grad = ctx.createLinearGradient(0, 0, 0, 256);
-    if (mode === 'day') {
-      // Bright Mediterranean Istanbul afternoon sky harmonizing seamlessly with horizon fog
-      grad.addColorStop(0.0, '#3a7ec2');
-      grad.addColorStop(0.32, '#6caee3');
-      grad.addColorStop(0.62, '#a7d2f0');
-      grad.addColorStop(0.84, '#d3e5f0');
-      grad.addColorStop(1.0, '#e6e4d8');
-    } else {
-      grad.addColorStop(0.0, '#050a18');
-      grad.addColorStop(0.45, '#0d1936');
-      grad.addColorStop(0.78, '#1a2a4c');
-      grad.addColorStop(1.0, '#2a3554');
-    }
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 32, 256);
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
 
 export class RegionWorldScene {
   readonly renderer: THREE.WebGLRenderer;
@@ -158,23 +72,27 @@ export class RegionWorldScene {
 
   private readonly hemiLight: THREE.HemisphereLight;
   private readonly sunLight: THREE.DirectionalLight;
+  private readonly skyDome: THREE.Mesh;
+  private readonly skyMat: THREE.MeshBasicMaterial;
   private readonly daySkyTex: THREE.CanvasTexture;
   private readonly nightSkyTex: THREE.CanvasTexture;
   private readonly waterMesh: THREE.Mesh | null;
-  private readonly avatarGroup: THREE.Group;
-  private readonly playerVehicleGroup: THREE.Group;
-  private readonly headlightMat: THREE.MeshBasicMaterial;
-  private readonly brakeLightMat: THREE.MeshBasicMaterial;
-  private readonly vehicleHeadLight: THREE.PointLight;
+  private readonly characterRig: CharacterRig;
+  private readonly taxiRig: PlayerTaxiRig;
 
+  // Upgraded 4-part instanced AI traffic (4 draw calls total for all 24 vehicles)
   private readonly trafficChassisInst: THREE.InstancedMesh;
   private readonly trafficCabinInst: THREE.InstancedMesh;
+  private readonly trafficRoofInst: THREE.InstancedMesh;
+  private readonly trafficUnderInst: THREE.InstancedMesh;
   private readonly maxTrafficInstances = 24;
   private readonly dummyObj = new THREE.Object3D();
 
-  private readonly buildingMat: THREE.MeshStandardMaterial;
+  private readonly upperBuildingMat: THREE.MeshStandardMaterial;
+  private readonly groundRoofMat: THREE.MeshStandardMaterial;
   private readonly roadMat: THREE.MeshStandardMaterial;
   private readonly areaMat: THREE.MeshStandardMaterial;
+  private readonly propsMat: THREE.MeshStandardMaterial;
 
   private readonly disposableGeometries: THREE.BufferGeometry[] = [];
   private readonly disposableMaterials: THREE.Material[] = [];
@@ -217,6 +135,8 @@ export class RegionWorldScene {
     this.renderer.setSize(container.clientWidth || 1280, container.clientHeight || 720);
     container.appendChild(this.renderer.domElement);
 
+    const maxAniso = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
+
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver((entries) => {
         const rect = entries[0]?.contentRect;
@@ -230,101 +150,154 @@ export class RegionWorldScene {
     }
 
     this.scene = new THREE.Scene();
-    this.daySkyTex = createSkyTexture('day');
-    this.nightSkyTex = createSkyTexture('night');
+    this.daySkyTex = createSkyDomeTexture('day');
+    this.nightSkyTex = createSkyDomeTexture('night');
     this.disposableTextures.push(this.daySkyTex, this.nightSkyTex);
+
+    // 3D Equirectangular Sky Dome (warm sun + wispy clouds by day, stars + moon by night)
+    const skyGeo = new THREE.SphereGeometry(760, 24, 16);
+    this.skyMat = new THREE.MeshBasicMaterial({
+      map: this.daySkyTex,
+      side: THREE.BackSide,
+      depthWrite: false,
+      fog: false,
+    });
+    this.skyDome = new THREE.Mesh(skyGeo, this.skyMat);
+    this.skyDome.renderOrder = -1;
+    this.scene.add(this.skyDome);
+    this.disposableGeometries.push(skyGeo);
+    this.disposableMaterials.push(this.skyMat);
 
     this.camera = new THREE.PerspectiveCamera(
       60,
       (container.clientWidth || 1280) / Math.max(1, container.clientHeight || 720),
-      0.5,
-      900,
+      0.4,
+      920,
     );
 
-    this.hemiLight = new THREE.HemisphereLight(0xffdfb0, 0x3b4863, 0.9);
+    this.hemiLight = new THREE.HemisphereLight(0xd4eeff, 0x776858, 1.1);
     this.scene.add(this.hemiLight);
 
-    this.sunLight = new THREE.DirectionalLight(0xffcb8c, 2.0);
-    this.sunLight.shadow.mapSize.set(1024, 1024);
-    this.sunLight.shadow.camera.near = 10;
-    this.sunLight.shadow.camera.far = 420;
-    this.sunLight.shadow.camera.left = -130;
-    this.sunLight.shadow.camera.right = 130;
-    this.sunLight.shadow.camera.top = 130;
-    this.sunLight.shadow.camera.bottom = -130;
-    this.sunLight.shadow.bias = -0.0005;
+    // Tightly focused crisp shadow frustum (±82m on 2048px -> ~8 cm/texel razor-sharp street shadows!)
+    this.sunLight = new THREE.DirectionalLight(0xfff1d6, 2.25);
+    this.sunLight.shadow.mapSize.set(2048, 2048);
+    this.sunLight.shadow.camera.near = 15;
+    this.sunLight.shadow.camera.far = 360;
+    this.sunLight.shadow.camera.left = -84;
+    this.sunLight.shadow.camera.right = 84;
+    this.sunLight.shadow.camera.top = 84;
+    this.sunLight.shadow.camera.bottom = -84;
+    this.sunLight.shadow.bias = -0.0004;
+    this.sunLight.shadow.normalBias = 0.04;
     this.scene.add(this.sunLight);
     this.scene.add(this.sunLight.target);
 
-    // Shared tile materials (<= 3 draw calls per 300m tile, polygonOffset eliminates z-fighting!)
-    const facadeTex = createFacadeTexture();
-    const emissiveTex = createWindowEmissiveTexture();
-    this.disposableTextures.push(facadeTex, emissiveTex);
+    // Procedural PBR-inspired tile materials
+    const facadeSet = createIstanbulFacadeTextures(Math.min(4, maxAniso));
+    const roadTex = createAsphaltRoadTexture(maxAniso);
+    const parkTex = createParkGrassTexture(Math.min(4, maxAniso));
+    const contactShadowTex = createContactShadowTexture();
+    this.disposableTextures.push(
+      facadeSet.upperMap,
+      facadeSet.upperEmissiveMap,
+      facadeSet.groundRoofMap,
+      facadeSet.groundRoofEmissiveMap,
+      roadTex,
+      parkTex,
+      contactShadowTex,
+    );
 
-    this.buildingMat = new THREE.MeshStandardMaterial({
-      map: facadeTex,
-      emissive: new THREE.Color(0xffb454),
-      emissiveMap: emissiveTex,
-      emissiveIntensity: 0.08,
+    this.upperBuildingMat = new THREE.MeshStandardMaterial({
+      map: facadeSet.upperMap,
+      emissive: new THREE.Color(0xffb85c),
+      emissiveMap: facadeSet.upperEmissiveMap,
+      emissiveIntensity: 0.0,
       vertexColors: true,
-      roughness: 0.88,
-      metalness: 0.04,
+      roughness: 0.86,
+      metalness: 0.05,
+    });
+    this.groundRoofMat = new THREE.MeshStandardMaterial({
+      map: facadeSet.groundRoofMap,
+      emissive: new THREE.Color(0xffb85c),
+      emissiveMap: facadeSet.groundRoofEmissiveMap,
+      emissiveIntensity: 0.0,
+      vertexColors: true,
+      roughness: 0.84,
+      metalness: 0.06,
     });
     this.roadMat = new THREE.MeshStandardMaterial({
+      map: roadTex,
       vertexColors: true,
-      roughness: 0.94,
-      metalness: 0.05,
+      roughness: 0.9,
+      metalness: 0.06,
       polygonOffset: true,
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
     });
     this.areaMat = new THREE.MeshStandardMaterial({
+      map: parkTex,
       vertexColors: true,
-      roughness: 0.96,
+      roughness: 0.95,
       metalness: 0.02,
       polygonOffset: true,
       polygonOffsetFactor: -1,
       polygonOffsetUnits: -1,
     });
-    this.disposableMaterials.push(this.buildingMat, this.roadMat, this.areaMat);
+    this.propsMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.82,
+      metalness: 0.08,
+    });
+    this.disposableMaterials.push(
+      this.upperBuildingMat,
+      this.groundRoofMat,
+      this.roadMat,
+      this.areaMat,
+      this.propsMat,
+    );
 
-    // Copernicus DEM GLO-30 terrain mesh
-    this.buildTerrainMesh();
+    // Copernicus DEM GLO-30 terrain mesh with crisp urban paving texture
+    this.buildTerrainMesh(Math.min(4, maxAniso));
 
-    // Sea plane (Fatih Bosphorus/Marmara only) or distant hillside apron (Esenler)
+    // Sea plane (coastal peninsula) or distant hillside apron
     this.waterMesh = this.regionMeta.hasCoastalSea ? this.buildSeaMesh() : this.buildInlandApron();
 
     // Streamed 300m tiles root
     this.scene.add(this.tilesRoot);
 
-    // Region landmarks (mosque domes/minarets + neighborhood POI beacons)
+    // Region landmarks (mosque domes/minarets + neighborhood POI markers)
     this.buildLandmarks();
 
-    // Player avatar (hidden when inside vehicle)
-    this.avatarGroup = this.buildAvatar();
-    this.scene.add(this.avatarGroup);
+    // Articulated stylized 3rd-person human protagonist (grounded sneakers at y = 0!)
+    this.characterRig = createCharacterRig(contactShadowTex);
+    this.disposableGeometries.push(...this.characterRig.geometries);
+    this.disposableMaterials.push(...this.characterRig.materials);
+    this.scene.add(this.characterRig.root);
 
-    // Drivable player vehicle (fictional Istanbul Sarı Taksi)
-    this.headlightMat = new THREE.MeshBasicMaterial({ color: 0xfff3c4 });
-    this.brakeLightMat = new THREE.MeshBasicMaterial({ color: 0x551111 });
-    this.disposableMaterials.push(this.headlightMat, this.brakeLightMat);
-    this.vehicleHeadLight = new THREE.PointLight(0xffe7a8, 0, 26, 1.8);
-    this.playerVehicleGroup = this.buildPlayerTaxi();
-    this.playerVehicleGroup.add(this.vehicleHeadLight);
-    this.vehicleHeadLight.position.set(0, 1.1, 2.8);
-    this.scene.add(this.playerVehicleGroup);
+    // Detailed stylized Istanbul Yellow Taxi (checkered stripe, TAKSİ sign, steerable rolling wheels!)
+    this.taxiRig = createPlayerTaxiRig(contactShadowTex);
+    this.disposableGeometries.push(...this.taxiRig.geometries);
+    this.disposableMaterials.push(...this.taxiRig.materials);
+    this.disposableTextures.push(...this.taxiRig.textures);
+    this.scene.add(this.taxiRig.root);
 
-    // Instanced AI Traffic (2 draw calls total for up to 24 moving vehicles!)
-    const chassisGeo = new THREE.BoxGeometry(1.85, 0.68, 4.25);
-    const cabinGeo = new THREE.BoxGeometry(1.55, 0.54, 2.25);
-    const chassisMat = new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.3 });
+    // Upgraded 4-part Instanced AI Traffic (4 draw calls total for up to 24 moving vehicles!)
+    const chassisGeo = new THREE.BoxGeometry(1.86, 0.56, 4.25);
+    const cabinGeo = new THREE.BoxGeometry(1.56, 0.46, 2.15);
+    const roofGeo = new THREE.BoxGeometry(1.58, 0.1, 2.05);
+    const underGeo = new THREE.BoxGeometry(1.94, 0.34, 3.35);
+
+    const chassisMat = new THREE.MeshStandardMaterial({ roughness: 0.36, metalness: 0.28 });
     const cabinMat = new THREE.MeshStandardMaterial({
-      color: 0x1e293b,
-      roughness: 0.25,
-      metalness: 0.5,
+      color: 0x243b53,
+      roughness: 0.16,
+      metalness: 0.55,
     });
-    this.disposableGeometries.push(chassisGeo, cabinGeo);
-    this.disposableMaterials.push(chassisMat, cabinMat);
+    const roofMat = new THREE.MeshStandardMaterial({ roughness: 0.36, metalness: 0.25 });
+    const underMat = new THREE.MeshStandardMaterial({ color: 0x181c24, roughness: 0.9 });
+
+    this.disposableGeometries.push(chassisGeo, cabinGeo, roofGeo, underGeo);
+    this.disposableMaterials.push(chassisMat, cabinMat, roofMat, underMat);
 
     this.trafficChassisInst = new THREE.InstancedMesh(
       chassisGeo,
@@ -332,17 +305,25 @@ export class RegionWorldScene {
       this.maxTrafficInstances,
     );
     this.trafficCabinInst = new THREE.InstancedMesh(cabinGeo, cabinMat, this.maxTrafficInstances);
-    this.trafficChassisInst.count = 0;
-    this.trafficCabinInst.count = 0;
-    this.trafficChassisInst.frustumCulled = false;
-    this.trafficCabinInst.frustumCulled = false;
-    this.scene.add(this.trafficChassisInst, this.trafficCabinInst);
+    this.trafficRoofInst = new THREE.InstancedMesh(roofGeo, roofMat, this.maxTrafficInstances);
+    this.trafficUnderInst = new THREE.InstancedMesh(underGeo, underMat, this.maxTrafficInstances);
+
+    for (const inst of [
+      this.trafficChassisInst,
+      this.trafficCabinInst,
+      this.trafficRoofInst,
+      this.trafficUnderInst,
+    ]) {
+      inst.count = 0;
+      inst.frustumCulled = false;
+      this.scene.add(inst);
+    }
 
     this.applyLighting();
     this.applyQuality(initialQuality);
   }
 
-  private buildTerrainMesh(): void {
+  private buildTerrainMesh(anisotropy: number): void {
     const { minX, maxX, minZ, maxZ, cols, rows, elevDecimeters } = this.terrain;
     const width = maxX - minX;
     const depth = maxZ - minZ;
@@ -362,13 +343,13 @@ export class RegionWorldScene {
         pos.setY(idx, elev);
         const t = (elev - minM) / spanM;
         if (this.regionMeta.hasCoastalSea && elev < 1.2) {
-          baseColor.setHex(0x8c877c);
+          baseColor.setHex(0x9a9488);
         } else if (this.regionMeta.character === 'residential-hillside') {
-          // Cool Istanbul concrete/sidewalk tone transitioning to soft green upper ridges
-          baseColor.setRGB(0.56 + t * 0.05, 0.57 + t * 0.08, 0.54 + t * 0.03);
+          // Warm sunlit Istanbul sidewalk concrete blending into soft hillside olive-stone
+          baseColor.setRGB(0.68 + t * 0.05, 0.67 + t * 0.07, 0.63 + t * 0.03);
         } else {
-          // Warm Sultanahmet paving-stone tone
-          baseColor.setRGB(0.64 + t * 0.05, 0.61 + t * 0.05, 0.54 + t * 0.03);
+          // Warm historic peninsula travertine paving stone
+          baseColor.setRGB(0.74 + t * 0.05, 0.7 + t * 0.05, 0.62 + t * 0.03);
         }
         colors[idx * 3] = baseColor.r;
         colors[idx * 3 + 1] = baseColor.g;
@@ -378,9 +359,13 @@ export class RegionWorldScene {
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
 
+    const groundTex = createUrbanGroundTexture(anisotropy);
+    this.disposableTextures.push(groundTex);
+
     const mat = new THREE.MeshStandardMaterial({
+      map: groundTex,
       vertexColors: true,
-      roughness: 0.96,
+      roughness: 0.94,
       metalness: 0.02,
     });
     const mesh = new THREE.Mesh(geo, mat);
@@ -395,9 +380,9 @@ export class RegionWorldScene {
     const geo = new THREE.PlaneGeometry(5200, 5200, 1, 1);
     geo.rotateX(-Math.PI / 2);
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x163858,
-      roughness: 0.25,
-      metalness: 0.35,
+      color: 0x184770,
+      roughness: 0.22,
+      metalness: 0.42,
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(0, 0.35, 0);
@@ -408,11 +393,10 @@ export class RegionWorldScene {
   }
 
   private buildInlandApron(): THREE.Mesh | null {
-    // Subtle distant Istanbul ground apron below Esenler hills so the horizon never shows void gaps
     const geo = new THREE.PlaneGeometry(6000, 6000, 1, 1);
     geo.rotateX(-Math.PI / 2);
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x454549,
+      color: 0x62666b,
       roughness: 0.98,
       metalness: 0.0,
     });
@@ -425,18 +409,18 @@ export class RegionWorldScene {
   }
 
   private buildLandmarks(): void {
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0xe6dac5, roughness: 0.82 });
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0xede2cf, roughness: 0.78 });
     const domeMat = new THREE.MeshStandardMaterial({
-      color: 0x6f7c8a,
-      roughness: 0.55,
-      metalness: 0.25,
+      color: 0x6d7d8e,
+      roughness: 0.48,
+      metalness: 0.3,
     });
-    const obeliskMat = new THREE.MeshStandardMaterial({ color: 0xc29e74, roughness: 0.78 });
+    const obeliskMat = new THREE.MeshStandardMaterial({ color: 0xc9a378, roughness: 0.76 });
     const beaconMat = new THREE.MeshStandardMaterial({
       color: 0xf5b800,
       emissive: 0xd97706,
       emissiveIntensity: 0.35,
-      roughness: 0.4,
+      roughness: 0.35,
     });
     const safeRingMat = new THREE.MeshBasicMaterial({
       color: 0x22c55e,
@@ -454,15 +438,15 @@ export class RegionWorldScene {
       const baseGeo = new THREE.BoxGeometry(domeRadius * 2.0, domeRadius * 0.82, domeRadius * 2.0);
       const domeGeo = new THREE.SphereGeometry(
         domeRadius * 0.92,
-        16,
-        10,
+        18,
+        12,
         0,
         Math.PI * 2,
         0,
         Math.PI * 0.52,
       );
-      const minGeo = new THREE.CylinderGeometry(0.7, 1.05, domeRadius * 2.25, 8);
-      const coneGeo = new THREE.ConeGeometry(0.85, 3.6, 8);
+      const minGeo = new THREE.CylinderGeometry(0.68, 1.02, domeRadius * 2.25, 10);
+      const coneGeo = new THREE.ConeGeometry(0.84, 3.6, 10);
       this.disposableGeometries.push(baseGeo, domeGeo, minGeo, coneGeo);
 
       const base = new THREE.Mesh(baseGeo, stoneMat);
@@ -513,8 +497,8 @@ export class RegionWorldScene {
       this.scene.add(g);
     };
 
-    const poleGeo = new THREE.CylinderGeometry(0.18, 0.24, 5.2, 8);
-    const orbGeo = new THREE.OctahedronGeometry(0.75, 0);
+    const poleGeo = new THREE.CylinderGeometry(0.16, 0.22, 4.8, 8);
+    const orbGeo = new THREE.OctahedronGeometry(0.68, 0);
     this.disposableGeometries.push(poleGeo, orbGeo);
 
     for (const lm of this.manifest.landmarks) {
@@ -525,7 +509,6 @@ export class RegionWorldScene {
       } else if (lm.kind === 'mosque') {
         addMosque(lm, 9.5, 1);
       } else if (lm.id === 'hipodrom') {
-        // Offset slightly along the Hippodrome axis so it frames Sultanahmet Square without blocking spawn camera
         const ox = lm.x - 16;
         const oz = lm.z - 22;
         const baseY = sampleTerrainElevation(this.terrain, ox, oz);
@@ -554,117 +537,20 @@ export class RegionWorldScene {
         ferry.add(hull, deck, stack);
         this.scene.add(ferry);
       } else if (lm.id !== 'nk-merkez-cadde') {
-        // Anonymized neighborhood POI / mission marker (bakkal, çay ocağı, okul, park, pazar yeri)
         const baseY = sampleTerrainElevation(this.terrain, lm.x, lm.z);
         const marker = new THREE.Group();
         marker.position.set(lm.x, baseY, lm.z);
         const pole = new THREE.Mesh(poleGeo, stoneMat);
-        pole.position.y = 2.6;
+        pole.position.y = 2.4;
         const orb = new THREE.Mesh(orbGeo, beaconMat);
-        orb.position.y = 5.6;
+        orb.position.y = 5.2;
         marker.add(pole, orb);
         this.scene.add(marker);
       }
     }
   }
 
-  private buildAvatar(): THREE.Group {
-    const group = new THREE.Group();
-    const jacketMat = new THREE.MeshStandardMaterial({ color: 0x2b5a94, roughness: 0.58 });
-    const headMat = new THREE.MeshStandardMaterial({ color: 0xe6be9e, roughness: 0.65 });
-    const accentMat = new THREE.MeshStandardMaterial({ color: 0xf5b800, roughness: 0.45 });
-
-    const bodyGeo = new THREE.CapsuleGeometry(0.32, 0.78, 4, 8);
-    const headGeo = new THREE.SphereGeometry(0.24, 10, 10);
-    const scarfGeo = new THREE.BoxGeometry(0.42, 0.16, 0.34);
-    this.disposableGeometries.push(bodyGeo, headGeo, scarfGeo);
-    this.disposableMaterials.push(jacketMat, headMat, accentMat);
-
-    const torso = new THREE.Mesh(bodyGeo, jacketMat);
-    torso.position.y = 0.84;
-    torso.castShadow = true;
-
-    const head = new THREE.Mesh(headGeo, headMat);
-    head.position.y = 1.56;
-    head.castShadow = true;
-
-    const collar = new THREE.Mesh(scarfGeo, accentMat);
-    collar.position.set(0, 1.18, 0.14);
-
-    group.add(torso, head, collar);
-    return group;
-  }
-
-  private buildPlayerTaxi(): THREE.Group {
-    const group = new THREE.Group();
-    const taxiMat = new THREE.MeshStandardMaterial({
-      color: 0xf7bd00,
-      roughness: 0.34,
-      metalness: 0.22,
-    });
-    const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x3b6588,
-      roughness: 0.18,
-      metalness: 0.48,
-    });
-    const roofMat = new THREE.MeshStandardMaterial({
-      color: 0xf7bd00,
-      roughness: 0.36,
-      metalness: 0.2,
-    });
-    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x161920, roughness: 0.88 });
-    const signMat = new THREE.MeshStandardMaterial({
-      color: 0xfff8d2,
-      emissive: 0xf5b800,
-      emissiveIntensity: 0.65,
-    });
-
-    const bodyGeo = new THREE.BoxGeometry(1.88, 0.66, 4.3);
-    const cabinGeo = new THREE.BoxGeometry(1.56, 0.52, 2.22);
-    const roofGeo = new THREE.BoxGeometry(1.58, 0.1, 2.18);
-    const signGeo = new THREE.BoxGeometry(0.68, 0.22, 0.28);
-    const wheelGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.28, 12);
-    wheelGeo.rotateZ(Math.PI / 2);
-    const lampGeo = new THREE.BoxGeometry(0.36, 0.17, 0.08);
-    this.disposableGeometries.push(bodyGeo, cabinGeo, roofGeo, signGeo, wheelGeo, lampGeo);
-    this.disposableMaterials.push(taxiMat, glassMat, roofMat, wheelMat, signMat);
-
-    const body = new THREE.Mesh(bodyGeo, taxiMat);
-    body.position.y = 0.66;
-    body.castShadow = true;
-    const cabin = new THREE.Mesh(cabinGeo, glassMat);
-    cabin.position.set(0, 1.2, -0.15);
-    const roofCap = new THREE.Mesh(roofGeo, roofMat);
-    roofCap.position.set(0, 1.48, -0.15);
-    const roofSign = new THREE.Mesh(signGeo, signMat);
-    roofSign.position.set(0, 1.62, -0.1);
-    group.add(body, cabin, roofCap, roofSign);
-
-    const wheelCoords: [number, number][] = [
-      [-0.92, 1.32],
-      [0.92, 1.32],
-      [-0.92, -1.32],
-      [0.92, -1.32],
-    ];
-    for (const [wx, wz] of wheelCoords) {
-      const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-      wheel.position.set(wx, 0.36, wz);
-      group.add(wheel);
-    }
-
-    // Front headlights (+Z forward) & rear brake lights (-Z)
-    for (const lx of [-0.62, 0.62]) {
-      const hl = new THREE.Mesh(lampGeo, this.headlightMat);
-      hl.position.set(lx, 0.66, 2.16);
-      const bl = new THREE.Mesh(lampGeo, this.brakeLightMat);
-      bl.position.set(lx, 0.66, -2.16);
-      group.add(hl, bl);
-    }
-
-    return group;
-  }
-
-  /** Streams 300m offline tiles around (focusX, focusZ) with hysteresis & GPU disposal. */
+  /** Streams 300m offline tiles around (focusX, focusZ) with exact 2D polygon colliders & GPU disposal. */
   updateStreaming(focusX: number, focusZ: number): void {
     const loadRadius = 1; // 3x3 = 900m x 900m active window
     const diff = planTileStreaming(
@@ -704,15 +590,19 @@ export class RegionWorldScene {
         tile,
         this.terrain,
         {
-          buildingMat: this.buildingMat,
+          upperBuildingMat: this.upperBuildingMat,
+          groundRoofMat: this.groundRoofMat,
           roadMat: this.roadMat,
           areaMat: this.areaMat,
+          propsMat: this.propsMat,
         },
         getQualityPreset(this.qualityTier).shadowsEnabled,
+        true,
       );
       this.tilesRoot.add(built.group);
       this.loadedTiles.set(key, built);
       this.activeBuildings += built.buildingCount;
+      // Register EXACT 2D polygon rings so diagonal streets have zero phantom AABB roadblocks!
       this.spatialGrid.addTile(
         key,
         tile.buildings.map((b) => ({
@@ -721,6 +611,7 @@ export class RegionWorldScene {
           maxX: b.maxX,
           minZ: b.minZ,
           maxZ: b.maxZ,
+          ring: b.ring,
         })),
       );
     } finally {
@@ -751,29 +642,35 @@ export class RegionWorldScene {
 
   private applyLighting(): void {
     const preset = getQualityPreset(this.qualityTier);
-    const farDist = preset.fogFar + 180;
+    const farDist = preset.fogFar + 190;
     if (this.timeOfDay === 'day') {
-      this.scene.background = this.daySkyTex;
-      this.scene.fog = new THREE.Fog(0xcadfeb, preset.fogNear * 1.15, farDist);
-      this.hemiLight.color.setHex(0xdaf0ff);
-      this.hemiLight.groundColor.setHex(0x6d6a62);
+      this.skyMat.map = this.daySkyTex;
+      this.skyMat.needsUpdate = true;
+      this.scene.background = new THREE.Color(0xcde3f2);
+      this.scene.fog = new THREE.Fog(0xd4e5f0, preset.fogNear * 1.15, farDist);
+      this.hemiLight.color.setHex(0xd6eeff);
+      this.hemiLight.groundColor.setHex(0x807263);
       this.hemiLight.intensity = 1.15;
-      this.sunLight.color.setHex(0xfff1d8);
-      this.sunLight.intensity = 2.1;
-      this.buildingMat.emissiveIntensity = 0.0;
-      this.vehicleHeadLight.intensity = 0;
-      this.renderer.toneMappingExposure = 1.12;
+      this.sunLight.color.setHex(0xfff1d4);
+      this.sunLight.intensity = 2.25;
+      this.upperBuildingMat.emissiveIntensity = 0.0;
+      this.groundRoofMat.emissiveIntensity = 0.04;
+      this.taxiRig.vehicleHeadLight.intensity = 0;
+      this.renderer.toneMappingExposure = 1.08;
     } else {
-      this.scene.background = this.nightSkyTex;
-      this.scene.fog = new THREE.Fog(0x0f1a33, preset.fogNear * 0.85, farDist * 0.9);
-      this.hemiLight.color.setHex(0x5272aa);
-      this.hemiLight.groundColor.setHex(0x1a2030);
-      this.hemiLight.intensity = 0.62;
-      this.sunLight.color.setHex(0xa8c2f4);
-      this.sunLight.intensity = 0.9;
-      this.buildingMat.emissiveIntensity = 1.05;
-      this.vehicleHeadLight.intensity = 20;
-      this.renderer.toneMappingExposure = 1.18;
+      this.skyMat.map = this.nightSkyTex;
+      this.skyMat.needsUpdate = true;
+      this.scene.background = new THREE.Color(0x0b152c);
+      this.scene.fog = new THREE.Fog(0x101c36, preset.fogNear * 0.85, farDist * 0.9);
+      this.hemiLight.color.setHex(0x5578b4);
+      this.hemiLight.groundColor.setHex(0x1c2336);
+      this.hemiLight.intensity = 0.65;
+      this.sunLight.color.setHex(0xaac4f6);
+      this.sunLight.intensity = 0.92;
+      this.upperBuildingMat.emissiveIntensity = 1.08;
+      this.groundRoofMat.emissiveIntensity = 1.15;
+      this.taxiRig.vehicleHeadLight.intensity = 24;
+      this.renderer.toneMappingExposure = 1.16;
     }
   }
 
@@ -784,7 +681,7 @@ export class RegionWorldScene {
     this.renderer.setPixelRatio(dpr);
     this.renderer.shadowMap.enabled = preset.shadowsEnabled;
     this.sunLight.castShadow = preset.shadowsEnabled;
-    this.camera.far = preset.drawDistance + 420;
+    this.camera.far = preset.drawDistance + 480;
     this.camera.updateProjectionMatrix();
     this.applyLighting();
   }
@@ -793,17 +690,14 @@ export class RegionWorldScene {
     const count = Math.min(agents.length, this.maxTrafficInstances);
     this.trafficChassisInst.count = count;
     this.trafficCabinInst.count = count;
+    this.trafficRoofInst.count = count;
+    this.trafficUnderInst.count = count;
 
     for (let i = 0; i < count; i += 1) {
       const a = agents[i]!;
-      const scaleY = a.archetype === 'dolmus' ? 1.35 : 1.0;
+      const scaleY = a.archetype === 'dolmus' ? 1.32 : 1.0;
       const scaleZ = a.archetype === 'dolmus' ? 1.15 : 1.0;
-
-      this.dummyObj.position.set(a.x, a.y + 0.3 + 0.56 * scaleY, a.z);
-      this.dummyObj.rotation.set(0, a.heading, 0);
-      this.dummyObj.scale.set(1, scaleY, scaleZ);
-      this.dummyObj.updateMatrix();
-      this.trafficChassisInst.setMatrixAt(i, this.dummyObj.matrix);
+      const baseRoadY = a.y + 0.34;
 
       const color =
         a.archetype === 'taxi'
@@ -811,18 +705,44 @@ export class RegionWorldScene {
           : a.archetype === 'dolmus'
             ? TRAFFIC_COLORS[1]!
             : TRAFFIC_COLORS[2 + (a.colorIndex % 3)]!;
+
+      // Undercarriage / wheel shadow block
+      this.dummyObj.position.set(a.x, baseRoadY + 0.24, a.z);
+      this.dummyObj.rotation.set(0, a.heading, 0);
+      this.dummyObj.scale.set(1, 1, scaleZ);
+      this.dummyObj.updateMatrix();
+      this.trafficUnderInst.setMatrixAt(i, this.dummyObj.matrix);
+
+      // Lower painted chassis
+      this.dummyObj.position.set(a.x, baseRoadY + 0.56 * scaleY, a.z);
+      this.dummyObj.scale.set(1, scaleY, scaleZ);
+      this.dummyObj.updateMatrix();
+      this.trafficChassisInst.setMatrixAt(i, this.dummyObj.matrix);
       this.trafficChassisInst.setColorAt(i, color);
 
-      this.dummyObj.position.set(a.x, a.y + 0.3 + 1.08 * scaleY, a.z);
+      // Glossy dark greenhouse cabin
+      this.dummyObj.position.set(a.x, baseRoadY + 1.04 * scaleY, a.z);
       this.dummyObj.scale.set(1, scaleY * 0.9, scaleZ * 0.92);
       this.dummyObj.updateMatrix();
       this.trafficCabinInst.setMatrixAt(i, this.dummyObj.matrix);
+
+      // Painted roof cap
+      this.dummyObj.position.set(a.x, baseRoadY + 1.3 * scaleY, a.z);
+      this.dummyObj.scale.set(1, 1, scaleZ * 0.88);
+      this.dummyObj.updateMatrix();
+      this.trafficRoofInst.setMatrixAt(i, this.dummyObj.matrix);
+      this.trafficRoofInst.setColorAt(i, color);
     }
 
+    this.trafficUnderInst.instanceMatrix.needsUpdate = true;
     this.trafficChassisInst.instanceMatrix.needsUpdate = true;
     this.trafficCabinInst.instanceMatrix.needsUpdate = true;
+    this.trafficRoofInst.instanceMatrix.needsUpdate = true;
     if (this.trafficChassisInst.instanceColor) {
       this.trafficChassisInst.instanceColor.needsUpdate = true;
+    }
+    if (this.trafficRoofInst.instanceColor) {
+      this.trafficRoofInst.instanceColor.needsUpdate = true;
     }
   }
 
@@ -838,52 +758,73 @@ export class RegionWorldScene {
   ): void {
     this.elapsed += dt;
 
-    // Update player taxi visual aligned cleanly to hillside pitch + roll
+    // Align detailed player Sarı Taksi smoothly to hillside pitch + roll (grounded cleanly on asphalt)
     const sinH = Math.sin(vehicle.heading);
     const cosH = Math.cos(vehicle.heading);
-    const yFront = sampleTerrainElevation(this.terrain, vehicle.x + sinH * 1.8, vehicle.z + cosH * 1.8);
-    const yRear = sampleTerrainElevation(this.terrain, vehicle.x - sinH * 1.8, vehicle.z - cosH * 1.8);
-    const yLeft = sampleTerrainElevation(this.terrain, vehicle.x + cosH * 0.95, vehicle.z - sinH * 0.95);
-    const yRight = sampleTerrainElevation(this.terrain, vehicle.x - cosH * 0.95, vehicle.z + sinH * 0.95);
+    const yFront = sampleTerrainElevation(
+      this.terrain,
+      vehicle.x + sinH * 1.8,
+      vehicle.z + cosH * 1.8,
+    );
+    const yRear = sampleTerrainElevation(
+      this.terrain,
+      vehicle.x - sinH * 1.8,
+      vehicle.z - cosH * 1.8,
+    );
+    const yLeft = sampleTerrainElevation(
+      this.terrain,
+      vehicle.x + cosH * 0.95,
+      vehicle.z - sinH * 0.95,
+    );
+    const yRight = sampleTerrainElevation(
+      this.terrain,
+      vehicle.x - cosH * 0.95,
+      vehicle.z + sinH * 0.95,
+    );
     const slopePitch = Math.atan2(yFront - yRear, 3.6);
     const slopeRoll = Math.atan2(yLeft - yRight, 1.9);
     const avgY = Math.max(vehicle.y, (yFront + yRear + yLeft + yRight) * 0.25);
 
-    this.playerVehicleGroup.position.set(vehicle.x, avgY + 0.34, vehicle.z);
-    this.playerVehicleGroup.rotation.set(-slopePitch, vehicle.heading, slopeRoll, 'YXZ');
-    this.brakeLightMat.color.setHex(vehicle.braking ? 0xff2222 : 0x551111);
+    this.taxiRig.root.position.set(vehicle.x, avgY + 0.35, vehicle.z);
+    this.taxiRig.root.rotation.set(-slopePitch, vehicle.heading, slopeRoll, 'YXZ');
+    updatePlayerTaxiRig(this.taxiRig, vehicle);
 
-    // Update on-foot avatar
-    this.avatarGroup.visible = !inVehicle;
+    // Update grounded articulated on-foot human character
+    this.characterRig.root.visible = !inVehicle;
     if (!inVehicle) {
-      const speedSq = velX * velX + velZ * velZ;
-      if (speedSq > 0.04) {
+      const horizSpeed = Math.hypot(velX, velZ);
+      if (horizSpeed > 0.2) {
         const targetHeading = Math.atan2(velX, velZ);
         let diff = targetHeading - this.avatarHeading;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        this.avatarHeading += diff * Math.min(1, dt * 10);
+        this.avatarHeading += diff * Math.min(1, dt * 11);
       }
-      const bob = speedSq > 0.04 ? Math.abs(Math.sin(this.elapsed * 11)) * 0.08 : 0;
-      this.avatarGroup.position.set(playerX, playerY + 0.26 + bob, playerZ);
-      this.avatarGroup.rotation.y = this.avatarHeading;
+      // Sneakers bottom sits at local y=0; road deck sits at terrain + ~0.34m -> ZERO floating!
+      this.characterRig.root.position.set(playerX, playerY + 0.34, playerZ);
+      this.characterRig.root.rotation.y = this.avatarHeading;
+      animateCharacterRig(this.characterRig, horizSpeed, dt);
     }
 
     const focusX = inVehicle ? vehicle.x : playerX;
     const focusY = inVehicle ? vehicle.y : playerY;
     const focusZ = inVehicle ? vehicle.z : playerZ;
 
-    // Keep shadow frustum centered around active focus
-    this.sunLight.position.set(focusX + 115, focusY + 135, focusZ + 80);
+    // Keep shadow frustum centered tightly around active focus
+    this.sunLight.position.set(focusX + 88, focusY + 128, focusZ + 62);
     this.sunLight.target.position.set(focusX, focusY, focusZ);
     this.sunLight.target.updateMatrixWorld();
 
-    // Camera positioning (supports reproducible QA camera modes)
+    // Dynamic driving FOV for crisp sense of speed
+    const targetFov = inVehicle ? 60 + Math.min(7, Math.abs(vehicle.speed) * 0.28) : 60;
+    if (Math.abs(this.camera.fov - targetFov) > 0.05) {
+      this.camera.fov = damp(this.camera.fov, targetFov, 6, dt);
+      this.camera.updateProjectionMatrix();
+    }
+
+    // Camera positioning
     if (this.qaCameraMode === 'overview') {
-      const targetPosX = focusX + 85;
-      const targetPosY = focusY + 72;
-      const targetPosZ = focusZ + 95;
-      this.camera.position.set(targetPosX, targetPosY, targetPosZ);
+      this.camera.position.set(focusX + 85, focusY + 72, focusZ + 95);
       this.camera.lookAt(focusX, focusY + 4, focusZ);
     } else if (this.qaCameraMode === 'street') {
       const lookYaw = vehicle.heading;
@@ -897,27 +838,30 @@ export class RegionWorldScene {
         focusZ + Math.cos(lookYaw) * 14,
       );
     } else {
-      // Dynamic 3rd-person follow (auto-aligns behind vehicle when driving)
-      if (inVehicle && Math.abs(vehicle.speed) > 1.2) {
+      // Dynamic 3rd-person follow (smoothly tracks behind vehicle when driving)
+      if (inVehicle && Math.abs(vehicle.speed) > 0.9) {
         const desiredYaw = vehicle.heading + Math.PI;
         let diff = desiredYaw - this.cameraYaw;
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
-        this.cameraYaw += diff * Math.min(1, dt * 3.2);
+        this.cameraYaw += diff * Math.min(1, dt * 4.2);
       }
 
-      const camDist = inVehicle ? 10.5 : 8.5;
-      const camHeight = inVehicle ? 4.4 : 3.9;
+      const camDist = inVehicle ? 9.6 : 6.4;
+      const camHeight = inVehicle ? 3.8 : 2.95;
       const desiredX = focusX + Math.sin(this.cameraYaw) * camDist;
       const desiredZ = focusZ + Math.cos(this.cameraYaw) * camDist;
       const camGroundY = sampleTerrainElevation(this.terrain, desiredX, desiredZ);
-      const desiredY = Math.max(focusY + camHeight, camGroundY + 2.6);
+      const desiredY = Math.max(focusY + camHeight, camGroundY + 2.2);
 
-      this.camera.position.x = damp(this.camera.position.x, desiredX, 8, dt);
-      this.camera.position.y = damp(this.camera.position.y, desiredY, 8, dt);
-      this.camera.position.z = damp(this.camera.position.z, desiredZ, 8, dt);
-      this.camera.lookAt(focusX, focusY + (inVehicle ? 1.5 : 1.7), focusZ);
+      this.camera.position.x = damp(this.camera.position.x, desiredX, 9, dt);
+      this.camera.position.y = damp(this.camera.position.y, desiredY, 9, dt);
+      this.camera.position.z = damp(this.camera.position.z, desiredZ, 9, dt);
+      this.camera.lookAt(focusX, focusY + (inVehicle ? 1.45 : 1.55), focusZ);
     }
+
+    // Keep sky dome centered on camera so horizon never clips or shifts
+    this.skyDome.position.copy(this.camera.position);
 
     if (this.waterMesh) {
       this.waterMesh.position.y = 0.35 + Math.sin(this.elapsed * 1.1) * 0.08;

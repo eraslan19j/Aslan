@@ -21,9 +21,9 @@ export const DEFAULT_REGION_ID: RegionId = 'esenler-namik-kemal';
 export const REGION_REGISTRY: readonly RegionRegistryEntry[] = [
   {
     id: 'esenler-namik-kemal',
-    nameTr: 'Esenler · Namık Kemal',
-    nameEn: 'Esenler · Namik Kemal',
-    subtitleTr: 'Dar eğimli konut sokakları, bakkal, çay ocağı ve mahalle hayatı',
+    nameTr: 'Tepe Mahallesi',
+    nameEn: 'Hillside Quarter',
+    subtitleTr: 'Eğimli mahalle sokakları, köşe bakkalı, çay ocağı ve semt hayatı',
     subtitleEn: 'Sloped residential alleys, corner bakkal, tea houses & local life',
     baseUrl: './derived-data/esenler-namik-kemal',
     publicSubdir: 'derived-data/esenler-namik-kemal',
@@ -32,10 +32,10 @@ export const REGION_REGISTRY: readonly RegionRegistryEntry[] = [
   },
   {
     id: 'fatih-sultanahmet-eminonu',
-    nameTr: 'Fatih · Sultanahmet–Eminönü',
-    nameEn: 'Fatih · Sultanahmet–Eminonu',
-    subtitleTr: 'Tarihî yarımada, Hipodrom, Divanyolu ve Eminönü sahili',
-    subtitleEn: 'Historic peninsula, Hippodrome, Divanyolu & Eminonu waterfront',
+    nameTr: 'Tarihî Yarımada',
+    nameEn: 'Historic Peninsula',
+    subtitleTr: 'Tarihî meydanlar, Divanyolu, tramvay ve sahil hattı',
+    subtitleEn: 'Historic squares, tramway avenue & waterfront promenade',
     baseUrl: './derived-data/fatih-sultanahmet-eminonu',
     publicSubdir: 'derived-data/fatih-sultanahmet-eminonu',
     hasCoastalSea: true,
