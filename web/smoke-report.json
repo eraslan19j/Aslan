@@ -12,8 +12,8 @@
     "activeMissionPhase": "pickup",
     "crashCount": 0,
     "perf": {
-      "fps": 39.703306084303584,
-      "frameMs": 249.91556412667455,
+      "fps": 42.42176545467026,
+      "frameMs": 197.57469584708957,
       "drawCalls": 72,
       "triangles": 110096,
       "geometries": 58,
@@ -30,8 +30,8 @@
   "cameraCycleOk": true,
   "audioToggleOk": true,
   "walkDist": 1.21,
-  "driveDist": 2.85,
-  "driveSpeedKph": 31,
+  "driveDist": 2.71,
+  "driveSpeedKph": 30,
   "exitedOk": true,
   "esenlerSanctuaryId": "namik-kemal-ibadethane-1",
   "fatihSwitchedOk": true,
@@ -40,6 +40,6 @@
   "hasAttributions": true,
   "pauseToggleOk": true,
   "uniqueColors": 1003,
-  "brightFrac": 0.4268,
+  "brightFrac": 0.4269,
   "errors": []
 }
