@@ -1,9 +1,9 @@
 {
-  "generatedAtIso": "2026-11-17T07:21:47.118Z",
+  "generatedAtIso": "2026-11-17T08:40:04.824Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 14,
   "totalErrors": 0,
-  "regressionWarnings": 0,
+  "regressionWarnings": 6,
   "hudWarnings": 0,
   "screenshots": [
     {
@@ -15,18 +15,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 93,
-        "triangles": 169979,
+        "drawCalls": 91,
+        "triangles": 168633,
         "loadedTiles": 9,
-        "activeBuildings": 2414
+        "activeBuildings": 2412
       },
-      "uniqueColors": 993,
-      "brightFrac": 0.4164,
+      "uniqueColors": 1006,
+      "brightFrac": 0.4253,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
-        "warning": false
+        "hasReference": true,
+        "diffPct": 11.68,
+        "warning": true
       },
       "errors": []
     },
@@ -39,18 +39,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 93,
-        "triangles": 169979,
+        "drawCalls": 91,
+        "triangles": 168633,
         "loadedTiles": 9,
-        "activeBuildings": 2414
+        "activeBuildings": 2412
       },
-      "uniqueColors": 1027,
-      "brightFrac": 0.3602,
+      "uniqueColors": 1033,
+      "brightFrac": 0.3667,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
-        "warning": false
+        "hasReference": true,
+        "diffPct": 6.88,
+        "warning": true
       },
       "errors": []
     },
@@ -63,18 +63,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 103,
-        "triangles": 175055,
+        "drawCalls": 100,
+        "triangles": 173045,
         "loadedTiles": 9,
-        "activeBuildings": 2414
+        "activeBuildings": 2412
       },
-      "uniqueColors": 1492,
-      "brightFrac": 0.4552,
+      "uniqueColors": 1484,
+      "brightFrac": 0.4671,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
-        "warning": false
+        "hasReference": true,
+        "diffPct": 6.05,
+        "warning": true
       },
       "errors": []
     },
@@ -87,17 +87,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "night",
-        "drawCalls": 93,
-        "triangles": 169979,
+        "drawCalls": 91,
+        "triangles": 168633,
         "loadedTiles": 9,
-        "activeBuildings": 2414
+        "activeBuildings": 2412
       },
-      "uniqueColors": 1297,
-      "brightFrac": 0.1001,
+      "uniqueColors": 1341,
+      "brightFrac": 0.0987,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 4.84,
         "warning": false
       },
       "errors": []
@@ -111,18 +111,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "lite",
         "timeOfDay": "day",
-        "drawCalls": 72,
-        "triangles": 110096,
+        "drawCalls": 70,
+        "triangles": 109419,
         "loadedTiles": 9,
-        "activeBuildings": 2414
+        "activeBuildings": 2412
       },
-      "uniqueColors": 922,
-      "brightFrac": 0.4853,
+      "uniqueColors": 934,
+      "brightFrac": 0.4941,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
-        "warning": false
+        "hasReference": true,
+        "diffPct": 11.31,
+        "warning": true
       },
       "errors": []
     },
@@ -135,18 +135,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 93,
-        "triangles": 169979,
+        "drawCalls": 91,
+        "triangles": 168633,
         "loadedTiles": 9,
-        "activeBuildings": 2414
+        "activeBuildings": 2412
       },
-      "uniqueColors": 844,
-      "brightFrac": 0.4285,
+      "uniqueColors": 852,
+      "brightFrac": 0.4388,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
-        "warning": false
+        "hasReference": true,
+        "diffPct": 9.38,
+        "warning": true
       },
       "errors": []
     },
@@ -159,18 +159,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 80,
-        "triangles": 167001,
+        "drawCalls": 90,
+        "triangles": 168631,
         "loadedTiles": 9,
-        "activeBuildings": 2414
+        "activeBuildings": 2412
       },
-      "uniqueColors": 901,
-      "brightFrac": 0.363,
+      "uniqueColors": 928,
+      "brightFrac": 0.3722,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
-        "warning": false
+        "hasReference": true,
+        "diffPct": 17.92,
+        "warning": true
       },
       "errors": []
     },
@@ -183,17 +183,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 93,
-        "triangles": 169979,
+        "drawCalls": 91,
+        "triangles": 168633,
         "loadedTiles": 9,
-        "activeBuildings": 2414
+        "activeBuildings": 2412
       },
-      "uniqueColors": 525,
-      "brightFrac": 0.0362,
+      "uniqueColors": 524,
+      "brightFrac": 0.0365,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 0.49,
         "warning": false
       },
       "errors": []
@@ -207,17 +207,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 90,
-        "triangles": 112301,
+        "drawCalls": 87,
+        "triangles": 117400,
         "loadedTiles": 9,
-        "activeBuildings": 1382
+        "activeBuildings": 1380
       },
-      "uniqueColors": 871,
-      "brightFrac": 0.8448,
+      "uniqueColors": 913,
+      "brightFrac": 0.8459,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 2.02,
         "warning": false
       },
       "errors": []
@@ -231,17 +231,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 90,
-        "triangles": 112301,
+        "drawCalls": 87,
+        "triangles": 117400,
         "loadedTiles": 9,
-        "activeBuildings": 1382
+        "activeBuildings": 1380
       },
-      "uniqueColors": 837,
-      "brightFrac": 0.8575,
+      "uniqueColors": 854,
+      "brightFrac": 0.8583,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 1.47,
         "warning": false
       },
       "errors": []
@@ -255,17 +255,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 85,
-        "triangles": 113601,
+        "drawCalls": 83,
+        "triangles": 116933,
         "loadedTiles": 9,
-        "activeBuildings": 1382
+        "activeBuildings": 1380
       },
-      "uniqueColors": 1403,
-      "brightFrac": 0.8288,
+      "uniqueColors": 1410,
+      "brightFrac": 0.8326,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 4.46,
         "warning": false
       },
       "errors": []
@@ -279,17 +279,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "night",
-        "drawCalls": 90,
-        "triangles": 112301,
+        "drawCalls": 87,
+        "triangles": 117400,
         "loadedTiles": 9,
-        "activeBuildings": 1382
+        "activeBuildings": 1380
       },
-      "uniqueColors": 1077,
-      "brightFrac": 0.0367,
+      "uniqueColors": 1063,
+      "brightFrac": 0.0352,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 1.07,
         "warning": false
       },
       "errors": []
@@ -303,17 +303,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "lite",
         "timeOfDay": "day",
-        "drawCalls": 69,
-        "triangles": 81347,
+        "drawCalls": 66,
+        "triangles": 86573,
         "loadedTiles": 9,
-        "activeBuildings": 1382
+        "activeBuildings": 1380
       },
-      "uniqueColors": 745,
-      "brightFrac": 0.8621,
+      "uniqueColors": 757,
+      "brightFrac": 0.8629,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 1.78,
         "warning": false
       },
       "errors": []
@@ -327,17 +327,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 90,
-        "triangles": 112301,
+        "drawCalls": 87,
+        "triangles": 117400,
         "loadedTiles": 9,
-        "activeBuildings": 1382
+        "activeBuildings": 1380
       },
-      "uniqueColors": 769,
-      "brightFrac": 0.8194,
+      "uniqueColors": 785,
+      "brightFrac": 0.8201,
       "hudIssues": [],
       "regression": {
-        "hasReference": false,
-        "diffPct": null,
+        "hasReference": true,
+        "diffPct": 1.46,
         "warning": false
       },
       "errors": []
