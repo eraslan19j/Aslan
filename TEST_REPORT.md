@@ -74,3 +74,24 @@ npm run cap:sync   -> PASS (Capacitor 8.6.2 synced to Android project in 0.101s)
 - `esenler_04_night.png`: Starry indigo sky, illuminated Istanbul facades, gleaming wet asphalt under warm headlights.
 - `esenler_07_driving_20x9.png` & `android/emulator_01_launch.png`: Crisp 20:9 mobile controls, `"Yüksek"` / `"Düşük"` quality badges, zero HUD clipping or overlap.
 
+---
+
+## 5. `v0.6.0` GTA Free-Roam & Sculpted Wheeled NPC Vehicles Verification (`fe7c797` / `477f985`)
+
+**Release Version:** `0.6.0` (`versionCode 8`, Android API 36 `sensorLandscape`)  
+**Unit & Integration Tests:** `12` test suites / **`55/55` tests PASS** (added sculpted 3-class NPC geometry + wheeled police cruiser + `swapWithPlayerVehicle` street car takeover verification in `src/render/openWorldSystems.test.ts`).
+
+### Key Changes Verified
+- **Pure GTA-Style Free-Roam (Zero Forced Taxi Mode):** Replaced default yellow taxi with a sleek crimson GT Sports Coupe (`34 IST 06`, dual exhausts, rear wing spoiler, zero roof taxi sign); disabled automatic taxi passenger pickup missions, hidden `$0` HUD cash badge, and cleared forced taxi minimap beacon (`activeMissionPhase === null`).
+- **Enter / Steal Any Street Car (`F` / `BİN`):** Pressing `F` or `BİN` near any parked or moving NPC car seamlessly swaps into that vehicle (`TrafficSystem.swapWithPlayerVehicle`), instantly adopting its class (`sports`, `sedan`, `hatchback`, `suv`, `van`), metallic paint color, and roof/spoiler styling while keeping zero physics/memory leaks.
+- **Sculpted Multi-Class Wheeled NPC Vehicles & Humanoid Pedestrians:** Replaced blocky 2-box traffic vehicles with 3 distinct sculpted instanced classes (`sports`, `sedan`, `suv` — each with 4 real 3D spoked alloy wheels, wheel arches, sloped windshields, grilles, bumpers, headlights/taillights, and spoilers/roof rails), upgraded police cruisers with full sculpted wheeled bodies, and upgraded instanced pedestrians to twin-legged articulated silhouettes while **reducing** total High-tier draw calls (`115 → 111`).
+- **Visual Polish Fix:** Lowered `driverSeatMount` inside the low-slung sports coupe cabin so the seated driver has clean headroom under the roof across all archetypes, and shifted the forward night headlight light cone ahead of the hood.
+
+### Remote CI, Visual QA, Android Emulator & APK Pipelines (`fe7c797` / `477f985`)
+| Pipeline | Run ID | Status | Verified Output & Metrics |
+|---|---|---|---|
+| **CI (Web + Unit + Smoke + 15-Shot Visual QA + 3-Min Soak)** | `44092751836` | **PASS (`12m18s`)** | **55/55 Vitest**, **0 console errors**, **0 HUD warnings**, `version: "0.6.0"`, `activeMissionPhase: null`, `trafficCount: 26`, `pedestrianCount: 40`, `driverVisibleInCabin: true`, **15/15 PNGs**, Low tier `71–72` draws (`9` tiles), Medium `87–99` draws (`9` tiles), High `110–114` draws (`24–25` tiles / `4,131` buildings); 3-min Soak `maxDrawCalls: 77`, `texDrift: 0`, `heapGrowthMb: -8.33 MB`, `errors: []` |
+| **Android Emulator QA (x86_64 KVM)** | `44091268207` | **PASS (`4m15s`)** | `ISTANBUL_BOOT` `v0.6.0`, `qualityTier: "low"`, `glError: 0`, `2400x1080` landscape, `Çizim: 64`, `Karo: 5`, `Bina: 1341`, `fatalCount: 0`, `anrCount: 0`, `chromiumErrorCount: 0`, `appAliveAfterBack: true` |
+| **Android API 36 Debug APK & GitHub Release `v0.6.0`** | `44092751801` | **PASS** | `com.istanbulstreets.game`, `versionCode 8` (`v0.6.0`), `targetSdkVersion 36`, `sensorLandscape` verified via `aapt2`, published to `releases/tag/v0.6.0` (`istanbul-streets-debug.apk`, `6.92 MB`) |
+
+

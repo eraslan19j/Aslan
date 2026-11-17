@@ -568,10 +568,10 @@ export function createPlayerTaxiRig(
   mergedGlass.renderOrder = 2;
   chassisGroup.add(mergedGlass);
 
-  // Driver seat mount (LHD front-left seat — protagonist sits visibly behind the wheel!)
+  // Driver seat mount (LHD front-left seat — protagonist sits cleanly inside cabin below roof!)
   const driverSeatMount = new THREE.Group();
-  driverSeatMount.position.set(0.38, 0.08, -0.14);
-  driverSeatMount.scale.setScalar(0.84);
+  driverSeatMount.position.set(0.38, -0.12, -0.12);
+  driverSeatMount.scale.setScalar(0.78);
   chassisGroup.add(driverSeatMount);
 
   // Interactive Interior Steering Wheel
@@ -617,9 +617,9 @@ export function createPlayerTaxiRig(
   rearPlate.rotation.y = Math.PI;
   chassisGroup.add(rearPlate);
 
-  // Night / Sunset Headlight PointLight
-  const vehicleHeadLight = new THREE.PointLight(0xffe7a8, 0, 30, 1.6);
-  vehicleHeadLight.position.set(0, 1.05, 3.0);
+  // Night / Sunset Headlight PointLight projecting forward ahead of the hood
+  const vehicleHeadLight = new THREE.PointLight(0xffe7a8, 0, 32, 1.6);
+  vehicleHeadLight.position.set(0, 1.15, 4.4);
   chassisGroup.add(vehicleHeadLight);
 
   // 7–10. 4 Steerable & Rolling 5-Spoke Alloy Wheels
