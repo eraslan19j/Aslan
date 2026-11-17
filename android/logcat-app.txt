@@ -1,295 +1,274 @@
-11-17 07:00:26.999 V/BackupManagerService(  518): [UserID:0] restoreAtInstall pkg=com.istanbulstreets.game token=1 restoreSet=0
-11-17 07:00:27.206 D/CarrierSvcBindHelper( 1047): onPackageAdded: com.istanbulstreets.game
-11-17 07:00:27.217 D/ImsResolver( 1047): maybeAddedImsService, packageName: com.istanbulstreets.game
-11-17 07:00:27.241 I/ActivityTaskManager(  518): START u0 {flg=0x10000000 cmp=com.istanbulstreets.game/.MainActivity} with LAUNCH_SINGLE_TASK from uid 2000 (BAL_ALLOW_PERMISSION) result code=0
-11-17 07:00:27.243 I/SafetyLabelChangedBroadcastReceiver(  835): received broadcast packageName: com.istanbulstreets.game, current user: UserHandle{0}, packageChangeEvent: NEW_INSTALL, intent user: UserHandle{0}
-11-17 07:00:27.246 V/WindowManagerShell(  834): Transition requested: android.os.BinderProxy@6852a43 TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.istanbulstreets.game/.MainActivity } baseActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} topActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} origActivity=null realActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} numActivities=1 lastActiveTime=33286 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@c6598c0} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{4cb9f9 com.istanbulstreets.game.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
-11-17 07:00:27.339 I/ActivityManager(  518): Start proc 3370:com.istanbulstreets.game/u0a192 for next-top-activity {com.istanbulstreets.game/com.istanbulstreets.game.MainActivity}
-11-17 07:00:27.601 I/SdkSandboxManager(  518): No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=10192, mPackageName='com.istanbulstreets.game, mAppProcessToken='null'}
-11-17 07:00:27.909 D/NavigationModeController(  834):     /product/overlay/GoogleWebViewOverlay.apk
-11-17 07:00:28.016 V/WindowManager(  518): Sent Transition #7 createdAt=11-17 07:00:27.229 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.istanbulstreets.game/.MainActivity } baseActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} topActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} origActivity=null realActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} numActivities=1 lastActiveTime=33286 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{4249902 Task{dbb1821 #8 type=standard A=10192:com.istanbulstreets.game}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{3bff213 com.istanbulstreets.game.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
-11-17 07:00:28.123 V/WindowManager(  518):     info={id=7 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{4249902 Task{dbb1821 #8 type=standard A=10192:com.istanbulstreets.game}}} m=OPEN f=NONE leash=Surface(name=Task=8)/@0x2b91125 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) d=0 endFixedRotation=1},{WCT{RemoteToken{f598603 Task{3b2d950 #1 type=home}}} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x91d8abc sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) d=0}]}
-11-17 07:00:28.441 W/ziparchive( 3370): Unable to open '/data/app/~~GhI1h39ssBXRfc9dEDmnuQ==/com.istanbulstreets.game-wOgu00zinU9rdLptMSrcvQ==/base.dm': No such file or directory
-11-17 07:00:28.441 W/ziparchive( 3370): Unable to open '/data/app/~~GhI1h39ssBXRfc9dEDmnuQ==/com.istanbulstreets.game-wOgu00zinU9rdLptMSrcvQ==/base.dm': No such file or directory
-11-17 07:00:28.536 D/nativeloader( 3370): Configuring clns-6 for other apk /data/app/~~GhI1h39ssBXRfc9dEDmnuQ==/com.istanbulstreets.game-wOgu00zinU9rdLptMSrcvQ==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~GhI1h39ssBXRfc9dEDmnuQ==/com.istanbulstreets.game-wOgu00zinU9rdLptMSrcvQ==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.istanbulstreets.game
-11-17 07:00:28.566 V/GraphicsEnvironment( 3370): ANGLE GameManagerService for com.istanbulstreets.game: false
-11-17 07:00:28.566 V/GraphicsEnvironment( 3370): com.istanbulstreets.game is not listed in per-application setting
-11-17 07:00:28.654 V/WindowManager(  518):     info={id=8 t=CHANGE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{4249902 Task{dbb1821 #8 type=standard A=10192:com.istanbulstreets.game}}} m=CHANGE f=NONE p=WCT{RemoteToken{c5fde69 DefaultTaskDisplayArea@99063569}} leash=Surface(name=Task=8)/@0x2b91125 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) d=0 r=0->1:-1},{WCT{RemoteToken{c5fde69 DefaultTaskDisplayArea@99063569}} m=CHANGE f=NONE p=WCT{RemoteToken{8cbe0ee Display{#0 state=ON size=2400x1080 ROTATION_90}}} leash=Surface(name=DefaultTaskDisplayArea)/@0xd55f6af sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) d=0 r=0->1:-1},{WCT{RemoteToken{8cbe0ee Display{#0 state=ON size=2400x1080 ROTATION_90}}} m=CHANGE f=IS_DISPLAY leash=Surface(name=WindowedMagnification:0:31)/@0x139c1ec sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) d=0 r=0->1:3}]}
-11-17 07:00:28.977 D/CarrierSvcBindHelper( 1047): onPackageModified: com.istanbulstreets.game
-11-17 07:00:29.038 I/WebViewFactory( 3370): Loading com.google.android.webview version 113.0.5672.136 (code 567263637)
-11-17 07:00:29.050 D/nativeloader( 3370): Configuring clns-7 for other apk /data/app/~~mJcDSOUrynVVT6nO2zvdww==/com.google.android.trichromelibrary_567263637-UoDfSXgEcU5mXJW7cjRmaQ==/TrichromeLibrary.apk. target_sdk_version=34, uses_libraries=ALL, library_path=/data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/lib/x86_64:/data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/WebViewGoogle.apk!/lib/x86_64:/data/app/~~mJcDSOUrynVVT6nO2zvdww==/com.google.android.trichromelibrary_567263637-UoDfSXgEcU5mXJW7cjRmaQ==/TrichromeLibrary.apk!/lib/x86_64, permitted_path=/data:/mnt/expand
-11-17 07:00:29.052 D/ImsResolver( 1047): maybeAddedImsService, packageName: com.istanbulstreets.game
-11-17 07:00:29.058 D/nativeloader( 3370): Configuring clns-8 for other apk /data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/WebViewGoogle.apk. target_sdk_version=34, uses_libraries=, library_path=/data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/lib/x86_64:/data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/WebViewGoogle.apk!/lib/x86_64:/data/app/~~mJcDSOUrynVVT6nO2zvdww==/com.google.android.trichromelibrary_567263637-UoDfSXgEcU5mXJW7cjRmaQ==/TrichromeLibrary.apk!/lib/x86_64, permitted_path=/data:/mnt/expand
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{ac10cfd com.android.cts.priv.ctsshim/10175} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{ed5cdf2 com.google.android.youtube/10139} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f49c43 com.android.internal.display.cutout.emulation.corner/10025} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{e9522c0 com.android.internal.display.cutout.emulation.double/10048} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{6967bf9 com.google.android.googlequicksearchbox/10132} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{36ed73e com.google.android.onetimeinitializer/10126} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{3bab99f com.google.android.ext.shared/10101} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{b09aaec com.android.internal.systemui.navbar.gestural_wide_back/10007} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{3b9deb5 com.android.virtualmachine.res/10177} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{cfd294a com.google.android.federatedcompute/10180} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{39b50bb com.android.managedprovisioning.auto_generated_rro_product__/10024} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{75c89d8 com.android.carrierconfig.auto_generated_rro_vendor__/10078} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{976b131 com.android.systemui.emulation.pixel_3_xl/10034} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{e6c9016 com.android.systemui.emulation.pixel_4_xl/10059} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f243d97 com.android.systemui.emulation.pixel_fold/10009} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{6fc6b84 com.android.simappdialog.auto_generated_rro_product__/10030} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{e542f6d com.android.htmlviewer/10115} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{b9997a2 com.google.android.health.connect.backuprestore/10191} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{5e51c33 com.android.systemui.auto_generated_rro_product__/10031} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{396bbf0 com.google.android.apps.messaging/10129} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{115569 com.google.android.soundpicker/10137} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{79d8bee com.google.android.marvin.talkbackoverlay/10077} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{6cb488f com.google.android.configupdater/10130} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{243a71c com.android.internal.emulation.pixel_3a_xl/10044} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f60df25 com.android.internal.emulation.pixel_6_pro/10018} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{bda78fa com.android.internal.emulation.pixel_7_pro/10004} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{83ddeab com.android.internal.emulation.pixel_8_pro/10058} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f721908 com.android.internal.emulation.pixel_3a/10053} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{b6548a1 com.android.internal.emulation.pixel_4a/10011} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{3c72ac6 com.android.internal.emulation.pixel_6a/10023} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{5f9ba87 com.android.internal.emulation.pixel_7a/10033} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{d93bdb4 com.google.android.overlay.googlewebview/10049} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{8eccddd com.google.android.hotspot2.osulogin/10184} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{97b2d52 com.android.simappdialog/10112} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{ad7823 com.android.internal.display.cutout.emulation.hole/10073} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{2890120 com.android.internal.display.cutout.emulation.tall/10065} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{16d6ad9 com.android.internal.systemui.navbar.threebutton/10068} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{efacc9e com.android.camera2/10146} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{b55737f com.android.systemui.auto_generated_rro_vendor__/10076} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{fcd0f4c com.google.android.deskclock/10153} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{5c0db95 com.android.internal.systemui.navbar.twobutton/10020} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4314aa com.google.android.as/10124} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{257c89b com.google.android.gm/10141} BLOCKED
-11-17 07:00:29.292 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{161d438 com.android.internal.systemui.navbar.gestural_extra_wide_back/10045} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{a09c11 com.android.systemui.emulation.pixel_3/10015} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{a15d176 com.android.systemui.emulation.pixel_4/10037} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{8605377 com.android.systemui.emulation.pixel_5/10071} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f7bfbe4 com.android.systemui.emulation.pixel_6/10074} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4e1e84d com.android.systemui.emulation.pixel_7/10072} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{1858f02 com.android.systemui.emulation.pixel_8/10070} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4fcb013 com.android.nfc.auto_generated_rro_product__/10027} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{eeef250 com.android.printspooler/10102} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{371bc49 com.android.emergency.auto_generated_rro_product__/10041} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{841994e com.google.android.connectivity.resources.goldfish.overlay/10079} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f83a6f com.android.dreams.basic/10103} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{c58e37c com.google.android.networkstack.tethering.emulator/10022} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{510d405 com.android.providers.settings.auto_generated_rro_product__/10002} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{9a1fc5a com.google.android.as.oss/10120} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{c780e8b com.android.traceur.auto_generated_rro_product__/10005} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{e0ebb68 com.google.android.devicelockcontroller/10187} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{3cfab81 com.google.android.dialer/10128} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{c738426 com.android.internal.emulation.pixel_3/10046} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{ad70867 com.android.internal.emulation.pixel_4/10060} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{8c82614 com.android.internal.emulation.pixel_5/10012} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{583bcb2 com.android.internal.emulation.pixel_6/10038} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{41c403 com.android.internal.emulation.pixel_7/10067} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{30b8f80 com.android.internal.emulation.pixel_8/10039} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{ea549b9 com.google.android.captiveportallogin/10114} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{6ecf1fe com.android.musicfx/10088} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{d129d5f com.google.android.apps.docs/10152} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f30bbe com.google.android.apps.maps/10155} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{35a23ac com.google.android.modulemetadata/10147} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{747c875 com.google.android.markup/10135} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{822300a com.android.providers.settings.auto_generated_rro_vendor__/10080} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{2edb07b com.google.android.rkpdapp/10171} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{51bce98 com.google.android.contacts/10154} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{75976f1 com.android.server.telecom.auto_generated_rro_product__/10032} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{2bb42d6 com.google.android.overlay.googleconfig/10055} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f9cd957 com.android.chrome/10149} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4b3c44 com.android.bips.auto_generated_rro_product__/10035} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{cfd912d com.google.android.apps.customization.pixel/10144} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{b662 com.google.android.tag/10083} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{9abb3f3 com.google.android.overlay.permissioncontroller/10003} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{fe1d8b0 com.google.android.partnersetup/10125} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{b4f1329 com.google.android.apps.wallpaper.nexus/10142} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{337d6ae com.google.android.apps.nexuslauncher/10169} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{ac39c4f com.google.android.nearby.halfsheet/10189} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{303cfdc com.android.theme.font.notoserifsource/10066} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{21cb8e5 com.google.android.safetycenter.resources/10173} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{caeafba com.android.internal.display.cutout.emulation.waterfall/10040} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{3c7ae6b com.android.internal.systemui.navbar.transparent/10029} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4ec0dc8 com.google.android.connectivity.resources/10188} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{564fe61 com.android.providers.contacts.auto_generated_rro_product__/10019} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{1880d86 com.google.android.feedback/10162} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{6b0c647 com.google.android.printservice.recommendation/10110} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{7983e74 com.google.android.apps.photos/10140} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{be7ba72 com.google.android.calendar/10145} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{921f9d com.google.android.documentsui/10098} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4477c12 com.android.systemui.emulation.pixel_3a_xl/10021} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{2297fe3 com.android.systemui.emulation.pixel_6_pro/10063} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{d34cde0 com.android.systemui.emulation.pixel_7_pro/10054} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{1761899 com.android.systemui.emulation.pixel_8_pro/10001} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{a1d475e com.google.mainline.telemetry/10151} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{aea373f com.android.carrierconfig.auto_generated_rro_product__/10064} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{c48e80c com.android.providers.partnerbookmarks/10100} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{706a555 com.android.wallpaper.livepicker/10090} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{8f27b6a com.android.providers.telephony.auto_generated_rro_product__/10062} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{ed5085b com.android.phone.auto_generated_rro_vendor__/10081} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{aa278f8 com.google.mainline.adservices/10136} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{fd941d1 com.android.imsserviceentitlement/10117} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{a34e436 com.google.android.healthconnect.controller/10190} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{dd1cf37 com.android.internal.emulation.pixel_2_xl/10016} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{b022ca4 com.android.internal.emulation.pixel_3_xl/10056} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{45f2a0d com.android.internal.emulation.pixel_4_xl/10047} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{e630dc2 com.android.internal.emulation.pixel_fold/10006} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{46a27d3 com.android.bookmarkprovider/10113} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{9876f10 com.google.android.overlay.pixelconfigcommon/10014} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{8e15a09 com.android.systemui.accessibility.accessibilitymenu.auto_generated_rro_product__/10050} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{d58440e com.android.systemui.emulation.pixel_3a/10013} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4256e2f com.android.systemui.emulation.pixel_4a/10000} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{2dc6c3c com.android.systemui.emulation.pixel_6a/10042} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{33c8dc5 com.android.systemui.emulation.pixel_7a/10017} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f58931a com.google.android.settings.intelligence/10119} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{aa1dc5d com.google.android.projection.gearhead/10123} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{5a4be4b com.google.android.uwb.resources/10179} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4fd59d2 com.android.cts.ctsshim/10176} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{2221028 com.google.android.wifi.resources/10182} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{5d4141 com.google.android.wifi.dialog/10183} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{adcc6e6 com.google.android.apps.wallpaper/10161} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{7ef427 com.google.android.odad/10122} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{19c06d4 com.android.settings.auto_generated_rro_product__/10028} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{57bb07d com.android.internal.systemui.navbar.gestural/10051} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{31e6b72 com.google.android.apps.youtube.music/10156} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4dcabc3 com.android.bluetoothmidiservice/10106} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{a1cbc40 com.android.storagemanager.auto_generated_rro_product__/10026} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{917d779 com.google.android.cellbroadcastreceiver/10170} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{363ccbe com.android.phone.auto_generated_rro_product__/10061} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{2d4411f android.auto_generated_rro_product__/10069} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{d315c6c com.android.internal.systemui.navbar.gestural_narrow_back/10052} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{fb57235 com.google.android.inputmethod.latin/10143} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{30bf6ca android.auto_generated_rro_vendor__/10075} BLOCKED
-11-17 07:00:29.293 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{b85d03b com.google.android.apps.restore/10121} BLOCKED
-11-17 07:00:29.429 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{ed5cdf2 com.google.android.youtube/10139} BLOCKED
-11-17 07:00:29.438 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{6967bf9 com.google.android.googlequicksearchbox/10132} BLOCKED
-11-17 07:00:29.438 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{4314aa com.google.android.as/10124} BLOCKED
-11-17 07:00:29.438 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{257c89b com.google.android.gm/10141} BLOCKED
-11-17 07:00:29.438 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{3cfab81 com.google.android.dialer/10128} BLOCKED
-11-17 07:00:29.438 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{51bce98 com.google.android.contacts/10154} BLOCKED
-11-17 07:00:29.438 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{fe1d8b0 com.google.android.partnersetup/10125} BLOCKED
-11-17 07:00:29.438 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{31e6b72 com.google.android.apps.youtube.music/10156} BLOCKED
-11-17 07:00:29.438 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{917d779 com.google.android.cellbroadcastreceiver/10170} BLOCKED
-11-17 07:00:29.439 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{fb57235 com.google.android.inputmethod.latin/10143} BLOCKED
-11-17 07:00:29.952 I/cr_VariationsUtils( 3370): Failed reading seed file "/data/user/0/com.istanbulstreets.game/app_webview/variations_seed_new"
-11-17 07:00:29.952 I/cr_VariationsUtils( 3370): Failed reading seed file "/data/user/0/com.istanbulstreets.game/app_webview/variations_seed"
-11-17 07:00:30.832 I/ActivityManager(  518): Start proc 3589:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0ai9000 for  {com.istanbulstreets.game/org.chromium.content.app.SandboxedProcessService0:0}
-11-17 07:00:30.897 D/SystemServerTimingAsync(  518): ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.webkit.WebViewUpdateService
-11-17 07:00:30.897 V/SystemServerTimingAsync(  518): ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.webkit.WebViewUpdateService took to complete: 0ms
-11-17 07:00:30.916 I/cr_WebViewApkApp( 3589): Launched version=113.0.5672.136 minSdkVersion=29 isBundle=false processName=com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0
-11-17 07:00:30.973 W/chromium( 3370): [WARNING:dns_config_service_android.cc(115)] Failed to read DnsConfig.
-11-17 07:00:31.345 D/Capacitor( 3370): Starting BridgeActivity
-11-17 07:00:31.383 D/Capacitor( 3370): Registering plugin instance: CapacitorCookies
-11-17 07:00:31.399 D/Capacitor( 3370): Registering plugin instance: WebView
-11-17 07:00:31.424 D/Capacitor( 3370): Registering plugin instance: CapacitorHttp
-11-17 07:00:31.432 D/Capacitor( 3370): Registering plugin instance: SystemBars
-11-17 07:00:31.434 D/Capacitor( 3370): Registering plugin instance: App
-11-17 07:00:31.436 D/Capacitor( 3370): Registering plugin instance: Haptics
-11-17 07:00:31.437 D/Capacitor( 3370): Registering plugin instance: Preferences
-11-17 07:00:31.439 I/ActivityManager(  518): Start proc 3699:com.google.android.webview:webview_apk/u0a134 for service {com.google.android.webview/org.chromium.android_webview.nonembedded.AwComponentUpdateService}
-11-17 07:00:31.504 I/iew:webview_apk( 3699): Using CollectorTypeCC GC.
-11-17 07:00:31.504 W/iew:webview_apk( 3699): Unexpected CPU variant for x86: x86_64.
-11-17 07:00:31.504 W/iew:webview_apk( 3699): Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
-11-17 07:00:31.508 E/iew:webview_apk( 3699): Not starting debugger since process cannot load the jdwp agent.
-11-17 07:00:31.537 W/Capacitor( 3370): Unable to read file at path public/plugins
-11-17 07:00:31.545 D/Capacitor( 3370): Loading app at https://localhost
-11-17 07:00:31.636 D/Capacitor( 3370): App started
-11-17 07:00:31.655 D/Capacitor/AppPlugin( 3370): Firing change: true
-11-17 07:00:31.655 V/Capacitor/AppPlugin( 3370): Notifying listeners for event appStateChange
-11-17 07:00:31.655 D/Capacitor/AppPlugin( 3370): No listeners found for event appStateChange
-11-17 07:00:31.655 D/Capacitor( 3370): App resumed
-11-17 07:00:31.747 D/Capacitor( 3370): Handling local request: https://localhost/
-11-17 07:00:31.775 W/iew:webview_apk( 3699): Entry not found
-11-17 07:00:31.775 D/nativeloader( 3699): Configuring clns-6 for other apk /data/app/~~mJcDSOUrynVVT6nO2zvdww==/com.google.android.trichromelibrary_567263637-UoDfSXgEcU5mXJW7cjRmaQ==/TrichromeLibrary.apk. target_sdk_version=34, uses_libraries=ALL, library_path=/data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/lib/x86_64:/data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/WebViewGoogle.apk!/lib/x86_64:/data/app/~~mJcDSOUrynVVT6nO2zvdww==/com.google.android.trichromelibrary_567263637-UoDfSXgEcU5mXJW7cjRmaQ==/TrichromeLibrary.apk!/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.webview
-11-17 07:00:31.785 D/nativeloader( 3699): Configuring clns-7 for other apk /data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/WebViewGoogle.apk. target_sdk_version=34, uses_libraries=, library_path=/data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/lib/x86_64:/data/app/~~YF0WWEBfltJDfM92kkRrIA==/com.google.android.webview-WVcpBHGlR9ek8hl7wt_BzQ==/WebViewGoogle.apk!/lib/x86_64:/data/app/~~mJcDSOUrynVVT6nO2zvdww==/com.google.android.trichromelibrary_567263637-UoDfSXgEcU5mXJW7cjRmaQ==/TrichromeLibrary.apk!/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.webview
-11-17 07:00:31.880 D/CoreBackPreview(  518): Window{d3f305d u0 com.istanbulstreets.game/com.istanbulstreets.game.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@1772bdf, mPriority=-1, mIsAnimationCallback=false}
-11-17 07:00:31.914 D/CoreBackPreview(  518): Window{d3f305d u0 com.istanbulstreets.game/com.istanbulstreets.game.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@f3f3af5, mPriority=0, mIsAnimationCallback=true}
-11-17 07:00:32.055 W/ziparchive(  518): Unable to open '/data/app/~~GhI1h39ssBXRfc9dEDmnuQ==/com.istanbulstreets.game-wOgu00zinU9rdLptMSrcvQ==/base.dm': No such file or directory
-11-17 07:00:32.056 I/ActivityTaskManager(  518): Displayed com.istanbulstreets.game/.MainActivity for user 0: +4s834ms
-11-17 07:00:32.206 W/InputManager-JNI(  518): Input channel object '3a21164 Splash Screen com.istanbulstreets.game (client)' was disposed without first being removed with the input manager!
-11-17 07:00:32.434 V/GraphicsEnvironment( 3699): ANGLE GameManagerService for com.google.android.webview: false
-11-17 07:00:32.434 V/GraphicsEnvironment( 3699): com.google.android.webview is not listed in per-application setting
-11-17 07:00:32.503 I/cr_WebViewApkApp( 3699): Launched version=113.0.5672.136 minSdkVersion=29 isBundle=false processName=com.google.android.webview:webview_apk
-11-17 07:00:32.543 I/ImeTracker(  518): com.istanbulstreets.game:9729d0a3: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
-11-17 07:00:32.544 I/ImeTracker(  518): com.istanbulstreets.game:9729d0a3: onCancelled at PHASE_SERVER_SHOULD_HIDE
-11-17 07:00:32.548 I/GoogleInputMethodService( 1508): GoogleInputMethodService.onStartInput():1877 onStartInput(EditorInfo{inputType=0x0(NULL) imeOptions=0x12000000 privateImeOptions=null actionName=UNSPECIFIED actionLabel=null actionId=0 initialSelStart=-1 initialSelEnd=-1 initialCapsMode=0x0 hintText=null label=null packageName=com.istanbulstreets.game fieldId=0 fieldName=null extras=null}, false)
-11-17 07:00:32.678 D/Capacitor( 3370): Handling local request: https://localhost/assets/index-B8tJlj6X.js
-11-17 07:00:32.680 D/Capacitor( 3370): Handling local request: https://localhost/assets/rapier-OnF19VgH.js
-11-17 07:00:32.688 E/Capacitor/Console( 3370): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
-11-17 07:00:32.688 E/Capacitor/Console( 3370): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
-11-17 07:00:32.688 E/Capacitor/Console( 3370): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
-11-17 07:00:32.688 E/Capacitor/Console( 3370): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
-11-17 07:00:32.688 E/Capacitor/Console( 3370): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
-11-17 07:00:32.688 E/Capacitor/Console( 3370): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
-11-17 07:00:32.688 E/Capacitor/Console( 3370): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
-11-17 07:00:32.805 D/Capacitor( 3370): Handling local request: https://localhost/assets/three-BWyyYWxL.js
-11-17 07:00:32.807 D/Capacitor( 3370): Handling local request: https://localhost/assets/index-CfCQEzvu.css
-11-17 07:00:32.836 W/cr_AWNetworkFetcherTask( 3699): 	at org.chromium.android_webview.nonembedded.NetworkFetcherTask.download(chromium-TrichromeWebViewGoogle6432.apk-stable-567263637:48)
-11-17 07:00:33.298 I/Capacitor/Console( 3370): File:  - Line 350 - Msg: [object Object]
-11-17 07:00:33.300 V/Capacitor/Plugin( 3370): To native (Capacitor plugin): callbackId: 108946498, pluginId: Preferences, methodName: get
-11-17 07:00:33.300 V/Capacitor( 3370): callback: 108946498, pluginId: Preferences, methodName: get, methodData: {"key":"istanbul_streets_save_v1"}
-11-17 07:00:33.306 D/Capacitor( 3370): Handling local request: https://localhost/favicon.ico
-11-17 07:00:33.307 I/Capacitor/Console( 3370): File:  - Line 334 - Msg: {"value":null}
-11-17 07:00:33.308 I/Capacitor/Console( 3370): File:  - Line 350 - Msg: [object Object]
-11-17 07:00:33.308 V/Capacitor/Plugin( 3370): To native (Capacitor plugin): callbackId: 108946499, pluginId: Preferences, methodName: get
-11-17 07:00:33.308 V/Capacitor( 3370): callback: 108946499, pluginId: Preferences, methodName: get, methodData: {"key":"istanbul_streets_save_v1_bak"}
-11-17 07:00:33.309 I/Capacitor/Console( 3370): File:  - Line 334 - Msg: {"value":null}
-11-17 07:00:33.309 I/Capacitor/Console( 3370): File:  - Line 350 - Msg: [object Object]
-11-17 07:00:33.309 V/Capacitor/Plugin( 3370): To native (Capacitor plugin): callbackId: 108946500, pluginId: Preferences, methodName: get
-11-17 07:00:33.309 V/Capacitor( 3370): callback: 108946500, pluginId: Preferences, methodName: get, methodData: {"key":"istanbul_streets_crash_log_v1"}
-11-17 07:00:33.310 I/Capacitor/Console( 3370): File:  - Line 334 - Msg: {"value":null}
-11-17 07:00:33.328 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/manifest.json
-11-17 07:00:33.330 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/terrain.json
-11-17 07:00:33.332 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/road-graph.json
-11-17 07:00:33.867 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{e3b457a com.google.android.gm/10141} BLOCKED
-11-17 07:00:33.889 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_0_-1.json
-11-17 07:00:33.892 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_0_-2.json
-11-17 07:00:33.899 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_-1_-1.json
-11-17 07:00:33.903 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_1_-1.json
-11-17 07:00:33.908 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_0_0.json
-11-17 07:00:33.910 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_-1_-2.json
-11-17 07:00:33.911 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_1_-2.json
-11-17 07:00:33.915 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_-1_0.json
-11-17 07:00:33.916 D/Capacitor( 3370): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_1_0.json
-11-17 07:00:33.964 I/Capacitor/Console( 3370): File: https://localhost/assets/index-B8tJlj6X.js - Line 9 - Msg: ISTANBUL_BOOT {"version":"0.3.0","regionId":"esenler-namik-kemal","qualityTier":"lite","touchUi":true,"viewport":"866x412","canvas":"866x412","glError":0,"gpu":{"renderer":"Android Emulator OpenGL ES Translator (Google SwiftShader)","vendor":"Google (Google Inc.)"}}
-11-17 07:00:33.964 I/Capacitor/Console( 3370): File:  - Line 350 - Msg: [object Object]
-11-17 07:00:33.964 V/Capacitor/Plugin( 3370): To native (Capacitor plugin): callbackId: 108946501, pluginId: App, methodName: addListener
-11-17 07:00:33.964 V/Capacitor( 3370): callback: 108946501, pluginId: App, methodName: addListener, methodData: {"eventName":"backButton"}
-11-17 07:00:35.570 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{7986b46 com.google.android.settings.intelligence/10119} BLOCKED
-11-17 07:00:35.570 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{ab93107 com.google.android.settings.intelligence/10119} BLOCKED
-11-17 07:00:36.499 I/FontLog ( 1405): Package com.istanbulstreets.game has no metadata [CONTEXT service_id=132 ]
-11-17 07:00:36.512 I/BlockstoreStorage( 1440): Clearing Blockstore Data for package com.istanbulstreets.game [CONTEXT service_id=258 ]
-11-17 07:00:37.237 I/AiAiEcho( 1622): AppFetcherImplV2 updateApps package:[com.istanbulstreets.game], userId:[0], reason:[package is added.].
-11-17 07:00:37.341 D/PrefCtrlListHelper( 1051): Could not find Context-only controller for pref: com.android.settings.deviceinfo.legal.WebViewLicensePreferenceController
-11-17 07:00:37.548 I/AiAiEcho( 1622): AppFetcherImpl onPackageChanged com.istanbulstreets.game.
-11-17 07:00:37.549 I/AiAiEcho( 1622): AppIndexer Package:[com.istanbulstreets.game] UserProfile:[0] Enabled:[true].
-11-17 07:00:37.549 I/AiAiEcho( 1622): AppFetcherImplV2 updateApps package:[com.istanbulstreets.game], userId:[0], reason:[package is updated.].
-11-17 07:00:37.907 D/ProfileInstaller( 3370): Installing profile for com.istanbulstreets.game
-11-17 07:00:39.472 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{5939b61 com.google.android.googlequicksearchbox/10132} BLOCKED
-11-17 07:00:39.472 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{736e686 com.google.android.apps.messaging/10129} BLOCKED
-11-17 07:00:39.472 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{e412b47 com.android.camera2/10146} BLOCKED
-11-17 07:00:39.472 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{cd93f74 com.google.android.gm/10141} BLOCKED
-11-17 07:00:39.472 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{18d8c9d com.google.android.devicelockcontroller/10187} BLOCKED
-11-17 07:00:39.472 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{88ae512 com.google.android.rkpdapp/10171} BLOCKED
-11-17 07:00:39.472 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{2db34e3 com.google.android.contacts/10154} BLOCKED
-11-17 07:00:39.472 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{c04dee0 com.google.android.settings.intelligence/10119} BLOCKED
-11-17 07:00:39.473 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{5030256 com.google.android.projection.gearhead/10123} BLOCKED
-11-17 07:00:39.473 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{b3b5599 com.google.android.apps.youtube.music/10156} BLOCKED
-11-17 07:00:43.079 D/ActivityManager(  518): freezing 3699 com.google.android.webview:webview_apk
-11-17 07:00:43.080 D/ActivityManager(  518): freezing 2681 com.google.android.webview:webview_service
-11-17 07:00:52.180 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{3db4384 com.google.android.youtube/10139} BLOCKED
-11-17 07:00:52.183 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{d7af74d com.google.android.apps.maps/10155} BLOCKED
-11-17 07:00:52.184 I/AppsFilter(  518): interaction: PackageSetting{a630554 com.istanbulstreets.game/10192} -> PackageSetting{f06276d com.google.android.contacts/10154} BLOCKED
-11-17 07:00:52.625 I/chromium( 3589): [INFO:audio_latency.cc(179)] audioHardwareBufferSize = 4360
-11-17 07:00:57.158 I/cr_CronetUrlRequestContext( 4342): destroyNativeStreamLocked org.chromium.net.impl.CronetBidirectionalStream@4231f0c
-11-17 07:00:57.292 V/Capacitor/AppPlugin( 3370): Notifying listeners for event backButton
-11-17 07:00:57.380 I/Capacitor/Console( 3370): File:  - Line 334 - Msg: {"canGoBack":false}
-11-17 07:00:57.380 I/Capacitor/Console( 3370): File:  - Line 350 - Msg: [object Object]
-11-17 07:00:57.381 V/Capacitor/Plugin( 3370): To native (Capacitor plugin): callbackId: 108946502, pluginId: Preferences, methodName: set
-11-17 07:00:57.391 V/Capacitor( 3370): callback: 108946502, pluginId: Preferences, methodName: set, methodData: {"key":"istanbul_streets_save_v1","value":"{\"schemaVersion\":1,\"updatedAtIso\":\"2026-11-17T07:00:57.308Z\",\"locale\":\"tr\",\"qualityTier\":\"lite\",\"activeRegionId\":\"esenler-namik-kemal\",\"playerPos\":{\"x\":42.48810592241214,\"y\":46.76125690099418,\"z\":-34.1948151834565},\"cash\":250,\"wantedStars\":0,\"completedMissions\":[],\"collectiblesFound\":[]}"}
-11-17 07:00:57.396 I/Capacitor/Console( 3370): File:  - Line 350 - Msg: [object Object]
-11-17 07:00:57.397 V/Capacitor/Plugin( 3370): To native (Capacitor plugin): callbackId: 108946503, pluginId: Haptics, methodName: impact
-11-17 07:00:57.397 V/Capacitor( 3370): callback: 108946503, pluginId: Haptics, methodName: impact, methodData: {"style":"LIGHT"}
-11-17 07:00:57.499 I/Capacitor/Console( 3370): File:  - Line 334 - Msg: undefined
-11-17 07:00:57.511 I/Capacitor/Console( 3370): File:  - Line 334 - Msg: undefined
+11-17 07:06:18.666 D/NavigationModeController(  830):     /product/overlay/GoogleWebViewOverlay.apk
+11-17 07:06:19.291 V/BackupManagerService(  520): [UserID:0] restoreAtInstall pkg=com.istanbulstreets.game token=1 restoreSet=0
+11-17 07:06:19.740 I/SdkSandboxManager(  520): No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=10192, mPackageName='com.istanbulstreets.game, mAppProcessToken='null'}
+11-17 07:06:19.833 I/SafetyLabelChangedBroadcastReceiver(  832): received broadcast packageName: com.istanbulstreets.game, current user: UserHandle{0}, packageChangeEvent: NEW_INSTALL, intent user: UserHandle{0}
+11-17 07:06:19.862 I/ActivityTaskManager(  520): START u0 {flg=0x10000000 cmp=com.istanbulstreets.game/.MainActivity} with LAUNCH_SINGLE_TASK from uid 2000 (BAL_ALLOW_PERMISSION) result code=0
+11-17 07:06:19.863 V/WindowManagerShell(  830): Transition requested: android.os.BinderProxy@3d19268 TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.istanbulstreets.game/.MainActivity } baseActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} topActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} origActivity=null realActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} numActivities=1 lastActiveTime=42470 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{android.window.IWindowContainerToken$Stub$Proxy@f473681} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{cb3b326 com.istanbulstreets.game.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+11-17 07:06:20.093 I/ActivityManager(  520): Start proc 3497:com.istanbulstreets.game/u0a192 for next-top-activity {com.istanbulstreets.game/com.istanbulstreets.game.MainActivity}
+11-17 07:06:20.626 E/ActivityManager(  520): ANR in com.google.android.apps.nexuslauncher (com.google.android.apps.nexuslauncher/.NexusLauncherActivity)
+11-17 07:06:20.812 V/WindowManager(  520): Sent Transition #8 createdAt=11-17 07:06:19.858 via request=TransitionRequestInfo { type = OPEN, triggerTask = TaskInfo{userId=0 taskId=8 displayId=0 isRunning=true baseIntent=Intent { flg=0x10000000 cmp=com.istanbulstreets.game/.MainActivity } baseActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} topActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} origActivity=null realActivity=ComponentInfo{com.istanbulstreets.game/com.istanbulstreets.game.MainActivity} numActivities=1 lastActiveTime=42470 supportsMultiWindow=true resizeMode=1 isResizeable=true minWidth=-1 minHeight=-1 defaultMinSize=220 token=WCT{RemoteToken{36c630 Task{46dc5fc #8 type=standard A=10192:com.istanbulstreets.game}}} topActivityType=1 pictureInPictureParams=null shouldDockBigOverlays=false launchIntoPipHostTaskId=-1 lastParentTaskIdBeforePip=-1 displayCutoutSafeInsets=Rect(0, 128 - 0, 0) topActivityInfo=ActivityInfo{d532a9 com.istanbulstreets.game.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=false isVisibleRequested=false isSleeping=false topActivityInSizeCompat=false topActivityEligibleForLetterboxEducation= false topActivityLetterboxed= false isFromDoubleTap= false topActivityLetterboxVerticalPosition= -1 topActivityLetterboxHorizontalPosition= -1 topActivityLetterboxWidth=-1 topActivityLetterboxHeight=-1 locusId=null displayAreaFeatureId=1 cameraCompatControlState=hidden}, remoteTransition = null, displayChange = null }
+11-17 07:06:20.812 V/WindowManager(  520):     info={id=8 t=OPEN f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{36c630 Task{46dc5fc #8 type=standard A=10192:com.istanbulstreets.game}}} m=OPEN f=NONE leash=Surface(name=Task=8)/@0xc6451c4 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) d=0 endFixedRotation=1},{WCT{RemoteToken{7ec402e Task{7cbf4b0 #1 type=home}}} m=TO_BACK f=SHOW_WALLPAPER leash=Surface(name=Task=1)/@0x9a82d1d sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 1080, 2400) d=0}]}
+11-17 07:06:21.185 W/ziparchive( 3497): Unable to open '/data/app/~~VH2e1UjokXy0jWev2ZI1Xw==/com.istanbulstreets.game-_Z5mdsr0DJJK8b347uBP1w==/base.dm': No such file or directory
+11-17 07:06:21.185 W/ziparchive( 3497): Unable to open '/data/app/~~VH2e1UjokXy0jWev2ZI1Xw==/com.istanbulstreets.game-_Z5mdsr0DJJK8b347uBP1w==/base.dm': No such file or directory
+11-17 07:06:21.324 V/WindowManager(  520):     info={id=9 t=CHANGE f=0x0 trk=0 r=[0@Point(0, 0)] c=[{WCT{RemoteToken{36c630 Task{46dc5fc #8 type=standard A=10192:com.istanbulstreets.game}}} m=CHANGE f=NONE p=WCT{RemoteToken{fe615ae DefaultTaskDisplayArea@166585073}} leash=Surface(name=Task=8)/@0xc6451c4 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) d=0 r=0->1:-1},{WCT{RemoteToken{fe615ae DefaultTaskDisplayArea@166585073}} m=CHANGE f=NONE p=WCT{RemoteToken{beeb59a Display{#0 state=ON size=2400x1080 ROTATION_90}}} leash=Surface(name=DefaultTaskDisplayArea)/@0xd3011f4 sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) d=0 r=0->1:-1},{WCT{RemoteToken{beeb59a Display{#0 state=ON size=2400x1080 ROTATION_90}}} m=CHANGE f=IS_DISPLAY leash=Surface(name=WindowedMagnification:0:31)/@0xfafeb4c sb=Rect(0, 0 - 1080, 2400) eb=Rect(0, 0 - 2400, 1080) d=0 r=0->1:3}]}
+11-17 07:06:21.331 D/SystemServerTimingAsync(  520): ssm.onUnlockedUser-0_com.android.server.webkit.WebViewUpdateService
+11-17 07:06:21.331 V/SystemServerTimingAsync(  520): ssm.onUnlockedUser-0_com.android.server.webkit.WebViewUpdateService took to complete: 0ms
+11-17 07:06:22.035 D/nativeloader( 3497): Configuring clns-6 for other apk /data/app/~~VH2e1UjokXy0jWev2ZI1Xw==/com.istanbulstreets.game-_Z5mdsr0DJJK8b347uBP1w==/base.apk. target_sdk_version=36, uses_libraries=, library_path=/data/app/~~VH2e1UjokXy0jWev2ZI1Xw==/com.istanbulstreets.game-_Z5mdsr0DJJK8b347uBP1w==/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.istanbulstreets.game
+11-17 07:06:22.083 V/GraphicsEnvironment( 3497): ANGLE GameManagerService for com.istanbulstreets.game: false
+11-17 07:06:22.083 V/GraphicsEnvironment( 3497): com.istanbulstreets.game is not listed in per-application setting
+11-17 07:06:22.475 D/CarrierSvcBindHelper( 1036): onPackageAdded: com.istanbulstreets.game
+11-17 07:06:22.527 D/ImsResolver( 1036): maybeAddedImsService, packageName: com.istanbulstreets.game
+11-17 07:06:22.705 D/CarrierSvcBindHelper( 1036): onPackageModified: com.istanbulstreets.game
+11-17 07:06:22.808 D/ImsResolver( 1036): maybeAddedImsService, packageName: com.istanbulstreets.game
+11-17 07:06:22.905 I/WebViewFactory( 3497): Loading com.google.android.webview version 113.0.5672.136 (code 567263637)
+11-17 07:06:22.947 D/nativeloader( 3497): Configuring clns-7 for other apk /data/app/~~r0uFU0CWpeSzCngTAEUYEw==/com.google.android.trichromelibrary_567263637-G6gsF6Yo2Hptx_VUYTf32g==/TrichromeLibrary.apk. target_sdk_version=34, uses_libraries=ALL, library_path=/data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/lib/x86_64:/data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/WebViewGoogle.apk!/lib/x86_64:/data/app/~~r0uFU0CWpeSzCngTAEUYEw==/com.google.android.trichromelibrary_567263637-G6gsF6Yo2Hptx_VUYTf32g==/TrichromeLibrary.apk!/lib/x86_64, permitted_path=/data:/mnt/expand
+11-17 07:06:22.951 D/nativeloader( 3497): Configuring clns-8 for other apk /data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/WebViewGoogle.apk. target_sdk_version=34, uses_libraries=, library_path=/data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/lib/x86_64:/data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/WebViewGoogle.apk!/lib/x86_64:/data/app/~~r0uFU0CWpeSzCngTAEUYEw==/com.google.android.trichromelibrary_567263637-G6gsF6Yo2Hptx_VUYTf32g==/TrichromeLibrary.apk!/lib/x86_64, permitted_path=/data:/mnt/expand
+11-17 07:06:22.952 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4c5e71c com.android.cts.priv.ctsshim/10180} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{561f25 com.google.android.youtube/10139} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{dc6b8fa com.android.internal.display.cutout.emulation.corner/10025} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{5551eab com.android.internal.display.cutout.emulation.double/10048} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{7d85908 com.google.android.googlequicksearchbox/10132} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{66e88a1 com.google.android.onetimeinitializer/10125} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{8376ac6 com.google.android.ext.shared/10101} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{d44fa87 com.android.internal.systemui.navbar.gestural_wide_back/10007} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{61dfdb4 com.android.virtualmachine.res/10170} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{b4a0ddd com.google.android.federatedcompute/10171} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4af6d52 com.android.managedprovisioning.auto_generated_rro_product__/10024} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{16cb823 com.android.carrierconfig.auto_generated_rro_vendor__/10078} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{9774120 com.android.systemui.emulation.pixel_3_xl/10034} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{c5eaad9 com.android.systemui.emulation.pixel_4_xl/10059} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{9330c9e com.android.systemui.emulation.pixel_fold/10009} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{8c8b37f com.android.simappdialog.auto_generated_rro_product__/10030} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{75f4f4c com.android.htmlviewer/10114} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{e861b95 com.google.android.health.connect.backuprestore/10174} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{5bf54aa com.android.systemui.auto_generated_rro_product__/10031} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{3bf089b com.google.android.apps.messaging/10130} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{fd81438 com.google.android.soundpicker/10137} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{79dc11 com.google.android.marvin.talkbackoverlay/10077} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{b161176 com.google.android.configupdater/10129} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{8fb9377 com.android.internal.emulation.pixel_3a_xl/10044} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{f163be4 com.android.internal.emulation.pixel_6_pro/10018} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{90f284d com.android.internal.emulation.pixel_7_pro/10004} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{249cf02 com.android.internal.emulation.pixel_8_pro/10058} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{40bf013 com.android.internal.emulation.pixel_3a/10053} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{ded3250 com.android.internal.emulation.pixel_4a/10011} BLOCKED
+11-17 07:06:22.955 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{d32fc49 com.android.internal.emulation.pixel_6a/10023} BLOCKED
+11-17 07:06:22.956 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{109d94e com.android.internal.emulation.pixel_7a/10033} BLOCKED
+11-17 07:06:22.956 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{1bb7a6f com.google.android.overlay.googlewebview/10049} BLOCKED
+11-17 07:06:22.956 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{cfb237c com.google.android.hotspot2.osulogin/10191} BLOCKED
+11-17 07:06:22.956 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{9a61405 com.android.simappdialog/10111} BLOCKED
+11-17 07:06:22.956 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{6ae3c5a com.android.internal.display.cutout.emulation.hole/10073} BLOCKED
+11-17 07:06:22.956 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{62f4e8b com.android.internal.display.cutout.emulation.tall/10065} BLOCKED
+11-17 07:06:22.956 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{694fb68 com.android.internal.systemui.navbar.threebutton/10068} BLOCKED
+11-17 07:06:22.956 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{c78eb81 com.android.camera2/10147} BLOCKED
+11-17 07:06:22.957 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{e03c426 com.android.systemui.auto_generated_rro_vendor__/10076} BLOCKED
+11-17 07:06:22.957 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{8c24867 com.google.android.deskclock/10152} BLOCKED
+11-17 07:06:22.957 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{3726614 com.android.internal.systemui.navbar.twobutton/10020} BLOCKED
+11-17 07:06:22.957 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{a47bebd com.google.android.as/10126} BLOCKED
+11-17 07:06:22.957 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{fd7fcb2 com.google.android.gm/10142} BLOCKED
+11-17 07:06:22.957 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{1a10403 com.android.internal.systemui.navbar.gestural_extra_wide_back/10045} BLOCKED
+11-17 07:06:22.957 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{e19cf80 com.android.systemui.emulation.pixel_3/10015} BLOCKED
+11-17 07:06:22.957 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{b3689b9 com.android.systemui.emulation.pixel_4/10037} BLOCKED
+11-17 07:06:23.018 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{e26dc4f com.android.systemui.emulation.pixel_5/10071} BLOCKED
+11-17 07:06:23.018 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{1c60fdc com.android.systemui.emulation.pixel_6/10074} BLOCKED
+11-17 07:06:23.018 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{a51f8e5 com.android.systemui.emulation.pixel_7/10072} BLOCKED
+11-17 07:06:23.018 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4daefba com.android.systemui.emulation.pixel_8/10070} BLOCKED
+11-17 07:06:23.019 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{a1eee6b com.android.nfc.auto_generated_rro_product__/10027} BLOCKED
+11-17 07:06:23.019 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{d924dc8 com.android.printspooler/10103} BLOCKED
+11-17 07:06:23.019 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{bae3e61 com.android.emergency.auto_generated_rro_product__/10041} BLOCKED
+11-17 07:06:23.019 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{384d86 com.google.android.connectivity.resources.goldfish.overlay/10079} BLOCKED
+11-17 07:06:23.019 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{b3c0647 com.android.dreams.basic/10104} BLOCKED
+11-17 07:06:23.019 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4627e74 com.google.android.networkstack.tethering.emulator/10022} BLOCKED
+11-17 07:06:23.019 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{22f5f9d com.android.providers.settings.auto_generated_rro_product__/10002} BLOCKED
+11-17 07:06:23.019 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{dbbbc12 com.google.android.as.oss/10121} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{428bfe3 com.android.traceur.auto_generated_rro_product__/10005} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{c630de0 com.google.android.devicelockcontroller/10187} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{fa75899 com.google.android.dialer/10128} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{695875e com.android.internal.emulation.pixel_3/10046} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{d9d773f com.android.internal.emulation.pixel_4/10060} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{1b280c com.android.internal.emulation.pixel_5/10012} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{70be555 com.android.internal.emulation.pixel_6/10038} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4aebb6a com.android.internal.emulation.pixel_7/10067} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{97c485b com.android.internal.emulation.pixel_8/10039} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{958b8f8 com.google.android.captiveportallogin/10116} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{af281d1 com.android.musicfx/10088} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{5752436 com.google.android.apps.docs/10153} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{7cfb700 com.google.android.apps.maps/10154} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{bad0f37 com.google.android.modulemetadata/10146} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{edc6ca4 com.google.android.markup/10134} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{7cc6a0d com.android.providers.settings.auto_generated_rro_vendor__/10080} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{d674dc2 com.google.android.rkpdapp/10182} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4b967d3 com.google.android.contacts/10155} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{c5af10 com.android.server.telecom.auto_generated_rro_product__/10032} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{5e29a09 com.google.android.overlay.googleconfig/10055} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{860840e com.android.chrome/10149} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{a28ae2f com.android.bips.auto_generated_rro_product__/10035} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{fbeac3c com.google.android.apps.customization.pixel/10145} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{f11cdc5 com.google.android.tag/10082} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{2a4d31a com.google.android.overlay.permissioncontroller/10003} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{89bfe4b com.google.android.partnersetup/10124} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{ae85028 com.google.android.apps.wallpaper.nexus/10144} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4468141 com.google.android.apps.nexuslauncher/10169} BLOCKED
+11-17 07:06:23.020 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{6ad06e6 com.google.android.nearby.halfsheet/10177} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{baa3427 com.android.theme.font.notoserifsource/10066} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{8646d4 com.google.android.safetycenter.resources/10185} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{eb8f07d com.android.internal.display.cutout.emulation.waterfall/10040} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{bb2ab72 com.android.internal.systemui.navbar.transparent/10029} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{77bebc3 com.google.android.connectivity.resources/10176} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{d6afc40 com.android.providers.contacts.auto_generated_rro_product__/10019} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{8e91779 com.google.android.feedback/10162} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{fc0cbe com.google.android.printservice.recommendation/10110} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{27811f com.google.android.apps.photos/10140} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{ef0d594 com.google.android.calendar/10143} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{7239c6c com.google.android.documentsui/10098} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{b5ab235 com.android.systemui.emulation.pixel_3a_xl/10021} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{1e836ca com.android.systemui.emulation.pixel_6_pro/10063} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{acd103b com.android.systemui.emulation.pixel_7_pro/10054} BLOCKED
+11-17 07:06:23.021 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{ce41358 com.android.systemui.emulation.pixel_8_pro/10001} BLOCKED
+11-17 07:06:23.022 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{9113cb1 com.google.mainline.telemetry/10151} BLOCKED
+11-17 07:06:23.022 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{ebaf596 com.android.carrierconfig.auto_generated_rro_product__/10064} BLOCKED
+11-17 07:06:23.022 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4727517 com.android.providers.partnerbookmarks/10100} BLOCKED
+11-17 07:06:23.022 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{b330d04 com.android.wallpaper.livepicker/10090} BLOCKED
+11-17 07:06:23.022 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{7cbf2ed com.android.providers.telephony.auto_generated_rro_product__/10062} BLOCKED
+11-17 07:06:23.022 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{e55f570 com.android.phone.auto_generated_rro_vendor__/10081} BLOCKED
+11-17 07:06:23.022 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{1d0e9 com.google.mainline.adservices/10136} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{ba3216e com.android.imsserviceentitlement/10117} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{1b8f00f com.google.android.healthconnect.controller/10173} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{f7cf89c com.android.internal.emulation.pixel_2_xl/10016} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{9d92a5 com.android.internal.emulation.pixel_3_xl/10056} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{663e67a com.android.internal.emulation.pixel_4_xl/10047} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{51e7e2b com.android.internal.emulation.pixel_fold/10006} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{8af0288 com.android.bookmarkprovider/10113} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{279b421 com.google.android.overlay.pixelconfigcommon/10014} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{539f046 com.android.systemui.accessibility.accessibilitymenu.auto_generated_rro_product__/10050} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{d04d207 com.android.systemui.emulation.pixel_3a/10013} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{b75bf34 com.android.systemui.emulation.pixel_4a/10000} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{79c715d com.android.systemui.emulation.pixel_6a/10042} BLOCKED
+11-17 07:06:23.028 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{314cad2 com.android.systemui.emulation.pixel_7a/10017} BLOCKED
+11-17 07:06:23.029 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{61287a3 com.google.android.settings.intelligence/10118} BLOCKED
+11-17 07:06:23.029 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{d0543c7 com.google.android.projection.gearhead/10123} BLOCKED
+11-17 07:06:23.029 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{6499aa0 com.google.android.uwb.resources/10188} BLOCKED
+11-17 07:06:23.033 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{8ceadf4 com.android.cts.ctsshim/10181} BLOCKED
+11-17 07:06:23.033 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{233c659 com.google.android.wifi.resources/10189} BLOCKED
+11-17 07:06:23.033 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{850c21e com.google.android.wifi.dialog/10190} BLOCKED
+11-17 07:06:23.034 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{6bbfaff com.google.android.apps.wallpaper/10161} BLOCKED
+11-17 07:06:23.034 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4bdc0cc com.google.android.odad/10122} BLOCKED
+11-17 07:06:23.034 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{f516f15 com.android.settings.auto_generated_rro_product__/10028} BLOCKED
+11-17 07:06:23.034 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4c2e22a com.android.internal.systemui.navbar.gestural/10051} BLOCKED
+11-17 07:06:23.034 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{e5f481b com.google.android.apps.youtube.music/10156} BLOCKED
+11-17 07:06:23.034 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{66c1db8 com.android.bluetoothmidiservice/10108} BLOCKED
+11-17 07:06:23.034 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{166e791 com.android.storagemanager.auto_generated_rro_product__/10026} BLOCKED
+11-17 07:06:23.035 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{e84f6f6 com.google.android.cellbroadcastreceiver/10183} BLOCKED
+11-17 07:06:23.035 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{a204af7 com.android.phone.auto_generated_rro_product__/10061} BLOCKED
+11-17 07:06:23.035 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{8a15d64 android.auto_generated_rro_product__/10069} BLOCKED
+11-17 07:06:23.035 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{6816bcd com.android.internal.systemui.navbar.gestural_narrow_back/10052} BLOCKED
+11-17 07:06:23.035 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{1818c82 com.google.android.inputmethod.latin/10141} BLOCKED
+11-17 07:06:23.035 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{b849f93 android.auto_generated_rro_vendor__/10075} BLOCKED
+11-17 07:06:23.035 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{ec8ebd0 com.google.android.apps.restore/10120} BLOCKED
+11-17 07:06:24.344 I/cr_VariationsUtils( 3497): Failed reading seed file "/data/user/0/com.istanbulstreets.game/app_webview/variations_seed_new"
+11-17 07:06:24.344 I/cr_VariationsUtils( 3497): Failed reading seed file "/data/user/0/com.istanbulstreets.game/app_webview/variations_seed"
+11-17 07:06:24.842 I/ActivityManager(  520): Start proc 3722:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0ai9000 for  {com.istanbulstreets.game/org.chromium.content.app.SandboxedProcessService0:0}
+11-17 07:06:24.881 I/cr_WebViewApkApp( 3722): Launched version=113.0.5672.136 minSdkVersion=29 isBundle=false processName=com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0
+11-17 07:06:25.110 W/chromium( 3497): [WARNING:dns_config_service_android.cc(115)] Failed to read DnsConfig.
+11-17 07:06:25.246 E/chromium( 3497): [ERROR:simple_version_upgrade.cc(152)] Failed to write a new fake index.
+11-17 07:06:25.261 E/chromium( 3497): [ERROR:simple_file_enumerator.cc(21)] opendir /data/user/0/com.istanbulstreets.game/cache/WebView/Default/HTTP Cache/Code Cache/js: No such file or directory (2)
+11-17 07:06:25.262 E/chromium( 3497): [ERROR:simple_index_file.cc(614)] Could not reconstruct index from disk
+11-17 07:06:25.393 D/Capacitor( 3497): Starting BridgeActivity
+11-17 07:06:25.417 D/Capacitor( 3497): Registering plugin instance: CapacitorCookies
+11-17 07:06:25.422 D/Capacitor( 3497): Registering plugin instance: WebView
+11-17 07:06:25.425 D/Capacitor( 3497): Registering plugin instance: CapacitorHttp
+11-17 07:06:25.429 D/Capacitor( 3497): Registering plugin instance: SystemBars
+11-17 07:06:25.435 D/Capacitor( 3497): Registering plugin instance: App
+11-17 07:06:25.442 D/Capacitor( 3497): Registering plugin instance: Haptics
+11-17 07:06:25.447 D/Capacitor( 3497): Registering plugin instance: Preferences
+11-17 07:06:25.493 W/Capacitor( 3497): Unable to read file at path public/plugins
+11-17 07:06:25.496 D/Capacitor( 3497): Loading app at https://localhost
+11-17 07:06:25.584 I/iew:webview_apk( 3839): Using CollectorTypeCC GC.
+11-17 07:06:25.584 W/iew:webview_apk( 3839): Unexpected CPU variant for x86: x86_64.
+11-17 07:06:25.584 W/iew:webview_apk( 3839): Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-17 07:06:25.629 D/Capacitor( 3497): App started
+11-17 07:06:25.631 I/ActivityManager(  520): Start proc 3839:com.google.android.webview:webview_apk/u0a135 for service {com.google.android.webview/org.chromium.android_webview.nonembedded.AwComponentUpdateService}
+11-17 07:06:25.686 D/Capacitor/AppPlugin( 3497): Firing change: true
+11-17 07:06:25.686 V/Capacitor/AppPlugin( 3497): Notifying listeners for event appStateChange
+11-17 07:06:25.686 D/Capacitor/AppPlugin( 3497): No listeners found for event appStateChange
+11-17 07:06:25.687 D/Capacitor( 3497): App resumed
+11-17 07:06:25.714 D/Capacitor( 3497): Handling local request: https://localhost/
+11-17 07:06:25.747 E/iew:webview_apk( 3839): Not starting debugger since process cannot load the jdwp agent.
+11-17 07:06:25.888 D/CoreBackPreview(  520): Window{3601b36 u0 com.istanbulstreets.game/com.istanbulstreets.game.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@7afaa79, mPriority=-1, mIsAnimationCallback=false}
+11-17 07:06:25.893 D/CoreBackPreview(  520): Window{3601b36 u0 com.istanbulstreets.game/com.istanbulstreets.game.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@e52a3be, mPriority=0, mIsAnimationCallback=true}
+11-17 07:06:26.263 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{7d85908 com.google.android.googlequicksearchbox/10132} BLOCKED
+11-17 07:06:26.263 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{b6808b5 com.android.camera2/10147} BLOCKED
+11-17 07:06:26.263 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{ef10b4a com.google.android.gm/10142} BLOCKED
+11-17 07:06:26.263 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{fa75899 com.google.android.dialer/10128} BLOCKED
+11-17 07:06:26.263 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{34e8abb com.google.android.rkpdapp/10182} BLOCKED
+11-17 07:06:26.263 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{4b967d3 com.google.android.contacts/10155} BLOCKED
+11-17 07:06:26.263 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{e5f481b com.google.android.apps.youtube.music/10156} BLOCKED
+11-17 07:06:26.336 W/ziparchive(  520): Unable to open '/data/app/~~VH2e1UjokXy0jWev2ZI1Xw==/com.istanbulstreets.game-_Z5mdsr0DJJK8b347uBP1w==/base.dm': No such file or directory
+11-17 07:06:26.345 I/ActivityTaskManager(  520): Displayed com.istanbulstreets.game/.MainActivity for user 0: +6s498ms
+11-17 07:06:26.367 W/InputManager-JNI(  520): Input channel object '3a32442 Splash Screen com.istanbulstreets.game (client)' was disposed without first being removed with the input manager!
+11-17 07:06:26.697 W/iew:webview_apk( 3839): Entry not found
+11-17 07:06:26.697 D/nativeloader( 3839): Configuring clns-6 for other apk /data/app/~~r0uFU0CWpeSzCngTAEUYEw==/com.google.android.trichromelibrary_567263637-G6gsF6Yo2Hptx_VUYTf32g==/TrichromeLibrary.apk. target_sdk_version=34, uses_libraries=ALL, library_path=/data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/lib/x86_64:/data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/WebViewGoogle.apk!/lib/x86_64:/data/app/~~r0uFU0CWpeSzCngTAEUYEw==/com.google.android.trichromelibrary_567263637-G6gsF6Yo2Hptx_VUYTf32g==/TrichromeLibrary.apk!/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.webview
+11-17 07:06:26.738 D/Capacitor( 3497): Handling local request: https://localhost/assets/index-CqmpMwok.js
+11-17 07:06:26.743 D/Capacitor( 3497): Handling local request: https://localhost/assets/rapier-OnF19VgH.js
+11-17 07:06:26.747 D/Capacitor( 3497): Handling local request: https://localhost/assets/three-BWyyYWxL.js
+11-17 07:06:26.754 D/Capacitor( 3497): Handling local request: https://localhost/assets/index-CfCQEzvu.css
+11-17 07:06:26.845 E/Capacitor/Console( 3497): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
+11-17 07:06:26.850 E/Capacitor/Console( 3497): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
+11-17 07:06:26.854 E/Capacitor/Console( 3497): File:  - Line 6 - Msg: Error injecting safe area CSS: TypeError: Cannot read properties of null (reading 'style')
+11-17 07:06:26.899 D/SystemServerTimingAsync(  520): ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.webkit.WebViewUpdateService
+11-17 07:06:26.899 V/SystemServerTimingAsync(  520): ssm.onCompletedEventUser-0_{|Unlocked|}_com.android.server.webkit.WebViewUpdateService took to complete: 0ms
+11-17 07:06:26.907 D/nativeloader( 3839): Configuring clns-7 for other apk /data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/WebViewGoogle.apk. target_sdk_version=34, uses_libraries=, library_path=/data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/lib/x86_64:/data/app/~~gbW3h6CwaLQevyDf20F0MQ==/com.google.android.webview-OKIwF3S7oMb6d1-6dUdTsQ==/WebViewGoogle.apk!/lib/x86_64:/data/app/~~r0uFU0CWpeSzCngTAEUYEw==/com.google.android.trichromelibrary_567263637-G6gsF6Yo2Hptx_VUYTf32g==/TrichromeLibrary.apk!/lib/x86_64, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.webview
+11-17 07:06:27.134 V/GraphicsEnvironment( 3839): ANGLE GameManagerService for com.google.android.webview: false
+11-17 07:06:27.134 V/GraphicsEnvironment( 3839): com.google.android.webview is not listed in per-application setting
+11-17 07:06:27.198 I/cr_WebViewApkApp( 3839): Launched version=113.0.5672.136 minSdkVersion=29 isBundle=false processName=com.google.android.webview:webview_apk
+11-17 07:06:27.241 I/Capacitor/Console( 3497): File:  - Line 350 - Msg: [object Object]
+11-17 07:06:27.243 V/Capacitor/Plugin( 3497): To native (Capacitor plugin): callbackId: 105365292, pluginId: Preferences, methodName: get
+11-17 07:06:27.246 V/Capacitor( 3497): callback: 105365292, pluginId: Preferences, methodName: get, methodData: {"key":"istanbul_streets_save_v1"}
+11-17 07:06:27.251 I/Capacitor/Console( 3497): File:  - Line 334 - Msg: {"value":null}
+11-17 07:06:27.252 I/Capacitor/Console( 3497): File:  - Line 350 - Msg: [object Object]
+11-17 07:06:27.255 V/Capacitor/Plugin( 3497): To native (Capacitor plugin): callbackId: 105365293, pluginId: Preferences, methodName: get
+11-17 07:06:27.255 V/Capacitor( 3497): callback: 105365293, pluginId: Preferences, methodName: get, methodData: {"key":"istanbul_streets_save_v1_bak"}
+11-17 07:06:27.257 D/Capacitor( 3497): Handling local request: https://localhost/favicon.ico
+11-17 07:06:27.261 I/Capacitor/Console( 3497): File:  - Line 334 - Msg: {"value":null}
+11-17 07:06:27.261 I/Capacitor/Console( 3497): File:  - Line 350 - Msg: [object Object]
+11-17 07:06:27.261 V/Capacitor/Plugin( 3497): To native (Capacitor plugin): callbackId: 105365294, pluginId: Preferences, methodName: get
+11-17 07:06:27.262 V/Capacitor( 3497): callback: 105365294, pluginId: Preferences, methodName: get, methodData: {"key":"istanbul_streets_crash_log_v1"}
+11-17 07:06:27.265 I/Capacitor/Console( 3497): File:  - Line 334 - Msg: {"value":null}
+11-17 07:06:27.271 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/manifest.json
+11-17 07:06:27.287 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/road-graph.json
+11-17 07:06:27.297 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/terrain.json
+11-17 07:06:28.809 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_0_-1.json
+11-17 07:06:28.816 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_0_-2.json
+11-17 07:06:28.829 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_-1_-1.json
+11-17 07:06:28.838 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_1_-1.json
+11-17 07:06:28.846 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_0_0.json
+11-17 07:06:28.857 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_-1_-2.json
+11-17 07:06:28.863 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_1_-2.json
+11-17 07:06:28.871 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_-1_0.json
+11-17 07:06:28.878 D/Capacitor( 3497): Handling local request: https://localhost/derived-data/esenler-namik-kemal/tiles/t_1_0.json
+11-17 07:06:28.878 W/cr_AWNetworkFetcherTask( 3839): 	at org.chromium.android_webview.nonembedded.NetworkFetcherTask.download(chromium-TrichromeWebViewGoogle6432.apk-stable-567263637:48)
+11-17 07:06:28.893 I/Capacitor/Console( 3497): File: https://localhost/assets/index-CqmpMwok.js - Line 9 - Msg: ISTANBUL_BOOT {"version":"0.3.0","regionId":"esenler-namik-kemal","qualityTier":"lite","touchUi":true,"viewport":"866x364","canvas":"866x364","glError":0,"gpu":{"renderer":"Android Emulator OpenGL ES Translator (Google SwiftShader)","vendor":"Google (Google Inc.)"}}
+11-17 07:06:28.917 I/Capacitor/Console( 3497): File:  - Line 350 - Msg: [object Object]
+11-17 07:06:28.939 V/Capacitor/Plugin( 3497): To native (Capacitor plugin): callbackId: 105365295, pluginId: App, methodName: addListener
+11-17 07:06:28.939 V/Capacitor( 3497): callback: 105365295, pluginId: App, methodName: addListener, methodData: {"eventName":"backButton"}
+11-17 07:06:29.347 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{9ec622f com.google.android.gm/10142} BLOCKED
+11-17 07:06:31.363 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{44ab31b com.google.android.settings.intelligence/10118} BLOCKED
+11-17 07:06:31.366 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{2d1dc64 com.google.android.settings.intelligence/10118} BLOCKED
+11-17 07:06:31.631 I/AiAiEcho( 1622): AppFetcherImplV2 updateApps package:[com.istanbulstreets.game], userId:[0], reason:[package is added.].
+11-17 07:06:31.798 D/ProfileInstaller( 3497): Installing profile for com.istanbulstreets.game
+11-17 07:06:32.253 D/PrefCtrlListHelper( 1037): Could not find Context-only controller for pref: com.android.settings.deviceinfo.legal.WebViewLicensePreferenceController
+11-17 07:06:33.172 I/AiAiEcho( 1622): AppFetcherImpl onPackageChanged com.istanbulstreets.game.
+11-17 07:06:33.178 I/AiAiEcho( 1622): AppIndexer Package:[com.istanbulstreets.game] UserProfile:[0] Enabled:[true].
+11-17 07:06:33.179 I/AiAiEcho( 1622): AppFetcherImplV2 updateApps package:[com.istanbulstreets.game], userId:[0], reason:[package is updated.].
+11-17 07:06:33.388 I/FontLog ( 1396): Package com.istanbulstreets.game has no metadata [CONTEXT service_id=132 ]
+11-17 07:06:33.403 I/BlockstoreStorage( 1447): Clearing Blockstore Data for package com.istanbulstreets.game [CONTEXT service_id=258 ]
+11-17 07:06:36.335 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{9503bf6 com.google.android.googlequicksearchbox/10132} BLOCKED
+11-17 07:06:36.335 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{fb2abf7 com.google.android.gm/10142} BLOCKED
+11-17 07:06:36.335 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{782aa64 com.google.android.devicelockcontroller/10187} BLOCKED
+11-17 07:06:36.335 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{fe534cd com.google.android.rkpdapp/10182} BLOCKED
+11-17 07:06:36.335 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{3460109 com.google.android.projection.gearhead/10123} BLOCKED
+11-17 07:06:39.118 D/ActivityManager(  520): freezing 3839 com.google.android.webview:webview_apk
+11-17 07:06:39.120 D/ActivityManager(  520): freezing 2962 com.google.android.webview:webview_service
+11-17 07:06:46.410 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{cec379e com.google.android.youtube/10139} BLOCKED
+11-17 07:06:46.410 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{bba027f com.google.android.apps.messaging/10130} BLOCKED
+11-17 07:06:46.410 I/AppsFilter(  520): interaction: PackageSetting{4ee888f com.istanbulstreets.game/10192} -> PackageSetting{2c614aa com.google.android.apps.maps/10154} BLOCKED
