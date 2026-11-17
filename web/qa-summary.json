@@ -1,9 +1,9 @@
 {
-  "generatedAtIso": "2026-11-17T04:31:52.412Z",
+  "generatedAtIso": "2026-11-17T04:45:25.843Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 14,
   "totalErrors": 0,
-  "regressionWarnings": 7,
+  "regressionWarnings": 0,
   "hudWarnings": 0,
   "screenshots": [
     {
@@ -20,13 +20,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 822,
+      "uniqueColors": 828,
       "brightFrac": 0.4256,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 64.53,
-        "warning": true
+        "diffPct": 0.17,
+        "warning": false
       },
       "errors": []
     },
@@ -44,12 +44,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 871,
+      "uniqueColors": 870,
       "brightFrac": 0.3616,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 2.89,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -73,7 +73,7 @@
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.24,
+        "diffPct": 0,
         "warning": false
       },
       "errors": []
@@ -97,7 +97,7 @@
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 2.86,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -116,13 +116,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 751,
+      "uniqueColors": 747,
       "brightFrac": 0.4963,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 37.64,
-        "warning": true
+        "diffPct": 0.01,
+        "warning": false
       },
       "errors": []
     },
@@ -140,13 +140,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 763,
-      "brightFrac": 0.427,
+      "uniqueColors": 764,
+      "brightFrac": 0.4269,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 33.91,
-        "warning": true
+        "diffPct": 0.04,
+        "warning": false
       },
       "errors": []
     },
@@ -164,13 +164,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 760,
+      "uniqueColors": 775,
       "brightFrac": 0.363,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 31.66,
-        "warning": true
+        "diffPct": 3.28,
+        "warning": false
       },
       "errors": []
     },
@@ -188,12 +188,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 510,
-      "brightFrac": 0.0367,
+      "uniqueColors": 504,
+      "brightFrac": 0.0366,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.71,
+        "diffPct": 0.26,
         "warning": false
       },
       "errors": []
@@ -212,13 +212,13 @@
         "loadedTiles": 9,
         "activeBuildings": 1382
       },
-      "uniqueColors": 733,
-      "brightFrac": 0.8691,
+      "uniqueColors": 734,
+      "brightFrac": 0.869,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 18.46,
-        "warning": true
+        "diffPct": 0.01,
+        "warning": false
       },
       "errors": []
     },
@@ -241,7 +241,7 @@
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.42,
+        "diffPct": 0,
         "warning": false
       },
       "errors": []
@@ -265,7 +265,7 @@
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.37,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -289,7 +289,7 @@
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.36,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -308,13 +308,13 @@
         "loadedTiles": 9,
         "activeBuildings": 1382
       },
-      "uniqueColors": 599,
+      "uniqueColors": 598,
       "brightFrac": 0.8874,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 13.89,
-        "warning": true
+        "diffPct": 0.01,
+        "warning": false
       },
       "errors": []
     },
@@ -332,13 +332,13 @@
         "loadedTiles": 9,
         "activeBuildings": 1382
       },
-      "uniqueColors": 716,
-      "brightFrac": 0.8265,
+      "uniqueColors": 713,
+      "brightFrac": 0.8263,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 15.9,
-        "warning": true
+        "diffPct": 0.05,
+        "warning": false
       },
       "errors": []
     }
