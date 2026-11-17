@@ -219,6 +219,7 @@ try {
 
     for (const s of shots) {
       const page = await browser.newPage({ viewport: s.viewport });
+      page.setDefaultTimeout(45000);
       const pageErrors = [];
       page.on('console', (m) => {
         if (m.type() === 'error') pageErrors.push(m.text());
@@ -336,6 +337,11 @@ try {
       process.exitCode = 1;
     }
   }
+} catch (err) {
+  const msg = err instanceof Error ? err.stack || err.message : String(err);
+  console.error('QA_SCREENS FATAL EXCEPTION:', msg);
+  writeFileSync(join(OUT_DIR, 'qa-summary.md'), `# Visual QA Fatal Error\n\n\`\`\`\n${msg}\n\`\`\`\n`);
+  process.exitCode = 1;
 } finally {
   await browser.close();
   server?.httpServer.close();

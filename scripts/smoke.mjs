@@ -38,6 +38,7 @@ const fail = (msg) => {
 
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  page.setDefaultTimeout(45000);
   const errors = [];
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
@@ -297,6 +298,11 @@ try {
   if (!process.exitCode) {
     console.log('SMOKE PASS');
   }
+} catch (err) {
+  const msg = err instanceof Error ? err.stack || err.message : String(err);
+  console.error('SMOKE FATAL EXCEPTION:', msg);
+  writeFileSync('smoke-report.json', JSON.stringify({ fatalError: msg }, null, 2));
+  process.exitCode = 1;
 } finally {
   await browser.close();
   server?.httpServer.close();
