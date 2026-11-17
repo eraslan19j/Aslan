@@ -111,6 +111,7 @@ try {
   await page.keyboard.up('KeyW');
   const driveState = await page.evaluate(() => ({
     inVehicle: window.__game.inVehicle,
+    driverVisibleInCabin: window.__game.driverVisibleInCabin,
     speedKph: window.__game.speedKph,
     trafficCount: window.__game.trafficCount,
     vehicle: { ...window.__game.vehicle },
@@ -247,6 +248,7 @@ try {
     walkDist: Number(walkDist.toFixed(2)),
     driveDist: Number(driveDist.toFixed(2)),
     driveSpeedKph: driveState.speedKph,
+    driverVisibleInCabin: driveState.driverVisibleInCabin,
     exitedOk,
     esenlerSanctuaryId,
     fatihSwitchedOk,
@@ -286,6 +288,9 @@ try {
     fail(`Too few real OSM buildings loaded: ${snapshot.perf?.activeBuildings}`);
   }
   if (walkDist < 0.5) fail(`Player did not walk on input (walkDist=${walkDist})`);
+  if (!driveState.driverVisibleInCabin) {
+    fail('Driver character vanished instead of staying visibly seated inside taxi cabin');
+  }
   if (driveDist < 2.0) fail(`Vehicle did not drive on input (driveDist=${driveDist})`);
   if (!exitedOk) fail('KeyF did not exit player vehicle');
   if ((snapshot.trafficCount ?? 0) < 5) fail(`Too few AI traffic vehicles: ${snapshot.trafficCount}`);

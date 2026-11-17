@@ -61,7 +61,7 @@ import { ProceduralSoundEngine } from './runtime/soundEngine';
 import { HudOverlay } from './ui/HudOverlay';
 import { MinimapRenderer } from './ui/MinimapRenderer';
 
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
 
 interface ActiveRegionRuntime {
   meta: RegionRegistryEntry;
