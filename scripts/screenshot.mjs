@@ -248,7 +248,17 @@ try {
       }));
       const hudIssues = await checkHudLayout(page);
 
-      const buf = await page.screenshot();
+      // Pause rAF right after a painted frame so SwiftShader compositor never starves screenshot capture
+      await page.evaluate(
+        () =>
+          new Promise((resolve) => {
+            window.requestAnimationFrame(() => {
+              window.__game?.setRenderFrozen?.(true);
+              window.setTimeout(resolve, 60);
+            });
+          }),
+      );
+      const buf = await page.screenshot({ animations: 'disabled' });
       writeFileSync(join(OUT_DIR, s.file), buf);
       const analysis = analyzePng(buf);
       const regression = compareWithReference(s.file, analysis.png);

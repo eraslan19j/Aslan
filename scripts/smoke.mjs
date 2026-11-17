@@ -210,7 +210,16 @@ try {
     };
   });
 
-  const shot = await page.screenshot();
+  await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        window.requestAnimationFrame(() => {
+          window.__game?.setRenderFrozen?.(true);
+          window.setTimeout(resolve, 60);
+        });
+      }),
+  );
+  const shot = await page.screenshot({ animations: 'disabled' });
   writeFileSync(OUT, shot);
   const png = PNG.sync.read(shot);
 

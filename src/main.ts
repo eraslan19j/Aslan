@@ -119,6 +119,7 @@ interface GameDebugHandle {
   exitVehicle: () => void;
   switchRegion: (regionId: RegionId) => Promise<void>;
   teleportTo: (x: number, z: number) => void;
+  setRenderFrozen: (frozen: boolean) => void;
   getDiagnostics: () => DiagnosticsSnapshot;
   getCrashCount: () => number;
 }
@@ -220,6 +221,7 @@ async function bootstrap(): Promise<void> {
   let timeOfDay: TimeOfDay = params.get('time') === 'night' ? 'night' : 'day';
   let activeRegionId: RegionId = resolveRegionId(params.get('region') ?? save.activeRegionId);
   let paused = false;
+  let renderFrozen = false;
 
   const sound = new ProceduralSoundEngine();
   const wanted = new WantedSystem(3);
@@ -861,6 +863,13 @@ async function bootstrap(): Promise<void> {
     exitVehicle,
     switchRegion,
     teleportTo,
+    setRenderFrozen: (frozen: boolean) => {
+      renderFrozen = frozen;
+      if (!frozen) {
+        lastTimeMs = performance.now();
+        window.requestAnimationFrame(tick);
+      }
+    },
     getDiagnostics: buildDiagnosticsSnapshot,
     getCrashCount: () => crashLog.list().length,
   };
@@ -1114,8 +1123,8 @@ async function bootstrap(): Promise<void> {
 
     runtime.scene.render();
 
-    // Update crisp rotating 2D Minimap radar at ~15 Hz (ultra-low CPU overhead)
-    if (nowMs - lastMinimapUpdateMs >= 66) {
+    // Update crisp rotating 2D Minimap radar at ~10 Hz (ultra-low CPU overhead)
+    if (!paused && nowMs - lastMinimapUpdateMs >= 100) {
       lastMinimapUpdateMs = nowMs;
       minimap.render({
         playerX,
@@ -1219,7 +1228,9 @@ async function bootstrap(): Promise<void> {
       });
     }
 
-    window.requestAnimationFrame(tick);
+    if (!renderFrozen) {
+      window.requestAnimationFrame(tick);
+    }
   };
 
   window.requestAnimationFrame(tick);
