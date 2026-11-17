@@ -78,20 +78,19 @@ jobs:
           echo "Detected orientation line: ${ORIENTATION}"
           echo "$ORIENTATION" | grep -qE "0x0*6|sensorLandscape|=6([^0-9]|$)"
           {
-            echo "## Istanbul Streets — v0.7.0 Debug APK (Apex 240 Hz CarX/GTA Driving Physics + Native Android Boost — API 36)"
+            echo "## Istanbul Streets — v0.8.0 Debug APK (Yol Tutuşu, Temiz Cadde Props, Gelişmiş NPC Araçlar, Fiziksel Bariyerler & Modern Görseller — API 36)"
             echo ""
             echo "- **Package:** \`com.istanbulstreets.game\`"
             echo "- **Target SDK:** \`36\` (Android 16) · **Min SDK:** \`24\` (Android 7.0+)"
             echo "- **Orientation:** \`sensorLandscape\` (\`${ORIENTATION}\`)"
             echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
             echo "- **Bölgeler:** Tepe Mahallesi (varsayılan) + Tarihî Yarımada (Duraklat menüsünden geçiş) — %100 çevrimdışı 300m karolar"
-            echo "- **v0.7.0 Apex Sürüş Fiziği & Android Native Optimizasyon Güncellemesi:**"
-            echo "  - **240 Hz 4-Teker Pacejka Fizik Motoru:** Gerçek ağırlık transferi (fren dalışı, hızlanma çökmesi, viraj yatması), RWD/FWD/AWD çekiş karakteri, Ackerman ön direksiyon geometrisi ve 4 bağımsız süspansiyon yüksekliği."
-            echo "  - **Tek Tuşla 3 Sürüş Modu:** Anında değiştirilebilir **CADDE** (dengeli GTA/CarX), **DRİFT** (48° geniş direksiyon kilidi + akıllı kontra-direksiyon asisti + canlı drift açısı/kombo puanı) ve **SİM** (asistsiz saf Pacejka)."
-            echo "  - **6 İleri Otomatik & Manuel Şanzıman:** Varsayılan akıcı 6 ileri otomatik vites + tek dokunuşla **MAN** (\`V+\`/\`V-\`, masaüstünde \`E\`/\`Q\`), turbo basınç göstergesi, blow-off valfı ve egzoz patlatma alevi."
-            echo "  - **3 Mobil Direksiyon Kontrolü:** Klasik \`◀/▶\` Butonlar, hassas **CarX Analog Slider** ve eğerek sürüş **Jiroskop** modu."
-            echo "  - **3B Sürüş Efektleri & AudioWorklet Motor Sesi:** Asfalt lastik izleri, hacimsel drift dumanı, çarpışma kıvılcımları, hız duyarlı FOV + drift vektörü takip kamerası + Tampon kamerası ve gerçek zamanlı AudioWorklet motor DSP sesi."
-            echo "  - **Native Android APK Gücü & Temizleme:** \`NativeGameBoostPlugin\` (Android 13+ \`GameManager\` performans modu, \`SustainedPerformanceMode\`, \`RENDERER_PRIORITY_IMPORTANT\`, \`isGame=true\`, \`largeHeap=true\`, donanım profili ve vites/çarpışma/drift dokunsal titreşim profilleri). Gereksiz aranma/polis sistemi geçici olarak kaldırıldı."
+            echo "- **v0.8.0 Yenilikler ve Düzeltmeler:**"
+            echo "  - **Yüksek Hızda Dengeli Cadde Sürüşü (\`CADDE\`):** Arka lastik tutuşu güçlendirildi, ESC yanal dengeleme ve hıza duyarlı direksiyon hassasiyeti eklendi; hızlı giderken istemsiz kayma/savrulma giderildi. El freni veya \`DRİFT\` / \`SİM\` modları tüm heyecanıyla korundu."
+            echo "  - **Yol Ortası Ağaç/Direk/Prop Temizliği:** 103 çevrimdışı karonun tamamında (\`44\` Tepe Mahallesi + \`59\` Tarihî Yarımada) her ağaç, sokak lambası, tabela, bank ve çöp kutusu tüm asfalt yol şeritleri, kavşak ağızları, refüjler ve binalardan güvenli mesafede konumlandırıldı (\`0\` yol ihlali)."
+            echo "  - **Modernize NPC Trafik Araçları (Görünüm + Fizik):** Tüm NPC araçlara parlak metalik boya, dönen ve virajda yönelen 5 kollu alaşım jantlı tekerlekler, dinamik kırmızı fren lambaları + 3. LED fren şeridi, süspansiyon yatma/dalış ve gerçek momentumlu çarpışma tepkisi eklendi."
+            echo "  - **Görünmez Duvarlar Kaldırıldı — Fiziksel Belediye Yol Bariyerleri:** Oyuncu, NPC trafik, yayalar ve minimap tek bir ortak harita sınırını paylaşır; yolların bittiği gerçek sınır noktalarına kırmızı-beyaz reflektörlü beton belediye bariyerleri, trafik konileri ve yanıp sönen sarı ikaz lambaları yerleştirildi."
+            echo "  - **Modern Görseller & Çok Eklemli Karakter Animasyonları:** GPU atmosferik gökyüzü shader'ı + gün batımı parıltısı + yıldızlı gece gökyüzü, okunabilir ışıklı \`KAFE\` / \`FIRIN\` / \`MARKET\` neon tabelaları, füme camlı balkonlar, diz/dirsek eklemli ana karakter ve yürüyüş animasyonlu yayalar."
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo ""
             echo "### Kurulum (Yalnızca Android Telefon)"
@@ -142,9 +141,9 @@ jobs:
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.7.0' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.8.0' }}
           target_commitish: ${{ github.sha }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.7.0 (Apex 240Hz CarX/GTA Physics + Native Android Boost - API 36)' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.8.0 (Planted Street Grip, Road-Clear Props, Upgraded NPC Fleet & Physical Barriers - API 36)' }}
           body_path: release-notes.md
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |
