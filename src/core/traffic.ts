@@ -47,7 +47,13 @@ export class RoadTrafficSimulator {
   private readonly agents: TrafficAgent[] = [];
   private readonly rng: Rng;
 
-  constructor(graph: RoadGraph, agentCount: number, seed = 2026034) {
+  constructor(
+    graph: RoadGraph,
+    agentCount: number,
+    seed = 2026034,
+    initialFocusX = 0,
+    initialFocusZ = 0,
+  ) {
     this.rng = createRng(seed);
 
     for (const n of graph.nodes) {
@@ -87,7 +93,7 @@ export class RoadTrafficSimulator {
     const archetypes: VehicleArchetype[] = ['taxi', 'taxi', 'dolmus', 'sedan', 'sedan', 'sedan'];
     for (let i = 0; i < agentCount; i += 1) {
       const archetype = archetypes[i % archetypes.length]!;
-      const agent = this.spawnAgentNear(i, archetype, i % 5, 0, 0);
+      const agent = this.spawnAgentNear(i, archetype, i % 5, initialFocusX, initialFocusZ);
       this.agents.push(agent);
     }
   }

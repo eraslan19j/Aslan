@@ -180,7 +180,13 @@ async function loadRegionBundle(
   const trafficCount = qualityTier === 'lite' ? 12 : 18;
   const pedCount = qualityTier === 'lite' ? 16 : 32;
   const seed = regionId === 'esenler-namik-kemal' ? 34034 : 34001;
-  const traffic = new RoadTrafficSimulator(roadGraph, trafficCount, seed);
+  const traffic = new RoadTrafficSimulator(
+    roadGraph,
+    trafficCount,
+    seed,
+    manifest.spawn.x,
+    manifest.spawn.z,
+  );
   const pedestrians = new PedestrianSimulator(roadGraph, pedCount, seed + 17);
   const missions = new TaxiMissionManager(manifest.landmarks, roadGraph.nodes, seed + 99);
 

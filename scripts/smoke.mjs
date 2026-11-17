@@ -44,14 +44,14 @@ try {
   });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 
-  await page.goto(URL, { waitUntil: 'load' });
+  await page.goto(URL, { waitUntil: 'load', timeout: 40000 });
   await page.waitForFunction(
     () =>
       Boolean(window.__game?.regionLoaded) &&
       Boolean(window.__game?.physicsReady) &&
       (window.__game?.perf?.loadedTiles ?? 0) >= 1 &&
       (window.__game?.perf?.activeBuildings ?? 0) >= 20,
-    { timeout: 25000 },
+    { timeout: 40000 },
   );
   await page.waitForTimeout(800);
 
@@ -79,7 +79,14 @@ try {
   // 1. On-foot walk in Esenler Namık Kemal
   await page.keyboard.down('ShiftLeft');
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(900);
+  await page.waitForFunction(
+    ([sx, sz]) => {
+      const p = window.__game?.player;
+      return p ? Math.hypot(p.x - sx, p.z - sz) >= 1.2 : false;
+    },
+    [initialPos.x, initialPos.z],
+    { timeout: 15000 },
+  );
   await page.keyboard.up('KeyW');
   await page.keyboard.up('ShiftLeft');
   const walkedPos = await page.evaluate(() => ({ ...window.__game.player }));

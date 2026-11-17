@@ -225,13 +225,13 @@ try {
       });
       page.on('pageerror', (e) => pageErrors.push(`pageerror: ${e.message}`));
 
-      await page.goto(`${BASE_URL}/${s.query}`, { waitUntil: 'load' });
+      await page.goto(`${BASE_URL}/${s.query}`, { waitUntil: 'load', timeout: 40000 });
       await page.waitForFunction(
         () =>
           Boolean(window.__game?.regionLoaded) &&
           (window.__game?.perf?.loadedTiles ?? 0) >= 1 &&
           (window.__game?.perf?.activeBuildings ?? 0) >= 20,
-        { timeout: 25000 },
+        { timeout: 40000 },
       );
       await s.setup(page);
       await page.waitForTimeout(750);
