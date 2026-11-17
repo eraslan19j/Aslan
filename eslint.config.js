@@ -8,6 +8,7 @@ export default tseslint.config(
       'dist/**',
       'android/**',
       'refs/**',
+      '.venv/**',
       'node_modules/**',
       'coverage/**',
     ],
