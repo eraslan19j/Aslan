@@ -47,3 +47,30 @@ npm run cap:sync   -> PASS (Capacitor 8.6.2 synced to Android project in 0.101s)
 - `esenler_07_driving_20x9.png`: Seated protagonist clearly visible on left-hand driver seat behind translucent tinted rear & side glass; continuous road surface down the slope; zero HUD overlap.
 - `esenler_02_street.png`: Grounded character sneakers on asphalt beside parked Sarı Taksi; building fronts aligned cleanly behind curbs with zero road intrusions.
 - `esenler_03_overview.png` & `fatih_03_overview.png`: Continuous bend-joined roads & intersections across both regions with zero triangular bend gaps and all original buildings/landmarks preserved.
+
+---
+
+## 4. `v0.5.0` Open-World Upgrade Verification (Stages A–H, Verified on `c4572fa`)
+
+**Release Version:** `0.5.0` (`versionCode 7`, Android API 36 `sensorLandscape`)  
+**Unit & Integration Tests:** `12` test suites / **`54/54` tests PASS** (added `src/render/openWorldSystems.test.ts` validating 2-layer curb/asphalt Z-separation, junction hubs, zebra crosswalks, spring-damper vehicle suspension, TimeCycle wet-asphalt sheen, NPC crowd separation/idle states, parked + moving traffic, and 4-tier Android quality scaling).
+
+### GeoQC Building-Building Overlap Audit (`scripts/audit-world-geometry.py`)
+| Region | Tiles | Unique Buildings | Building-Building Overlaps (Before → After) | Overlap Area (Before → After) | Severe Road Intrusions | Unintended Road Gaps ≤ 9 m |
+|---|---|---|---|---|---|---|
+| `esenler-namik-kemal` | 44 | 4,442 | `33 → 0` | `38,855.2 m² → 0.0 m²` (`-100%`) | `0` | `0` |
+| `fatih-sultanahmet-eminonu` | 59 | 3,646 | `33 → 3` | `2,663.3 m² → 1.76 m²` (`-99.93%`) | `0` | `0` |
+
+### Remote CI, Visual QA, Android Emulator & APK Pipelines (`c4572fa`)
+| Pipeline | Run ID | Status | Verified Output & Metrics |
+|---|---|---|---|
+| **CI (Web + Unit + Smoke + 15-Shot Visual QA + 3-Min Soak)** | `44073160242` | **PASS (`7m48s`)** | **54/54 Vitest**, **0 console errors**, **0 HUD warnings**, `version: "0.5.0"`, `trafficCount: 26`, `pedestrianCount: 40`, `driverVisibleInCabin: true`, **15/15 PNGs** (including `esenler_09_sunset_driving.png`), Low tier `68–71` draws (`9` tiles), High/Ultra `113–120` draws (`24–25` tiles / `4,131` buildings); 3-min Soak `maxDrawCalls: 74`, `texDrift: 0`, `heapGrowthMb: -42.36 MB`, `errors: []` |
+| **Android Emulator QA (x86_64 KVM)** | `44073160200` | **PASS** | `ISTANBUL_BOOT` `v0.5.0`, `qualityTier: "low"`, `glError: 0`, `2400x1080` landscape, `FPS: 64`, `fatalCount: 0`, `anrCount: 0`, `chromiumErrorCount: 0`, `appAliveAfterBack: true` |
+| **Android API 36 Debug APK** | `44073160361` | **PASS** | `com.istanbulstreets.game`, `versionCode 7` (`v0.5.0`), `targetSdkVersion 36`, `sensorLandscape` verified via `aapt2` |
+
+**Verified Visual Inspection (`qa-screens` PNGs on `c4572fa`):**
+- `esenler_03_overview.png` & `fatih_03_overview.png`: Zero concrete curbs slicing across T-junction mouths or road endpoints; clean circular asphalt junction hubs, outer curbs only, zebra crosswalk bars, rooftop silhouettes, and Mediterranean palm trees.
+- `esenler_09_sunset_driving.png`: Vice City golden-peach coastal sunset sky, glowing amber apartment/shopfront windows, wet-asphalt headlight reflection sheen, seated driver visible inside taxi cabin, `"Ultra"` quality pill.
+- `esenler_04_night.png`: Starry indigo sky, illuminated Istanbul facades, gleaming wet asphalt under warm headlights.
+- `esenler_07_driving_20x9.png` & `android/emulator_01_launch.png`: Crisp 20:9 mobile controls, `"Yüksek"` / `"Düşük"` quality badges, zero HUD clipping or overlap.
+

@@ -78,19 +78,19 @@ jobs:
           echo "Detected orientation line: ${ORIENTATION}"
           echo "$ORIENTATION" | grep -qE "0x0*6|sensorLandscape|=6([^0-9]|$)"
           {
-            echo "## Istanbul Streets — v0.4.0 Debug APK (World Geometry Repair + Complete Collision + Seated Driver + Mobile LOD — API 36)"
+            echo "## Istanbul Streets — v0.5.0 Debug APK (Vice City Open-World Architecture + T-Junction/Curb Fix + 4-Tier Android Quality — API 36)"
             echo ""
             echo "- **Package:** \`com.istanbulstreets.game\`"
             echo "- **Target SDK:** \`36\` (Android 16) · **Min SDK:** \`24\` (Android 7.0+)"
             echo "- **Orientation:** \`sensorLandscape\` (\`${ORIENTATION}\`)"
             echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
             echo "- **Bölgeler:** Tepe Mahallesi (varsayılan) + Tarihî Yarımada (Duraklat menüsünden geçiş) — %100 çevrimdışı 300m karolar"
-            echo "- **v0.4.0 Dünya Onarımı, Tam Çarpışma ve GTA Oynanış Güncellemesi:**"
-            echo "  - **Shapely + Trimesh Dünya Onarımı:** Yola taşan bina saçakları cerrahi olarak kırpıldı (%99.97 çakışma temizlendi, 0 ağır taşma), 154 kopuk yol boşluğu ve 13 kopuk yol adası birleştirildi; 8.128 orijinal bina ve tüm koordinatlar korundu."
-            echo "  - **Kesintisiz Köşe Birleşimli Yollar:** 540 keskin virajdaki üçgen yırtıklar köşe kama birleşimi ve yuvarlatılmış kavşak başlıklarıyla giderildi."
-            echo "  - **Tam Çarpışma Sistemi:** Yaya karakter artık park hâlindeki taksinin, trafiğin ve polis araçlarının içinden geçemez (OBB çarpışma); sürtünmeli yokuş adımı kaymayı önler; araç gövdesi 6 noktalı + alt-adımlı (anti-tunneling) çarpışmaya geçti."
-            echo "  - **GTA Vice City Görünür Sürücü & Güvenli İniş:** Araca binince karakter kaybolmak yerine şeffaf camların ardında direksiyon başına oturur; araçtan inerken binalar ve komşu araçlar kontrol edilerek sıkışma/duvara girme önlenir."
-            echo "  - **Engel Algılayan Yayalar & Mobil LOD:** Yayalar gerçek bina ızgarası ve araç gövdelerinden kaçınır; MIT \`meshoptimizer\` + mesafe tabanlı karo LOD ile mobil GPU yükü azaltıldı."
+            echo "- **v0.5.0 Açık Dünya, Kavşak/Kaldırım, Atmosfer ve Mobil Performans Güncellemesi:**"
+            echo "  - **T-Kavşak & Yol Başı/Sonu Kaldırım Düzeltmesi (2 Katmanlı Atlas):** Kaldırım/bordür bandı asfalt dokusundan tamamen ayrıldı; alt kaldırım tabanı (+0.24 m) ile üst saf asfalt (+0.30..0.34 m) Z-katmanlaması, dairesel kavşak göbekleri, yaya geçidi (zebra) çizgileri ve karo sınır ucu temizliği eklendi (karo başına hâlâ tek draw call)."
+            echo "  - **GeoQC Bina-Bina Çakışma Temizliği:** 40 mükerrer GPKG bina kopyası ve çakışma temizlendi (Esenler \`38,855 m² → 0.0 m²\`, Fatih \`2,663 m² → 1.76 m²\`)."
+            echo "  - **Vice City TimeCycle Atmosfer & Peyzaj:** Gündüz / Altın Gün Batımı / Islak Asfaltlı Gece döngüsü, Akdeniz palmiyeleri, çınar/servi ağaçları, çatı siluetleri, banklar, çöp kutuları ve trafik levhaları (0 ek draw call)."
+            echo "  - **Araç Süspansiyonu, Direksiyon, Sinyal & Canlı AI:** Yay-damperli gövde salınımı, dönen direksiyon simidi, sinyal lambaları; Recast esinli kalabalık ayrımı ve bekleme/bakınma durumlu yayalar; yumuşak dönüşlü ve park etmiş araçlı trafik."
+            echo "  - **4 Kademeli Android Kalite Sistemi:** \`Düşük / Orta / Yüksek / Ultra\` profilleri çözünürlük, gölge, karo akış yarıçapı, LOD, yaya ve trafik yoğunluğunu tek dokunuşla yönetir."
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo ""
             echo "### Kurulum (Yalnızca Android Telefon)"
@@ -141,9 +141,9 @@ jobs:
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.4.0' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.5.0' }}
           target_commitish: ${{ github.sha }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.4.0 (World Geometry Repair + Complete Collision + Seated Driver + Mobile LOD - API 36)' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.5.0 (Vice City Open-World + T-Junction Curb Fix + 4-Tier Android Quality - API 36)' }}
           body_path: release-notes.md
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |
