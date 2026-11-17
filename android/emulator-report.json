@@ -1,12 +1,12 @@
 {
-  "generatedAtIso": "2026-11-17T22:16:01.443Z",
+  "generatedAtIso": "2026-11-17T22:32:41.967Z",
   "note": "Android x86_64 KVM emulator (SwiftShader GPU) validates layout, landscape, cutout, touch input, Back key, and crash-free launch — NOT real-device FPS.",
   "appAliveAfterBack": true,
   "fatalCount": 0,
   "anrCount": 0,
   "chromiumErrorCount": 0,
   "bootLines": [
-    "11-17 22:15:36.488 I/Capacitor/Console( 3668): File: https://localhost/assets/index-wsTzNZzV.js - Line 38 - Msg: ISTANBUL_BOOT {\"version\":\"0.8.0\",\"regionId\":\"esenler-namik-kemal\",\"qualityTier\":\"low\",\"drivingMode\":\"street\",\"transmissionMode\":\"auto\",\"steeringMode\":\"buttons\",\"touchUi\":true,\"nativeHw\":{\"cpuCores\":2,\"sdkInt\":34,\"manufacturer\":\"Google\",\"model\":\"sdk_gphone64_x86_64\",\"totalRamMb\":2979,\"availRamMb\":1722,\"lowMemory\":false,\"audioSampleRate\":48000,\"audioFramesPerBuffer\":1088,\"refreshRateHz\":60,\"gameMode\":\"standard\"},\"viewport\":\"866x364\",\"canvas\":\"866x364\",\"glError\":0,\"gpu\":{\"renderer\":\"Android Emulator OpenGL ES Translator (Google SwiftShader)\",\"vendor\":\"Google (Google Inc.)\"}}"
+    "11-17 22:32:18.772 I/Capacitor/Console( 2677): File: https://localhost/assets/index-BucKN5Sa.js - Line 38 - Msg: ISTANBUL_BOOT {\"version\":\"0.8.0\",\"regionId\":\"esenler-namik-kemal\",\"qualityTier\":\"low\",\"drivingMode\":\"street\",\"transmissionMode\":\"auto\",\"steeringMode\":\"buttons\",\"touchUi\":true,\"nativeHw\":{\"cpuCores\":2,\"sdkInt\":34,\"manufacturer\":\"Google\",\"model\":\"sdk_gphone64_x86_64\",\"totalRamMb\":2979,\"availRamMb\":1676,\"lowMemory\":false,\"audioSampleRate\":48000,\"audioFramesPerBuffer\":1088,\"refreshRateHz\":60,\"gameMode\":\"standard\"},\"viewport\":\"866x412\",\"canvas\":\"866x412\",\"glError\":0,\"gpu\":{\"renderer\":\"Android Emulator OpenGL ES Translator (Google SwiftShader)\",\"vendor\":\"Google (Google Inc.)\"}}"
   ],
   "fatals": [],
   "anrs": [],
@@ -17,27 +17,27 @@
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 239,
-      "brightFrac": 0.2242,
-      "centerBrightFrac": 0.7685
+      "uniqueColors": 1161,
+      "brightFrac": 0.8609,
+      "centerBrightFrac": 0.9371
     },
     {
       "file": "qa-out/android/emulator_02_after_joystick.png",
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 239,
-      "brightFrac": 0.2242,
-      "centerBrightFrac": 0.7685
+      "uniqueColors": 444,
+      "brightFrac": 0.0266,
+      "centerBrightFrac": 0
     },
     {
       "file": "qa-out/android/emulator_03_pause_back.png",
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 239,
-      "brightFrac": 0.2242,
-      "centerBrightFrac": 0.7685
+      "uniqueColors": 216,
+      "brightFrac": 0.0215,
+      "centerBrightFrac": 0.0243
     }
   ]
 }
