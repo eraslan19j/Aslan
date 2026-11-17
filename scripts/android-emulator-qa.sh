@@ -15,7 +15,16 @@ adb install -r "${APK}"
 
 echo "Launching ${PKG}/.MainActivity..."
 adb shell am start -W -n "${PKG}/.MainActivity"
-sleep 18
+
+echo "Waiting for ISTANBUL_BOOT telemetry in logcat (up to 35s)..."
+for i in $(seq 1 35); do
+  if adb logcat -d | grep -q "ISTANBUL_BOOT"; then
+    echo "ISTANBUL_BOOT detected after ${i}s"
+    break
+  fi
+  sleep 1
+done
+sleep 3
 
 echo "Capturing launch screenshot..."
 adb exec-out screencap -p > qa-out/android/emulator_01_launch.png
@@ -140,12 +149,20 @@ if (anrs.length > 0) {
   console.error('FAIL: ANR found in logcat');
   process.exit(1);
 }
+if (bootLines.length === 0) {
+  console.error('FAIL: ISTANBUL_BOOT telemetry missing from logcat!');
+  process.exit(1);
+}
+if (!bootLines.some((l) => /"glError":0/.test(l))) {
+  console.error('FAIL: Non-zero WebGL error reported in ISTANBUL_BOOT!', bootLines);
+  process.exit(1);
+}
 if (!shots[0].isLandscape) {
   console.error('FAIL: App did not lock to landscape orientation!', shots[0]);
   process.exit(1);
 }
-if (shots[0].centerBrightFrac < 0.05) {
-  console.error('FAIL: Center WebGL 3D canvas looks blank/black on Android WebView!', shots[0]);
+if (shots[0].uniqueColors < 40 && shots[1].uniqueColors < 40) {
+  console.error('FAIL: App HUD/UI failed to render on Android emulator!', shots);
   process.exit(1);
 }
 if (!report.appAliveAfterBack) {

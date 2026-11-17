@@ -234,12 +234,35 @@ try {
     () =>
       new Promise((resolve) => {
         window.requestAnimationFrame(() => {
-          window.__game?.setRenderFrozen?.(true);
-          window.setTimeout(resolve, 60);
+          window.requestAnimationFrame(() => {
+            window.__game?.setRenderFrozen?.(true);
+            const c = document.querySelector('#app > canvas') ?? document.querySelector('canvas');
+            const gl = c?.getContext('webgl2') || c?.getContext('webgl');
+            gl?.finish?.();
+            window.setTimeout(resolve, 140);
+          });
         });
       }),
   );
-  const shot = await page.screenshot({ animations: 'disabled' });
+
+  let shot;
+  try {
+    shot = await page.screenshot({ animations: 'disabled', timeout: 25000 });
+  } catch (err) {
+    console.warn(
+      `WARN: smoke page.screenshot timed out (${err instanceof Error ? err.message : String(err)}); retrying via CDP Page.captureScreenshot`,
+    );
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      const { data } = await cdp.send('Page.captureScreenshot', {
+        format: 'png',
+        fromSurface: true,
+      });
+      shot = Buffer.from(data, 'base64');
+    } finally {
+      await cdp.detach().catch(() => {});
+    }
+  }
   writeFileSync(OUT, shot);
   const png = PNG.sync.read(shot);
 

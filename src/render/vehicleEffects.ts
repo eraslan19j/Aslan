@@ -68,7 +68,6 @@ export class VehicleEffectsSystem {
   private readonly materials: THREE.Material[] = [];
 
   private readonly dummy = new THREE.Object3D();
-  private readonly zeroMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
 
   private skidCursor = 0;
   private skidActiveCount = 0;
@@ -119,7 +118,7 @@ export class VehicleEffectsSystem {
     });
     this.smokeMesh = new THREE.InstancedMesh(smokeGeo, smokeMat, MAX_SMOKE);
     this.smokeMesh.frustumCulled = false;
-    this.smokeMesh.count = MAX_SMOKE;
+    this.smokeMesh.count = 0;
     this.smokeMesh.renderOrder = 3;
     this.group.add(this.smokeMesh);
     this.geometries.push(smokeGeo);
@@ -139,9 +138,7 @@ export class VehicleEffectsSystem {
         baseScale: 0.6,
         rotY: 0,
       });
-      this.smokeMesh.setMatrixAt(i, this.zeroMatrix);
     }
-    this.smokeMesh.instanceMatrix.needsUpdate = true;
 
     // 3. Collision Sparks (1 draw call)
     const sparkGeo = new THREE.BoxGeometry(0.06, 0.06, 0.36);
@@ -152,7 +149,7 @@ export class VehicleEffectsSystem {
     });
     this.sparkMesh = new THREE.InstancedMesh(sparkGeo, sparkMat, MAX_SPARKS);
     this.sparkMesh.frustumCulled = false;
-    this.sparkMesh.count = MAX_SPARKS;
+    this.sparkMesh.count = 0;
     this.sparkMesh.renderOrder = 4;
     this.group.add(this.sparkMesh);
     this.geometries.push(sparkGeo);
@@ -170,9 +167,7 @@ export class VehicleEffectsSystem {
         vy: 0,
         vz: 0,
       });
-      this.sparkMesh.setMatrixAt(i, this.zeroMatrix);
     }
-    this.sparkMesh.instanceMatrix.needsUpdate = true;
   }
 
   private fastRand(): number {
@@ -211,14 +206,12 @@ export class VehicleEffectsSystem {
     for (let i = 0; i < 4; i += 1) this.prevWheelValid[i] = false;
     for (let i = 0; i < MAX_SMOKE; i += 1) {
       this.smokePool[i]!.active = false;
-      this.smokeMesh.setMatrixAt(i, this.zeroMatrix);
     }
-    this.smokeMesh.instanceMatrix.needsUpdate = true;
+    this.smokeMesh.count = 0;
     for (let i = 0; i < MAX_SPARKS; i += 1) {
       this.sparkPool[i]!.active = false;
-      this.sparkMesh.setMatrixAt(i, this.zeroMatrix);
     }
-    this.sparkMesh.instanceMatrix.needsUpdate = true;
+    this.sparkMesh.count = 0;
   }
 
   update(
@@ -231,8 +224,6 @@ export class VehicleEffectsSystem {
     const dyn = vehicle.dyn;
 
     let skidDirty = false;
-    let smokeDirty = false;
-    let sparkDirty = false;
 
     // 1. Lay asphalt skidmarks & emit tire smoke from sliding/spinning wheels
     this.smokeSpawnAccum += safeDt;
@@ -313,15 +304,14 @@ export class VehicleEffectsSystem {
       this.skidMesh.instanceMatrix.needsUpdate = true;
     }
 
-    // 2. Step billowing smoke billboards facing camera
+    // 2. Step billowing smoke billboards facing camera (densely packed: 0 draw calls when idle!)
+    let activeSmoke = 0;
     for (let i = 0; i < MAX_SMOKE; i += 1) {
       const p = this.smokePool[i]!;
       if (!p.active) continue;
       p.age += safeDt;
       if (p.age >= p.maxAge) {
         p.active = false;
-        this.smokeMesh.setMatrixAt(i, this.zeroMatrix);
-        smokeDirty = true;
         continue;
       }
       const t = p.age / p.maxAge;
@@ -338,22 +328,22 @@ export class VehicleEffectsSystem {
       this.dummy.lookAt(cameraPos);
       this.dummy.scale.set(s, s, s);
       this.dummy.updateMatrix();
-      this.smokeMesh.setMatrixAt(i, this.dummy.matrix);
-      smokeDirty = true;
+      this.smokeMesh.setMatrixAt(activeSmoke, this.dummy.matrix);
+      activeSmoke += 1;
     }
-    if (smokeDirty) {
+    this.smokeMesh.count = activeSmoke;
+    if (activeSmoke > 0) {
       this.smokeMesh.instanceMatrix.needsUpdate = true;
     }
 
-    // 3. Step impact sparks with gravity
+    // 3. Step impact sparks with gravity (densely packed: 0 draw calls when idle!)
+    let activeSparks = 0;
     for (let i = 0; i < MAX_SPARKS; i += 1) {
       const p = this.sparkPool[i]!;
       if (!p.active) continue;
       p.age += safeDt;
       if (p.age >= p.maxAge) {
         p.active = false;
-        this.sparkMesh.setMatrixAt(i, this.zeroMatrix);
-        sparkDirty = true;
         continue;
       }
       p.vy -= 18 * safeDt;
@@ -365,10 +355,11 @@ export class VehicleEffectsSystem {
       this.dummy.rotation.set(0, Math.atan2(p.vx, p.vz), 0);
       this.dummy.scale.set(scale, scale, scale * 1.4);
       this.dummy.updateMatrix();
-      this.sparkMesh.setMatrixAt(i, this.dummy.matrix);
-      sparkDirty = true;
+      this.sparkMesh.setMatrixAt(activeSparks, this.dummy.matrix);
+      activeSparks += 1;
     }
-    if (sparkDirty) {
+    this.sparkMesh.count = activeSparks;
+    if (activeSparks > 0) {
       this.sparkMesh.instanceMatrix.needsUpdate = true;
     }
   }
