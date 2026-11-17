@@ -209,9 +209,21 @@ try {
           file: 'esenler_08_diagnostics_20x9.png',
           label: '20:9 Tanılama Paneli (Ayarlar)',
           viewport: { width: 880, height: 396 },
-          query: `?region=${regionId}&touch=1&mode=normal&time=day`,
+          query: `?region=${regionId}&touch=1&mode=high&time=day`,
           setup: async (page) => {
             await page.evaluate(() => window.__game.openSettings());
+          },
+        },
+        {
+          file: 'esenler_09_sunset_driving.png',
+          label: 'Vice City Gün Batımı (Sürüş + Kavşak)',
+          viewport: { width: 1280, height: 720 },
+          query: `?region=${regionId}&touch=0&mode=ultra&time=sunset`,
+          setup: async (page) => {
+            await page.evaluate(() => {
+              window.__game.enterVehicle();
+              window.__game.setCameraMode('follow');
+            });
           },
         },
       );

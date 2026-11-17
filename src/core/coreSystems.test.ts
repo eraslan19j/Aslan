@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { FixedStepClock } from './gameLoop';
-import { getQualityPreset, suggestQualityTier } from './quality';
+import {
+  getQualityPreset,
+  nextQualityTier,
+  normalizeQualityTier,
+  suggestQualityTier,
+} from './quality';
+import { getTimeCycleProfile, nextAtmospherePreset } from './timeCycle';
 import { mergeControlIntent } from './controls';
 import { FATIH_SANCTUARY_ZONES, findSanctuaryZone, isCombatAllowedAt } from './sanctuary';
 
@@ -26,20 +32,43 @@ describe('core/gameLoop', () => {
   });
 });
 
-describe('core/quality', () => {
-  it('enforces tighter Lite budgets than Normal', () => {
-    const normal = getQualityPreset('normal');
-    const lite = getQualityPreset('lite');
-    expect(normal.maxPixelRatio).toBeLessThanOrEqual(1.5);
-    expect(lite.maxPixelRatio).toBeLessThanOrEqual(1.0);
-    expect(lite.shadowsEnabled).toBe(false);
-    expect(lite.drawDistance).toBeLessThan(normal.drawDistance);
+describe('core/quality & timeCycle', () => {
+  it('enforces monotonically scaling 4-tier Android quality budgets (Low -> Medium -> High -> Ultra)', () => {
+    const low = getQualityPreset('low');
+    const med = getQualityPreset('medium');
+    const high = getQualityPreset('high');
+    const ultra = getQualityPreset('ultra');
+    expect(low.maxPixelRatio).toBeLessThanOrEqual(1.0);
+    expect(low.shadowsEnabled).toBe(false);
+    expect(med.shadowsEnabled).toBe(true);
+    expect(low.drawDistance).toBeLessThan(med.drawDistance);
+    expect(med.drawDistance).toBeLessThan(high.drawDistance);
+    expect(high.drawDistance).toBeLessThan(ultra.drawDistance);
+    expect(low.trafficCount).toBeLessThan(med.trafficCount);
+    expect(med.trafficCount).toBeLessThan(high.trafficCount);
+    expect(high.trafficCount).toBeLessThan(ultra.trafficCount);
+    expect(low.pedestrianCount).toBeLessThan(ultra.pedestrianCount);
+    expect(normalizeQualityTier('lite')).toBe('low');
+    expect(normalizeQualityTier('normal')).toBe('high');
+    expect(nextQualityTier('low')).toBe('medium');
+    expect(nextQualityTier('ultra')).toBe('low');
   });
 
-  it('suggests Lite on low-memory or 4-core devices', () => {
-    expect(suggestQualityTier(8, 2)).toBe('lite');
-    expect(suggestQualityTier(4, 8)).toBe('lite');
-    expect(suggestQualityTier(8, 8)).toBe('normal');
+  it('suggests Low on low-memory/4-core, Medium on mid-range, High on modern Android devices', () => {
+    expect(suggestQualityTier(8, 2)).toBe('low');
+    expect(suggestQualityTier(4, 8)).toBe('low');
+    expect(suggestQualityTier(6, 6)).toBe('medium');
+    expect(suggestQualityTier(8, 8)).toBe('high');
+  });
+
+  it('cycles Vice City TimeCycle presets cleanly across Day -> Sunset -> Night -> Day', () => {
+    expect(nextAtmospherePreset('day')).toBe('sunset');
+    expect(nextAtmospherePreset('sunset')).toBe('night');
+    expect(nextAtmospherePreset('night')).toBe('day');
+    const sunset = getTimeCycleProfile('sunset');
+    const night = getTimeCycleProfile('night');
+    expect(sunset.windowEmissiveIntensity).toBeGreaterThan(0);
+    expect(night.roadRoughness).toBeLessThan(getTimeCycleProfile('day').roadRoughness);
   });
 });
 

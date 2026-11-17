@@ -340,6 +340,33 @@ function buildBatchedBuildingsGeometries(tile: RegionTileData): {
         roofColor.r, roofColor.g, roofColor.b,
       );
     }
+
+    // Architectural rooftop skyline detail (stair bulkheads, HVAC chillers, chimneys — 0 extra draw calls!)
+    const bw = b.maxX - b.minX;
+    const bd = b.maxZ - b.minZ;
+    if (b.height >= 7.5 && bw >= 7.5 && bd >= 7.5 && (hash % 5) < 2) {
+      const rcx = (b.minX + b.maxX) * 0.5;
+      const rcz = (b.minZ + b.maxZ) * 0.5;
+      const hx = Math.min(2.1, bw * 0.16);
+      const hz = Math.min(1.8, bd * 0.16);
+      const mh = 1.35 + (hash % 3) * 0.45;
+      const rr = Math.min(1, wallColor.r * 0.88);
+      const rg = Math.min(1, wallColor.g * 0.88);
+      const rb = Math.min(1, wallColor.b * 0.86);
+      // Rooftop mechanical/stair penthouse box mapped into stone roof UV band
+      const rx0 = rcx - hx;
+      const rx1 = rcx + hx;
+      const rz0 = rcz - hz;
+      const rz1 = rcz + hz;
+      const ry0 = yParapet - 0.06;
+      const ry1 = ry0 + mh;
+      pushQuadWall(gPos, gNor, gUv, gCol, rx1, rz1, rx0, rz1, ry0, ry1, 0, 1, 0.05, 0.45, 0.75, 0.84, rr, rg, rb);
+      pushQuadWall(gPos, gNor, gUv, gCol, rx0, rz0, rx1, rz0, ry0, ry1, 0, -1, 0.05, 0.45, 0.75, 0.84, rr * 0.84, rg * 0.84, rb * 0.84);
+      pushQuadWall(gPos, gNor, gUv, gCol, rx1, rz0, rx1, rz1, ry0, ry1, 1, 0, 0.05, 0.45, 0.75, 0.84, rr * 0.94, rg * 0.94, rb * 0.94);
+      pushQuadWall(gPos, gNor, gUv, gCol, rx0, rz1, rx0, rz0, ry0, ry1, -1, 0, 0.05, 0.45, 0.75, 0.84, rr * 0.8, rg * 0.8, rb * 0.8);
+      pushTri(gPos, gNor, gUv, gCol, rx0, ry1, rz0, rx0, ry1, rz1, rx1, ry1, rz1, 0, 1, 0, 0.1, 0.76, 0.1, 0.94, 0.4, 0.94, roofColor.r * 0.92, roofColor.g * 0.92, roofColor.b * 0.92);
+      pushTri(gPos, gNor, gUv, gCol, rx0, ry1, rz0, rx1, ry1, rz1, rx1, ry1, rz0, 0, 1, 0, 0.1, 0.76, 0.4, 0.94, 0.4, 0.76, roofColor.r * 0.92, roofColor.g * 0.92, roofColor.b * 0.92);
+    }
   }
 
   return {
@@ -973,7 +1000,68 @@ function buildBatchedStreetPropsGeometry(
     const baseY = sampleTerrainElevation(terrain, tx, tz) + 0.14;
     const scale = 0.86 + (seed % 5) * 0.08;
     const gShift = ((seed >>> 4) % 5) * 0.025;
-    // Tapered 6-sided Mediterranean bark trunk
+    const species = seed % 3;
+
+    if (species === 0) {
+      // Mediterranean coastal palm (slender curved trunk + 6 lush drooping fronds -> Vice City coastal feel!)
+      const leanX = (((seed >>> 2) % 7) - 3) * 0.07;
+      const leanZ = (((seed >>> 6) % 7) - 3) * 0.07;
+      let cx = tx;
+      let cz = tz;
+      let cy = baseY;
+      const segH = 1.15 * scale;
+      for (let s = 0; s < 4; s += 1) {
+        appendTaperedPrism(
+          pos, nor, uv, col,
+          cx, cy, cz,
+          (0.2 - s * 0.022) * scale,
+          (0.18 - s * 0.02) * scale,
+          segH, 6,
+          0.46 - s * 0.02, 0.36 - s * 0.02, 0.25,
+          false, false,
+        );
+        cx += leanX * (s + 1) * 0.35;
+        cz += leanZ * (s + 1) * 0.35;
+        cy += segH * 0.96;
+      }
+      // Crown coconut hub + 6 splayed palm fronds
+      appendTaperedPrism(pos, nor, uv, col, cx, cy - 0.1, cz, 0.24 * scale, 0.32 * scale, 0.35 * scale, 6, 0.26, 0.48, 0.18, true, true);
+      for (let f = 0; f < 6; f += 1) {
+        const ang = (f / 6) * Math.PI * 2 + (seed % 11) * 0.2;
+        const fx = Math.cos(ang);
+        const fz = Math.sin(ang);
+        const px = -fz * 0.32 * scale;
+        const pz = fx * 0.32 * scale;
+        const midX = cx + fx * 1.15 * scale;
+        const midZ = cz + fz * 1.15 * scale;
+        const tipX = cx + fx * 2.25 * scale;
+        const tipZ = cz + fz * 2.25 * scale;
+        const y0 = cy + 0.18 * scale;
+        const yMid = cy + 0.56 * scale;
+        const yTip = cy - 0.15 * scale;
+        const fr = 0.21 + gShift * 0.4;
+        const fg = 0.54 + gShift;
+        const fb = 0.2;
+        // Upper frond blade (2 double-sided triangles for crisp sun-caught silhouette)
+        pushTri(pos, nor, uv, col, cx, y0, cz, midX + px, yMid, midZ + pz, midX - px, yMid, midZ - pz, 0, 1, 0, 0, 0, 1, 0.5, 0, 0.5, fr, fg, fb);
+        pushTri(pos, nor, uv, col, midX - px, yMid, midZ - pz, midX + px, yMid, midZ + pz, tipX, yTip, tipZ, 0, 1, 0, 0, 0.5, 1, 0.5, 0.5, 1, fr * 0.9, fg * 0.95, fb * 0.9);
+        // Underside shaded face
+        pushTri(pos, nor, uv, col, cx, y0, cz, midX - px, yMid, midZ - pz, midX + px, yMid, midZ + pz, 0, -1, 0, 0, 0, 0, 0.5, 1, 0.5, fr * 0.65, fg * 0.72, fb * 0.65);
+        pushTri(pos, nor, uv, col, midX + px, yMid, midZ + pz, midX - px, yMid, midZ - pz, tipX, yTip, tipZ, 0, -1, 0, 1, 0.5, 0, 0.5, 0.5, 1, fr * 0.62, fg * 0.7, fb * 0.62);
+      }
+      return;
+    }
+
+    if (species === 2) {
+      // Classic tall columnar Istanbul cypress tree
+      appendTaperedPrism(pos, nor, uv, col, tx, baseY, tz, 0.17 * scale, 0.12 * scale, 1.3 * scale, 6, 0.36, 0.26, 0.18, false, false);
+      appendTaperedPrism(pos, nor, uv, col, tx, baseY + 1.1 * scale, tz, 0.55 * scale, 0.78 * scale, 1.5 * scale, 7, 0.13 + gShift * 0.3, 0.36 + gShift * 0.7, 0.17, false, true);
+      appendTaperedPrism(pos, nor, uv, col, tx, baseY + 2.6 * scale, tz, 0.78 * scale, 0.52 * scale, 2.0 * scale, 7, 0.16 + gShift * 0.3, 0.42 + gShift * 0.7, 0.2, false, false);
+      appendTaperedPrism(pos, nor, uv, col, tx, baseY + 4.6 * scale, tz, 0.52 * scale, 0.08 * scale, 1.35 * scale, 7, 0.19 + gShift * 0.3, 0.48 + gShift * 0.7, 0.22, true, false);
+      return;
+    }
+
+    // Species 1: Broad 3-tier Mediterranean Istanbul plane tree (Çınar)
     appendTaperedPrism(
       pos, nor, uv, col,
       tx, baseY, tz,
@@ -981,7 +1069,6 @@ function buildBatchedStreetPropsGeometry(
       0.38, 0.27, 0.19,
       false, false,
     );
-    // 3-tier rounded faceted Mediterranean plane-tree crown (100% outward-wound!)
     appendTaperedPrism(
       pos, nor, uv, col,
       tx, baseY + 2.05 * scale, tz,
@@ -1003,6 +1090,42 @@ function buildBatchedStreetPropsGeometry(
       0.31 + gShift * 0.5, 0.62 + gShift, 0.27,
       true, false,
     );
+  };
+
+  const appendBench = (bx: number, bz: number): void => {
+    const baseY = sampleTerrainElevation(terrain, bx, bz) + 0.23;
+    // Wrought-iron legs + warm cedar wood bench seat & backrest
+    appendBoxProp(pos, nor, uv, col, bx - 0.65, baseY, bz, 0.07, 0.44, 0.26, 0.18, 0.2, 0.24);
+    appendBoxProp(pos, nor, uv, col, bx + 0.65, baseY, bz, 0.07, 0.44, 0.26, 0.18, 0.2, 0.24);
+    appendBoxProp(pos, nor, uv, col, bx, baseY + 0.42, bz, 0.78, 0.08, 0.28, 0.56, 0.35, 0.2);
+    appendBoxProp(pos, nor, uv, col, bx, baseY + 0.66, bz - 0.22, 0.78, 0.26, 0.06, 0.52, 0.32, 0.18);
+  };
+
+  const appendTrashBin = (bx: number, bz: number): void => {
+    const baseY = sampleTerrainElevation(terrain, bx, bz) + 0.23;
+    appendBoxProp(pos, nor, uv, col, bx, baseY, bz, 0.06, 0.32, 0.06, 0.22, 0.25, 0.29);
+    appendTaperedPrism(pos, nor, uv, col, bx, baseY + 0.26, bz, 0.19, 0.22, 0.62, 6, 0.16, 0.42, 0.34, true, true);
+  };
+
+  const appendTrafficSign = (sx: number, sz: number, isStop: boolean): void => {
+    const baseY = sampleTerrainElevation(terrain, sx, sz) + 0.23;
+    appendBoxProp(pos, nor, uv, col, sx, baseY, sz, 0.045, 2.55, 0.045, 0.66, 0.69, 0.72);
+    if (isStop) {
+      appendBoxProp(pos, nor, uv, col, sx, baseY + 2.38, sz, 0.34, 0.34, 0.05, 0.84, 0.16, 0.16);
+    } else {
+      appendBoxProp(pos, nor, uv, col, sx, baseY + 2.35, sz, 0.32, 0.38, 0.05, 0.14, 0.42, 0.82);
+    }
+  };
+
+  const appendShrub = (sx: number, sz: number, seed: number): void => {
+    const baseY = sampleTerrainElevation(terrain, sx, sz) + 0.18;
+    const rad = 0.52 + (seed % 3) * 0.16;
+    appendTaperedPrism(pos, nor, uv, col, sx, baseY, sz, rad * 0.78, rad, 0.36, 6, 0.18, 0.46, 0.2, false, true);
+    appendTaperedPrism(pos, nor, uv, col, sx, baseY + 0.36, sz, rad, rad * 0.45, 0.32, 6, 0.26, 0.56, 0.24, true, false);
+    if (seed % 2 === 0) {
+      // Subtle Mediterranean bougainvillea blossom accent
+      appendBoxProp(pos, nor, uv, col, sx + 0.12, baseY + 0.56, sz - 0.08, 0.14, 0.12, 0.14, 0.88, 0.24, 0.52);
+    }
   };
 
   const appendStreetLamp = (lx: number, lz: number, dirX: number, dirZ: number): void => {
@@ -1037,6 +1160,8 @@ function buildBatchedStreetPropsGeometry(
     if (isClearOfBuildings(tile, cx, cz, 2.2)) {
       appendTree(cx, cz, h);
       treeCount += 1;
+      if (isClearOfBuildings(tile, cx + 2.6, cz, 1.0)) appendBench(cx + 2.6, cz);
+      if (isClearOfBuildings(tile, cx - 2.4, cz + 1.4, 0.9)) appendShrub(cx - 2.4, cz + 1.4, h);
     }
     // Add 1–2 extra trees partway toward vertices for larger parks
     for (let i = 0; i < n && treeCount < 32; i += Math.max(2, Math.floor(n / 3))) {
@@ -1065,8 +1190,24 @@ function buildBatchedStreetPropsGeometry(
 
     let accDist = 14;
     const spacing = 36;
-    const halfW = road.width * 0.5 + 0.35;
+    const halfW = road.width * 0.5 + 0.42;
     let sideToggle = hashString(road.id) % 2 === 0 ? 1 : -1;
+
+    // Place a crisp traffic/crosswalk sign near road entry if sidewalk space is clear
+    const sx0 = road.points[0]!;
+    const sz0 = road.points[1]!;
+    const sx1 = road.points[2]!;
+    const sz1 = road.points[3]!;
+    const sLen = Math.hypot(sx1 - sx0, sz1 - sz0);
+    if (sLen > 6 && lampCount < 22) {
+      const snx = -(sz1 - sz0) / sLen;
+      const snz = (sx1 - sx0) / sLen;
+      const signX = sx0 + ((sx1 - sx0) / sLen) * 3.8 + snx * halfW;
+      const signZ = sz0 + ((sz1 - sz0) / sLen) * 3.8 + snz * halfW;
+      if (isClearOfBuildings(tile, signX, signZ, 0.75)) {
+        appendTrafficSign(signX, signZ, road.roadClass === 'primary' || hashString(road.id) % 2 === 0);
+      }
+    }
 
     for (let i = 1; i < ptCount && lampCount < 22; i += 1) {
       const x0 = road.points[(i - 1) * 2]!;
@@ -1091,14 +1232,16 @@ function buildBatchedStreetPropsGeometry(
         if (isClearOfBuildings(tile, lx, lz, 0.85)) {
           appendStreetLamp(lx, lz, -nx * sideToggle, -nz * sideToggle);
           lampCount += 1;
-          // Occasional curbside tree opposite the lamp when sidewalk space allows
-          if (lampCount % 2 === 0 && treeCount < 42) {
-            const tx = rx - nx * (halfW + 0.9) * sideToggle;
-            const tz = rz - nz * (halfW + 0.9) * sideToggle;
-            if (isClearOfBuildings(tile, tx, tz, 1.8)) {
-              appendTree(tx, tz, hashString(road.id) + lampCount * 31);
-              treeCount += 1;
-            }
+          // Occasional curbside tree / planter / bench / trash bin opposite the lamp when sidewalk allows
+          const oppX = rx - nx * (halfW + 0.55) * sideToggle;
+          const oppZ = rz - nz * (halfW + 0.55) * sideToggle;
+          if (lampCount % 2 === 0 && treeCount < 42 && isClearOfBuildings(tile, oppX, oppZ, 1.85)) {
+            appendTree(oppX, oppZ, hashString(road.id) + lampCount * 31);
+            treeCount += 1;
+          } else if (lampCount % 3 === 1 && isClearOfBuildings(tile, oppX, oppZ, 0.95)) {
+            appendBench(oppX, oppZ);
+          } else if (lampCount % 3 === 2 && isClearOfBuildings(tile, oppX, oppZ, 0.7)) {
+            appendTrashBin(oppX, oppZ);
           }
         }
         sideToggle *= -1;
@@ -1193,25 +1336,24 @@ export function buildTileMeshes(
 }
 
 /**
- * Distance-based tile LOD for mobile GPUs:
- * - LOD 0 (near): full street props + building shadows
- * - LOD 1 (mid/far): culls distant street furniture props & shadow casting while keeping skyline crisp
+ * Distance-based tile LOD for mobile GPUs governed by the active 4-tier Android quality profile:
+ * - LOD 0 (near): full street props (palms, trees, lamps, benches, signs) + building shadows
+ * - LOD 1 (mid/far): culls distant street props & shadow casting while keeping skyline crisp
  */
 export function applyTileDistanceLod(
   tile: BuiltTileGroup,
   focusX: number,
   focusZ: number,
   shadowsEnabled: boolean,
-  lowQuality: boolean,
+  propCutoff: number,
+  shadowCutoff: number,
 ): void {
   const dist = Math.hypot(tile.centerX - focusX, tile.centerZ - focusZ);
-  const propCutoff = lowQuality ? 260 : 370;
-  const shadowCutoff = lowQuality ? 220 : 340;
 
   if (tile.propsMesh) {
     tile.propsMesh.visible = dist <= propCutoff;
   }
-  const castHere = shadowsEnabled && dist <= shadowCutoff;
+  const castHere = shadowsEnabled && shadowCutoff > 0 && dist <= shadowCutoff;
   for (const m of tile.shadowCasterMeshes) {
     m.castShadow = castHere;
   }

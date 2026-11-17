@@ -18,6 +18,8 @@ export interface TrafficAgent {
   heading: number;
   pitch: number;
   yieldTimer: number;
+  braking: boolean;
+  parked: boolean;
 }
 
 export interface TrafficCollisionResult {
@@ -131,17 +133,21 @@ export class RoadTrafficSimulator {
     const link = links[Math.floor(this.rng.next() * links.length)]!;
     const nFrom = this.nodes.get(startId)!;
     const nTo = this.nodes.get(link.to)!;
-    const progress = this.rng.next();
+    const isParked = id % 7 === 6 && link.length >= 22;
+    const progress = isParked ? 0.3 + this.rng.next() * 0.4 : this.rng.next();
     const speedFactor = 0.65 + this.rng.next() * 0.25;
-    const targetSpeed = Math.min(13.5, Math.max(4.5, (link.speedLimitKph / 3.6) * speedFactor));
+    const targetSpeed = isParked
+      ? 0
+      : Math.min(13.5, Math.max(4.5, (link.speedLimitKph / 3.6) * speedFactor));
 
     const segDx = nTo.x - nFrom.x;
     const segDz = nTo.z - nFrom.z;
     const segLen = Math.hypot(segDx, segDz) || 1;
     const rightX = -segDz / segLen;
     const rightZ = segDx / segLen;
-    const x = nFrom.x + segDx * progress + rightX * 1.25;
-    const z = nFrom.z + segDz * progress + rightZ * 1.25;
+    const laneOffset = isParked ? 2.45 : 1.25;
+    const x = nFrom.x + segDx * progress + rightX * laneOffset;
+    const z = nFrom.z + segDz * progress + rightZ * laneOffset;
     const y = nFrom.y + (nTo.y - nFrom.y) * progress;
     const heading = Math.atan2(segDx, segDz);
 
@@ -153,7 +159,7 @@ export class RoadTrafficSimulator {
       toNodeId: link.to,
       edgeLength: link.length,
       edgeProgress: progress,
-      speedMps: targetSpeed * 0.5,
+      speedMps: isParked ? 0 : targetSpeed * 0.5,
       targetSpeedMps: targetSpeed,
       x,
       y,
@@ -161,7 +167,24 @@ export class RoadTrafficSimulator {
       heading,
       pitch: 0,
       yieldTimer: 0,
+      braking: false,
+      parked: isParked,
     };
+  }
+
+  /** Dynamically scales active AI traffic density for Android 4-tier quality profiles. */
+  setMaxActiveCount(targetCount: number, focusX = 0, focusZ = 0): void {
+    const clamped = Math.max(4, Math.min(64, Math.round(targetCount)));
+    if (this.validStartIds.length === 0) return;
+    while (this.agents.length > clamped) {
+      this.agents.pop();
+    }
+    const archetypes: VehicleArchetype[] = ['sedan', 'taxi', 'dolmus', 'sedan', 'sedan'];
+    while (this.agents.length < clamped) {
+      const id = this.agents.length;
+      const arch = archetypes[id % archetypes.length] ?? 'sedan';
+      this.agents.push(this.spawnAgentNear(id, arch, id % 8, focusX, focusZ));
+    }
   }
 
   getAgents(): readonly TrafficAgent[] {
@@ -275,6 +298,12 @@ export class RoadTrafficSimulator {
         continue;
       }
 
+      if (a.parked) {
+        a.speedMps = 0;
+        a.braking = false;
+        continue;
+      }
+
       const fwdX = Math.sin(a.heading);
       const fwdZ = Math.cos(a.heading);
 
@@ -292,6 +321,7 @@ export class RoadTrafficSimulator {
         for (let j = 0; j < this.agents.length; j += 1) {
           if (i === j) continue;
           const b = this.agents[j]!;
+          if (b.parked) continue;
           const dx = b.x - a.x;
           const dz = b.z - a.z;
           const dSq = dx * dx + dz * dz;
@@ -306,8 +336,11 @@ export class RoadTrafficSimulator {
         }
       }
 
-      const desired = blocked ? 0 : a.targetSpeedMps;
+      // Gently slow down when entering a junction so turns look natural
+      const nearJunction = a.edgeProgress > 0.85 && a.edgeLength > 10;
+      const desired = blocked ? 0 : nearJunction ? Math.min(a.targetSpeedMps, 6.2) : a.targetSpeedMps;
       const accel = blocked ? 15 : 4.8;
+      a.braking = blocked || a.speedMps > desired + 0.6;
       if (a.speedMps < desired) {
         a.speedMps = Math.min(desired, a.speedMps + accel * safeDt);
       } else {
@@ -355,7 +388,12 @@ export class RoadTrafficSimulator {
       const baseZ = nFrom.z + segDz * a.edgeProgress + rightZ * laneOffset;
       a.x = baseX;
       a.z = baseZ;
-      a.heading = Math.atan2(segDx, segDz);
+      // Smooth angular heading turn interpolation at intersections instead of instant snapping
+      const targetHeading = Math.atan2(segDx, segDz);
+      let dAng = targetHeading - a.heading;
+      while (dAng > Math.PI) dAng -= Math.PI * 2;
+      while (dAng < -Math.PI) dAng += Math.PI * 2;
+      a.heading += dAng * Math.min(1, safeDt * 6.5);
 
       if (sampleElev) {
         a.y = sampleElev(baseX, baseZ);

@@ -1,7 +1,7 @@
 import type { QualityTier } from './quality';
 import type { RegionId } from './world/regions';
 
-export type TimeOfDay = 'day' | 'night';
+export type TimeOfDay = 'day' | 'sunset' | 'night';
 
 export interface DeviceDiagnosticsInfo {
   webViewVersion: string;

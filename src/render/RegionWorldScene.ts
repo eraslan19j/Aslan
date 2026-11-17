@@ -4,6 +4,7 @@ import { damp } from '../core/math';
 import type { ActiveTaxiMission } from '../core/missions';
 import type { PedestrianAgent } from '../core/pedestrians';
 import { getQualityPreset, type QualityTier } from '../core/quality';
+import { getTimeCycleProfile } from '../core/timeCycle';
 import type { TrafficAgent } from '../core/traffic';
 import type { PlayerVehicleState } from '../core/vehicle';
 import type { PoliceUnit } from '../core/wanted';
@@ -106,24 +107,25 @@ export class RegionWorldScene {
   private readonly skyDome: THREE.Mesh;
   private readonly skyMat: THREE.MeshBasicMaterial;
   private readonly daySkyTex: THREE.CanvasTexture;
+  private readonly sunsetSkyTex: THREE.CanvasTexture;
   private readonly nightSkyTex: THREE.CanvasTexture;
   private readonly waterMesh: THREE.Mesh | null;
   private readonly characterRig: CharacterRig;
   private characterMountedInTaxi = false;
   private readonly taxiRig: PlayerTaxiRig;
 
-  // Upgraded 4-part instanced AI traffic (4 draw calls total for all 24 vehicles)
+  // Upgraded 4-part instanced AI traffic (4 draw calls total for up to 36 vehicles across Ultra tier!)
   private readonly trafficChassisInst: THREE.InstancedMesh;
   private readonly trafficCabinInst: THREE.InstancedMesh;
   private readonly trafficRoofInst: THREE.InstancedMesh;
   private readonly trafficUnderInst: THREE.InstancedMesh;
-  private readonly maxTrafficInstances = 24;
+  private readonly maxTrafficInstances = 36;
 
-  // Instanced sidewalk pedestrians (only 3 draw calls for up to 36 people!)
+  // Instanced sidewalk pedestrians (only 3 draw calls for up to 56 people across Ultra tier!)
   private readonly pedLegsInst: THREE.InstancedMesh;
   private readonly pedTorsoInst: THREE.InstancedMesh;
   private readonly pedHeadInst: THREE.InstancedMesh;
-  private readonly maxPedInstances = 36;
+  private readonly maxPedInstances = 56;
 
   // Fictional Şehir Polisi instanced patrol cruisers (2 draw calls, 0 when stars === 0!)
   private readonly policeBodyInst: THREE.InstancedMesh;
@@ -177,7 +179,7 @@ export class RegionWorldScene {
     this.cameraYaw = manifest.spawn.heading + Math.PI;
 
     this.renderer = new THREE.WebGLRenderer({
-      antialias: initialQuality === 'normal',
+      antialias: initialQuality !== 'low',
       powerPreference: 'high-performance',
     });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -203,8 +205,9 @@ export class RegionWorldScene {
 
     this.scene = new THREE.Scene();
     this.daySkyTex = createSkyDomeTexture('day');
+    this.sunsetSkyTex = createSkyDomeTexture('sunset');
     this.nightSkyTex = createSkyDomeTexture('night');
-    this.disposableTextures.push(this.daySkyTex, this.nightSkyTex);
+    this.disposableTextures.push(this.daySkyTex, this.sunsetSkyTex, this.nightSkyTex);
 
     // 3D Equirectangular Sky Dome (warm sun + wispy clouds by day, stars + moon by night)
     const skyGeo = new THREE.SphereGeometry(760, 24, 16);
@@ -711,7 +714,8 @@ export class RegionWorldScene {
 
   /** Streams 300m offline tiles around (focusX, focusZ) with exact 2D polygon colliders & GPU disposal. */
   updateStreaming(focusX: number, focusZ: number): void {
-    const loadRadius = 1; // 3x3 = 900m x 900m active window
+    const preset = getQualityPreset(this.qualityTier);
+    const loadRadius = preset.streamingRadius;
     const diff = planTileStreaming(
       focusX,
       focusZ,
@@ -737,11 +741,16 @@ export class RegionWorldScene {
       void this.loadTile(key, focusX, focusZ);
     }
 
-    // Apply distance-based tile LOD (culls distant props & shadow passes on mobile GPUs)
-    const shadowsEnabled = getQualityPreset(this.qualityTier).shadowsEnabled;
-    const isLite = this.qualityTier === 'lite';
+    // Apply 4-tier Android distance-based tile LOD (culls distant props & shadows smoothly)
     for (const tile of this.loadedTiles.values()) {
-      applyTileDistanceLod(tile, focusX, focusZ, shadowsEnabled, isLite);
+      applyTileDistanceLod(
+        tile,
+        focusX,
+        focusZ,
+        preset.shadowsEnabled,
+        preset.propLodDistance,
+        preset.shadowLodDistance,
+      );
     }
   }
 
@@ -752,7 +761,7 @@ export class RegionWorldScene {
       const tile = (await res.json()) as RegionTileData;
       if (this.disposed || this.loadedTiles.has(key)) return;
 
-      const shadowsEnabled = getQualityPreset(this.qualityTier).shadowsEnabled;
+      const preset = getQualityPreset(this.qualityTier);
       const built = buildTileMeshes(
         tile,
         this.terrain,
@@ -763,7 +772,7 @@ export class RegionWorldScene {
           areaMat: this.areaMat,
           propsMat: this.propsMat,
         },
-        shadowsEnabled,
+        preset.shadowsEnabled,
         true,
         this.manifest.tileSize,
       );
@@ -771,8 +780,9 @@ export class RegionWorldScene {
         built,
         focusX,
         focusZ,
-        shadowsEnabled,
-        this.qualityTier === 'lite',
+        preset.shadowsEnabled,
+        preset.propLodDistance,
+        preset.shadowLodDistance,
       );
       this.tilesRoot.add(built.group);
       this.loadedTiles.set(key, built);
@@ -839,36 +849,35 @@ export class RegionWorldScene {
 
   private applyLighting(): void {
     const preset = getQualityPreset(this.qualityTier);
+    const tc = getTimeCycleProfile(this.timeOfDay);
     const farDist = preset.fogFar + 190;
-    if (this.timeOfDay === 'day') {
-      this.skyMat.map = this.daySkyTex;
-      this.skyMat.needsUpdate = true;
-      this.scene.background = new THREE.Color(0xcde3f2);
-      this.scene.fog = new THREE.Fog(0xd4e5f0, preset.fogNear * 1.15, farDist);
-      this.hemiLight.color.setHex(0xd6eeff);
-      this.hemiLight.groundColor.setHex(0x807263);
-      this.hemiLight.intensity = 1.15;
-      this.sunLight.color.setHex(0xfff1d4);
-      this.sunLight.intensity = 2.25;
-      this.upperBuildingMat.emissiveIntensity = 0.0;
-      this.groundRoofMat.emissiveIntensity = 0.04;
-      this.taxiRig.vehicleHeadLight.intensity = 0;
-      this.renderer.toneMappingExposure = 1.08;
-    } else {
-      this.skyMat.map = this.nightSkyTex;
-      this.skyMat.needsUpdate = true;
-      this.scene.background = new THREE.Color(0x0b152c);
-      this.scene.fog = new THREE.Fog(0x101c36, preset.fogNear * 0.85, farDist * 0.9);
-      this.hemiLight.color.setHex(0x5578b4);
-      this.hemiLight.groundColor.setHex(0x1c2336);
-      this.hemiLight.intensity = 0.65;
-      this.sunLight.color.setHex(0xaac4f6);
-      this.sunLight.intensity = 0.92;
-      this.upperBuildingMat.emissiveIntensity = 1.08;
-      this.groundRoofMat.emissiveIntensity = 1.15;
-      this.taxiRig.vehicleHeadLight.intensity = 24;
-      this.renderer.toneMappingExposure = 1.16;
-    }
+
+    this.skyMat.map =
+      this.timeOfDay === 'day'
+        ? this.daySkyTex
+        : this.timeOfDay === 'sunset'
+          ? this.sunsetSkyTex
+          : this.nightSkyTex;
+    this.skyMat.needsUpdate = true;
+
+    this.scene.background = new THREE.Color(tc.skyHorizonHex);
+    this.scene.fog = new THREE.Fog(
+      tc.fogHex,
+      preset.fogNear * (this.timeOfDay === 'night' ? 0.85 : 1.08),
+      farDist * (this.timeOfDay === 'night' ? 0.9 : 1.0),
+    );
+    this.hemiLight.color.setHex(tc.hemiSkyHex);
+    this.hemiLight.groundColor.setHex(tc.hemiGroundHex);
+    this.hemiLight.intensity = tc.hemiIntensity * 1.4;
+    this.sunLight.color.setHex(tc.sunHex);
+    this.sunLight.intensity = tc.sunIntensity * 1.45;
+    this.upperBuildingMat.emissiveIntensity = tc.windowEmissiveIntensity;
+    this.groundRoofMat.emissiveIntensity = tc.groundEmissiveIntensity;
+    // Wet-asphalt twilight & midnight specular sheen (Vice City rain-washed avenue feel!)
+    this.roadMat.roughness = tc.roadRoughness;
+    this.roadMat.metalness = tc.roadMetalness;
+    this.taxiRig.vehicleHeadLight.intensity = tc.headlightIntensity * 7.2;
+    this.renderer.toneMappingExposure = tc.exposure;
   }
 
   applyQuality(tier: QualityTier): void {
@@ -952,10 +961,12 @@ export class RegionWorldScene {
 
     for (let i = 0; i < count; i += 1) {
       const p = agents[i]!;
-      const bob = Math.abs(Math.sin(p.stridePhase)) * 0.055;
+      const isIdle = p.behavior === 'idle';
+      const bob = isIdle ? 0 : Math.abs(Math.sin(p.stridePhase)) * (p.behavior === 'run' ? 0.085 : 0.055);
+      const lean = p.behavior === 'run' ? 0.14 : 0;
       const baseY = p.y + 0.34;
 
-      this.dummyObj.rotation.set(0, p.heading, 0);
+      this.dummyObj.rotation.set(lean, p.heading, 0);
       this.dummyObj.scale.set(1, 1, 1);
 
       this.dummyObj.position.set(p.x, baseY + 0.39 + bob * 0.4, p.z);
@@ -968,6 +979,7 @@ export class RegionWorldScene {
       this.pedTorsoInst.setMatrixAt(i, this.dummyObj.matrix);
       this.pedTorsoInst.setColorAt(i, PED_SHIRT_COLORS[p.shirtColorIndex % PED_SHIRT_COLORS.length]!);
 
+      this.dummyObj.rotation.set(0, p.heading + p.lookYaw, 0);
       this.dummyObj.position.set(p.x, baseY + 1.52 + bob, p.z);
       this.dummyObj.updateMatrix();
       this.pedHeadInst.setMatrixAt(i, this.dummyObj.matrix);
@@ -1101,8 +1113,13 @@ export class RegionWorldScene {
     const focusY = inVehicle ? vehicle.y : playerY;
     const focusZ = inVehicle ? vehicle.z : playerZ;
 
-    // Keep shadow frustum centered tightly around active focus
-    this.sunLight.position.set(focusX + 88, focusY + 128, focusZ + 62);
+    // Keep shadow frustum centered tightly around active focus, tracking TimeCycle sun/moon angle
+    const tc = getTimeCycleProfile(this.timeOfDay);
+    this.sunLight.position.set(
+      focusX + tc.sunOffset[0],
+      focusY + tc.sunOffset[1],
+      focusZ + tc.sunOffset[2],
+    );
     this.sunLight.target.position.set(focusX, focusY, focusZ);
     this.sunLight.target.updateMatrixWorld();
 

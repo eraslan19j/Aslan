@@ -1,4 +1,4 @@
-import type { QualityTier } from './quality';
+import { normalizeQualityTier, type QualityTier } from './quality';
 
 export type LocaleCode = 'tr' | 'en';
 
@@ -36,7 +36,7 @@ export function createDefaultSave(nowIso = new Date().toISOString()): SaveData {
     schemaVersion: SAVE_SCHEMA_VERSION,
     updatedAtIso: nowIso,
     locale: 'tr',
-    qualityTier: 'normal',
+    qualityTier: 'high',
     activeRegionId: 'esenler-namik-kemal',
     playerPos: { x: 0, y: 1.0, z: 0 },
     cash: 250,
@@ -58,7 +58,8 @@ export function parseSaveJson(raw: string | null): SaveData | null {
     const obj = parsed as Record<string, unknown>;
     if (obj.schemaVersion !== SAVE_SCHEMA_VERSION) return null;
     if (obj.locale !== 'tr' && obj.locale !== 'en') return null;
-    if (obj.qualityTier !== 'normal' && obj.qualityTier !== 'lite') return null;
+    const normalizedTier = normalizeQualityTier(obj.qualityTier);
+    if (!normalizedTier) return null;
     if (typeof obj.activeRegionId !== 'string' || obj.activeRegionId.length === 0) return null;
     if (!isValidNumber(obj.cash) || obj.cash < 0) return null;
     if (!isValidNumber(obj.wantedStars) || obj.wantedStars < 0 || obj.wantedStars > 5) return null;
@@ -82,7 +83,7 @@ export function parseSaveJson(raw: string | null): SaveData | null {
       updatedAtIso:
         typeof obj.updatedAtIso === 'string' ? obj.updatedAtIso : new Date().toISOString(),
       locale: obj.locale,
-      qualityTier: obj.qualityTier,
+      qualityTier: normalizedTier,
       activeRegionId: obj.activeRegionId,
       playerPos: { x: pos.x, y: pos.y, z: pos.z },
       cash: Math.floor(obj.cash),

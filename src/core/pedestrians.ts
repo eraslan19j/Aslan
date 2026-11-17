@@ -7,6 +7,8 @@ import { findSanctuaryZone, type SanctuaryZone } from './sanctuary';
 import type { BuildingSpatialGrid } from './world/collision';
 import type { RoadGraph, RoadGraphNode } from './world/types';
 
+export type PedestrianBehavior = 'walk' | 'idle' | 'run';
+
 export interface PedestrianAgent {
   id: number;
   fromNodeId: string;
@@ -24,6 +26,9 @@ export interface PedestrianAgent {
   pantsColorIndex: number;
   panicTimer: number;
   dodgeOffset: number;
+  behavior: PedestrianBehavior;
+  idleTimer: number;
+  lookYaw: number;
 }
 
 interface PedLink {
@@ -136,7 +141,22 @@ export class PedestrianSimulator {
       pantsColorIndex: (id * 3) % 4,
       panicTimer: 0,
       dodgeOffset: 0,
+      behavior: 'walk',
+      idleTimer: 0,
+      lookYaw: 0,
     };
+  }
+
+  /** Dynamically scales live NPC density for Android 4-tier quality profiles without losing positions. */
+  setMaxActiveCount(targetCount: number, focusX = 0, focusZ = 0): void {
+    const clamped = Math.max(4, Math.min(80, Math.round(targetCount)));
+    if (this.startIds.length === 0) return;
+    while (this.agents.length > clamped) {
+      this.agents.pop();
+    }
+    while (this.agents.length < clamped) {
+      this.agents.push(this.spawnNear(this.agents.length, focusX, focusZ));
+    }
   }
 
   getAgents(): readonly PedestrianAgent[] {
@@ -273,14 +293,27 @@ export class PedestrianSimulator {
 
       if (p.panicTimer > 0) {
         p.panicTimer = Math.max(0, p.panicTimer - safeDt);
+        p.idleTimer = 0;
+        p.behavior = 'run';
         p.dodgeOffset = Math.min(1.15, p.dodgeOffset + safeDt * 2.8);
       } else {
         p.dodgeOffset = Math.max(0, p.dodgeOffset - safeDt * 1.4);
+        if (p.idleTimer > 0) {
+          p.idleTimer = Math.max(0, p.idleTimer - safeDt);
+          p.behavior = 'idle';
+          p.lookYaw = Math.sin((p.idleTimer + p.id) * 1.9) * 0.48;
+        } else {
+          p.behavior = 'walk';
+          p.lookYaw *= Math.max(0, 1 - safeDt * 6);
+        }
       }
 
-      const activeSpeed = p.panicTimer > 0 ? p.walkSpeed * 2.2 : p.walkSpeed;
-      p.edgeProgress += (activeSpeed * safeDt) / Math.max(1, p.edgeLength);
-      p.stridePhase += activeSpeed * safeDt * 4.5;
+      const activeSpeed =
+        p.behavior === 'idle' ? 0 : p.behavior === 'run' ? p.walkSpeed * 2.2 : p.walkSpeed;
+      if (activeSpeed > 0.05) {
+        p.edgeProgress += (activeSpeed * safeDt) / Math.max(1, p.edgeLength);
+        p.stridePhase += activeSpeed * safeDt * 4.5;
+      }
 
       let guard = 0;
       while (p.edgeProgress >= 1 && guard < 3) {
@@ -301,6 +334,12 @@ export class PedestrianSimulator {
         p.fromNodeId = arrived;
         p.toNodeId = next.to;
         p.edgeLength = next.length;
+        // ~22% of calm pedestrians briefly pause & glance around at street corners before crossing
+        if (p.panicTimer <= 0 && links.length >= 2 && this.rng.next() < 0.22) {
+          p.idleTimer = 1.5 + this.rng.next() * 2.4;
+          p.behavior = 'idle';
+          break;
+        }
       }
 
       const nFrom = this.nodes.get(p.fromNodeId);
@@ -331,7 +370,41 @@ export class PedestrianSimulator {
       p.x = resolved.x;
       p.z = resolved.z;
       p.y = sampleElev ? sampleElev(p.x, p.z) : nFrom.y + (nTo.y - nFrom.y) * p.edgeProgress;
-      p.heading = Math.atan2(segDx, segDz);
+      const targetHeading = Math.atan2(segDx, segDz);
+      let dAng = targetHeading - p.heading;
+      while (dAng > Math.PI) dAng -= Math.PI * 2;
+      while (dAng < -Math.PI) dAng += Math.PI * 2;
+      p.heading += dAng * Math.min(1, safeDt * 8.5);
+    }
+
+    // Recast/Detour-inspired local crowd separation so pedestrians walk naturally around one another
+    const minPedSep = 1.05;
+    const minPedSepSq = minPedSep * minPedSep;
+    for (let i = 0; i < this.agents.length; i += 1) {
+      const a = this.agents[i]!;
+      for (let j = i + 1; j < this.agents.length; j += 1) {
+        const b = this.agents[j]!;
+        const dx = b.x - a.x;
+        const dz = b.z - a.z;
+        const dSq = dx * dx + dz * dz;
+        if (dSq >= minPedSepSq || dSq < 1e-6) continue;
+        const dist = Math.sqrt(dSq);
+        const push = (minPedSep - dist) * 0.45;
+        const nx = dx / dist;
+        const nz = dz / dist;
+        a.x -= nx * push;
+        a.z -= nz * push;
+        b.x += nx * push;
+        b.z += nz * push;
+        if (spatialGrid) {
+          const ra = spatialGrid.resolveCircle(a.x, a.z, PED_COLLISION_RADIUS);
+          a.x = ra.x;
+          a.z = ra.z;
+          const rb = spatialGrid.resolveCircle(b.x, b.z, PED_COLLISION_RADIUS);
+          b.x = rb.x;
+          b.z = rb.z;
+        }
+      }
     }
 
     return { closeCalls };

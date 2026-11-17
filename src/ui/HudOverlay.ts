@@ -515,6 +515,19 @@ export class HudOverlay {
     }
   }
 
+  private getQualityLabel(t: ReturnType<typeof getStrings>): string {
+    if (this.qualityTier === 'low') return t.qualityLow;
+    if (this.qualityTier === 'medium') return t.qualityMedium;
+    if (this.qualityTier === 'ultra') return t.qualityUltra;
+    return t.qualityHigh;
+  }
+
+  private getTimeLabel(t: ReturnType<typeof getStrings>): string {
+    if (this.timeOfDay === 'sunset') return `${t.timeSunset} 🌇`;
+    if (this.timeOfDay === 'night') return `${t.timeNight} 🌙`;
+    return `${t.timeDay} ☀`;
+  }
+
   private applyLabels(): void {
     const t = getStrings(this.locale);
     this.titleEl.textContent = t.appTitle;
@@ -524,9 +537,8 @@ export class HudOverlay {
     this.audioBtn.textContent = this.audioMuted ? '🔇' : '🔊';
     this.audioBtn.title = this.audioMuted ? t.soundOff : t.soundOn;
     this.audioBtn.classList.toggle('active', this.audioMuted);
-    this.qualityBtn.textContent =
-      this.qualityTier === 'lite' ? t.qualityLite : t.qualityNormal;
-    this.qualityBtn.classList.toggle('active', this.qualityTier === 'lite');
+    this.qualityBtn.textContent = this.getQualityLabel(t);
+    this.qualityBtn.classList.toggle('active', this.qualityTier === 'ultra' || this.qualityTier === 'low');
     this.settingsBtn.textContent = t.settingsButton;
     this.aboutBtn.textContent = t.aboutButton;
     this.pauseBtn.textContent = t.pauseButton;
@@ -755,13 +767,12 @@ export class HudOverlay {
       ctrlRow.className = 'modal-actions modal-actions-tight';
 
       const qualBtn = this.makeButton('settings-quality', () => this.callbacks.onToggleQuality());
-      qualBtn.textContent =
-        this.qualityTier === 'lite' ? `${t.qualityLite} ✓` : t.qualityNormal;
-      if (this.qualityTier === 'lite') qualBtn.classList.add('active');
+      qualBtn.textContent = `${this.getQualityLabel(t)} ✓`;
+      qualBtn.classList.add('active');
 
       const timeBtn = this.makeButton('settings-time', () => this.callbacks.onToggleTimeOfDay());
-      timeBtn.textContent = this.timeOfDay === 'night' ? `${t.timeNight} 🌙` : `${t.timeDay} ☀`;
-      if (this.timeOfDay === 'night') timeBtn.classList.add('active');
+      timeBtn.textContent = this.getTimeLabel(t);
+      if (this.timeOfDay !== 'day') timeBtn.classList.add('active');
 
       const soundBtn = this.makeButton('settings-audio', () => this.callbacks.onToggleAudio());
       soundBtn.textContent = this.audioMuted ? `🔇 ${t.soundOff}` : `🔊 ${t.soundOn}`;

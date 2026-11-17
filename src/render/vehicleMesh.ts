@@ -11,10 +11,13 @@ export interface PlayerTaxiRig {
   root: THREE.Group;
   chassisGroup: THREE.Group;
   driverSeatMount: THREE.Group;
+  steeringWheel: THREE.Mesh;
   frontSteerPivots: THREE.Group[];
   wheelSpinMeshes: THREE.Group[];
   headlightMat: THREE.MeshBasicMaterial;
   brakeLightMat: THREE.MeshBasicMaterial;
+  leftSignalMat: THREE.MeshBasicMaterial;
+  rightSignalMat: THREE.MeshBasicMaterial;
   vehicleHeadLight: THREE.PointLight;
   geometries: THREE.BufferGeometry[];
   materials: THREE.Material[];
@@ -192,6 +195,32 @@ export function createPlayerTaxiRig(contactShadowTex: THREE.Texture): PlayerTaxi
   driverSeatMount.scale.setScalar(0.84);
   chassisGroup.add(driverSeatMount);
 
+  // Interactive Interior Steering Wheel (turns smoothly with steering input!)
+  const steeringWheelGeo = trackGeo(new THREE.TorusGeometry(0.16, 0.025, 6, 14));
+  const steeringWheelMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x1a1e26, roughness: 0.55 }));
+  const steeringWheel = new THREE.Mesh(steeringWheelGeo, steeringWheelMat);
+  steeringWheel.position.set(0.38, 0.98, 0.44);
+  steeringWheel.rotation.x = 0.45;
+  chassisGroup.add(steeringWheel);
+
+  // Dynamic Amber Turn Signal Indicators (left/right front + rear pairs)
+  const leftSignalMat = trackMat(new THREE.MeshBasicMaterial({ color: 0x6b440d }));
+  const rightSignalMat = trackMat(new THREE.MeshBasicMaterial({ color: 0x6b440d }));
+  const leftSignalGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.BoxGeometry(0.14, 0.11, 0.07), color: 0xffffff, position: [0.82, 0.67, 2.13] },
+      { geometry: new THREE.BoxGeometry(0.14, 0.11, 0.07), color: 0xffffff, position: [0.85, 0.68, -2.16] },
+    ]),
+  );
+  const rightSignalGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.BoxGeometry(0.14, 0.11, 0.07), color: 0xffffff, position: [-0.82, 0.67, 2.13] },
+      { geometry: new THREE.BoxGeometry(0.14, 0.11, 0.07), color: 0xffffff, position: [-0.85, 0.68, -2.16] },
+    ]),
+  );
+  chassisGroup.add(new THREE.Mesh(leftSignalGeo, leftSignalMat));
+  chassisGroup.add(new THREE.Mesh(rightSignalGeo, rightSignalMat));
+
   // 5. Dynamic Rear Brake Lights (merged pair -> 1 draw call, brightens when braking!)
   const brakeLightsGeo = trackGeo(
     mergeColoredParts([
@@ -263,10 +292,13 @@ export function createPlayerTaxiRig(contactShadowTex: THREE.Texture): PlayerTaxi
     root,
     chassisGroup,
     driverSeatMount,
+    steeringWheel,
     frontSteerPivots,
     wheelSpinMeshes,
     headlightMat,
     brakeLightMat,
+    leftSignalMat,
+    rightSignalMat,
     vehicleHeadLight,
     geometries,
     materials,
@@ -275,7 +307,8 @@ export function createPlayerTaxiRig(contactShadowTex: THREE.Texture): PlayerTaxi
 }
 
 /**
- * Updates front wheel steering angle, rolling wheel spin, brake light glow, and subtle body roll.
+ * Updates front wheel steering angle, rolling wheel spin, steering wheel, turn signals,
+ * brake light glow, and spring-damped suspension pitch/roll/heave.
  */
 export function updatePlayerTaxiRig(rig: PlayerTaxiRig, vehicle: PlayerVehicleState): void {
   const steerAngle = vehicle.steerVisual * 0.42;
@@ -285,9 +318,16 @@ export function updatePlayerTaxiRig(rig: PlayerTaxiRig, vehicle: PlayerVehicleSt
   for (const wheel of rig.wheelSpinMeshes) {
     wheel.rotation.x = vehicle.wheelSpin;
   }
+  rig.steeringWheel.rotation.z = -vehicle.steerVisual * 1.6;
   rig.brakeLightMat.color.setHex(vehicle.braking ? 0xff2626 : 0x7a1212);
 
-  const speedRatio = Math.min(1, Math.abs(vehicle.speed) / 14);
-  rig.chassisGroup.rotation.z = -vehicle.steerVisual * speedRatio * 0.055;
-  rig.chassisGroup.rotation.x = vehicle.braking && vehicle.speed > 1 ? 0.032 : 0;
+  // Blinking amber turn signals when steering into a turn
+  const blinkOn = Math.floor(vehicle.signalTimer * 3.6) % 2 === 0;
+  rig.leftSignalMat.color.setHex(vehicle.steerVisual > 0.25 && blinkOn ? 0xffae19 : 0x6b440d);
+  rig.rightSignalMat.color.setHex(vehicle.steerVisual < -0.25 && blinkOn ? 0xffae19 : 0x6b440d);
+
+  // Spring-damped suspension body pitch, cornering roll, and subtle vertical heave
+  rig.chassisGroup.rotation.z = vehicle.suspRoll;
+  rig.chassisGroup.rotation.x = vehicle.suspPitch;
+  rig.chassisGroup.position.y = vehicle.suspHeave;
 }

@@ -137,7 +137,7 @@ describe('diagnostics & multi-region registry', () => {
       appVersion: '0.2.0',
       timestampIso: '2026-11-16T22:00:00.000Z',
       regionId: 'esenler-namik-kemal',
-      qualityTier: 'normal',
+      qualityTier: 'high',
       timeOfDay: 'day',
       mode: 'driving',
       fps: 58,

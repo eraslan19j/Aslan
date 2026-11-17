@@ -584,6 +584,15 @@ export function createSkyDomeTexture(mode: TimeOfDay): THREE.CanvasTexture {
       grad.addColorStop(0.51, '#cde3f2');
       grad.addColorStop(0.57, '#ece6d8');
       grad.addColorStop(1.0, '#b5b0a6');
+    } else if (mode === 'sunset') {
+      // Iconic Vice City golden-peach & pastel magenta-violet coastal sunset sky
+      grad.addColorStop(0.0, '#1e1b4b');
+      grad.addColorStop(0.2, '#5b2e6f');
+      grad.addColorStop(0.36, '#c45276');
+      grad.addColorStop(0.47, '#f58c5b');
+      grad.addColorStop(0.53, '#ffc57a');
+      grad.addColorStop(0.6, '#d69074');
+      grad.addColorStop(1.0, '#463345');
     } else {
       grad.addColorStop(0.0, '#040916');
       grad.addColorStop(0.32, '#0b1834');
@@ -594,18 +603,31 @@ export function createSkyDomeTexture(mode: TimeOfDay): THREE.CanvasTexture {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 1024, 512);
 
-    const rng = createRng(mode === 'day' ? 34901 : 34902);
-    if (mode === 'day') {
-      // Warm afternoon Mediterranean sun halo
-      const sunX = 280;
-      const sunY = 178;
-      const sunGrad = ctx.createRadialGradient(sunX, sunY, 6, sunX, sunY, 120);
-      sunGrad.addColorStop(0, 'rgba(255,253,240,1)');
-      sunGrad.addColorStop(0.15, 'rgba(255,245,210,0.85)');
-      sunGrad.addColorStop(0.45, 'rgba(255,232,185,0.28)');
-      sunGrad.addColorStop(1, 'rgba(255,232,185,0)');
+    const rng = createRng(mode === 'day' ? 34901 : mode === 'sunset' ? 34903 : 34902);
+    if (mode === 'day' || mode === 'sunset') {
+      const sunX = mode === 'sunset' ? 740 : 280;
+      const sunY = mode === 'sunset' ? 236 : 178;
+      const sunGrad = ctx.createRadialGradient(
+        sunX,
+        sunY,
+        6,
+        sunX,
+        sunY,
+        mode === 'sunset' ? 165 : 120,
+      );
+      if (mode === 'sunset') {
+        sunGrad.addColorStop(0, 'rgba(255,248,215,1)');
+        sunGrad.addColorStop(0.18, 'rgba(255,190,110,0.92)');
+        sunGrad.addColorStop(0.5, 'rgba(248,110,120,0.38)');
+        sunGrad.addColorStop(1, 'rgba(248,110,120,0)');
+      } else {
+        sunGrad.addColorStop(0, 'rgba(255,253,240,1)');
+        sunGrad.addColorStop(0.15, 'rgba(255,245,210,0.85)');
+        sunGrad.addColorStop(0.45, 'rgba(255,232,185,0.28)');
+        sunGrad.addColorStop(1, 'rgba(255,232,185,0)');
+      }
       ctx.fillStyle = sunGrad;
-      ctx.fillRect(sunX - 130, sunY - 130, 260, 260);
+      ctx.fillRect(sunX - 170, sunY - 170, 340, 340);
 
       // Soft wispy high cumulus clouds across upper hemisphere
       for (let i = 0; i < 42; i += 1) {
@@ -614,9 +636,15 @@ export function createSkyDomeTexture(mode: TimeOfDay): THREE.CanvasTexture {
         const rx = 28 + rng.next() * 75;
         const ry = 8 + rng.next() * 18;
         const cGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, rx);
-        cGrad.addColorStop(0, 'rgba(255,255,255,0.52)');
-        cGrad.addColorStop(0.55, 'rgba(248,251,255,0.24)');
-        cGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        if (mode === 'sunset') {
+          cGrad.addColorStop(0, 'rgba(255,205,155,0.62)');
+          cGrad.addColorStop(0.55, 'rgba(240,130,138,0.28)');
+          cGrad.addColorStop(1, 'rgba(240,130,138,0)');
+        } else {
+          cGrad.addColorStop(0, 'rgba(255,255,255,0.52)');
+          cGrad.addColorStop(0.55, 'rgba(248,251,255,0.24)');
+          cGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        }
         ctx.save();
         ctx.translate(cx, cy);
         ctx.scale(1, ry / rx);

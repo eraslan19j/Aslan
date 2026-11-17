@@ -94,6 +94,14 @@ export interface PlayerVehicleState {
   braking: boolean;
   /** True when handbrake drifting / high-slip cornering. */
   drifting: boolean;
+  /** Spring-damped suspension chassis pitch offset (rad: +nose dive, -accel squat). */
+  suspPitch: number;
+  /** Spring-damped suspension lateral roll (rad). */
+  suspRoll: number;
+  /** Vertical chassis suspension bounce (m). */
+  suspHeave: number;
+  /** Turn-signal blinker timer (seconds). */
+  signalTimer: number;
 }
 
 export interface DrivingInput {
@@ -149,6 +157,10 @@ export function createVehicleState(
     pitch: 0,
     braking: false,
     drifting: false,
+    suspPitch: 0,
+    suspRoll: 0,
+    suspHeave: 0,
+    signalTimer: 0,
   };
 }
 
@@ -161,6 +173,7 @@ export function stepPlayerVehicle(
   spatialGrid: BuildingSpatialGrid,
 ): { collided: boolean; speedKph: number; impactSpeed: number; gear: 'R' | 'N' | 'D' } {
   const spec = VEHICLE_SPECS[v.archetype];
+  const prevSpeed = v.speed;
   const throttle = clamp(input.throttle, 0, 1);
   const brake = clamp(input.brake, 0, 1);
   const steer = clamp(input.steer, -1, 1);
@@ -325,10 +338,32 @@ export function stepPlayerVehicle(
     }
   }
 
+  const prevY = v.y;
+  const nextElev = sampleElev(nextX, nextZ);
+
   v.x = nextX;
   v.z = nextZ;
-  v.y = sampleElev(v.x, v.z);
+  v.y = nextElev;
   v.wheelSpin += (v.speed * dt) / spec.wheelRadius;
+
+  // Smooth spring-damper chassis suspension physics (accel squat, brake dive, body roll, bump heave)
+  const safeDt = Math.max(0.004, dt);
+  const longAccel = clamp((v.speed - prevSpeed) / safeDt, -22, 16);
+  const targetSuspPitch = clamp(
+    (v.braking && v.speed > 0.8 ? 0.042 : -longAccel * 0.0028),
+    -0.04,
+    0.055,
+  );
+  const speedNorm = clamp(Math.abs(v.speed) / 14, 0, 1);
+  const targetSuspRoll = -v.steerVisual * speedNorm * (v.drifting ? 0.088 : 0.062);
+  const bumpVel = clamp((nextElev - prevY) / safeDt, -4, 4);
+  const targetSuspHeave = clamp(-Math.abs(bumpVel) * 0.012 + (v.drifting ? 0.014 : 0), -0.045, 0.03);
+
+  const suspLerp = Math.min(1, dt * 11);
+  v.suspPitch += (targetSuspPitch - v.suspPitch) * suspLerp;
+  v.suspRoll += (targetSuspRoll - v.suspRoll) * suspLerp;
+  v.suspHeave += (targetSuspHeave - v.suspHeave) * Math.min(1, dt * 14);
+  v.signalTimer = (v.signalTimer + dt) % 1000;
 
   const gear: 'R' | 'N' | 'D' = v.speed < -0.25 ? 'R' : v.speed > 0.25 ? 'D' : 'N';
   return {

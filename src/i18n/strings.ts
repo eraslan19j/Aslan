@@ -11,9 +11,12 @@ export interface UiStrings {
   speedUnit: string;
   physicsReady: string;
   physicsLoading: string;
-  qualityNormal: string;
-  qualityLite: string;
+  qualityLow: string;
+  qualityMedium: string;
+  qualityHigh: string;
+  qualityUltra: string;
   timeDay: string;
+  timeSunset: string;
   timeNight: string;
   settingsButton: string;
   pauseButton: string;
@@ -78,7 +81,7 @@ export interface UiStrings {
 const STRINGS: Record<LocaleCode, UiStrings> = {
   tr: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.4.0 · Açık Dünya',
+    milestoneTag: 'v0.5.0 · Açık Dünya',
     fpsLabel: 'FPS',
     drawsLabel: 'Çizim',
     trisLabel: 'Üçgen',
@@ -87,9 +90,12 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     speedUnit: 'km/s',
     physicsReady: 'Fizik Hazır',
     physicsLoading: 'Fizik…',
-    qualityNormal: 'Normal',
-    qualityLite: 'Lite',
+    qualityLow: 'Düşük',
+    qualityMedium: 'Orta',
+    qualityHigh: 'Yüksek',
+    qualityUltra: 'Ultra',
     timeDay: 'Gündüz',
+    timeSunset: 'Gün Batımı',
     timeNight: 'Gece',
     settingsButton: 'Ayarlar',
     pauseButton: 'Duraklat',
@@ -123,7 +129,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     reportCopied: 'Rapor panoya kopyalandı!',
     aboutTitle: 'Hakkında ve ODbL / Açık Veri Atıfları',
     aboutSubtitle:
-      'Istanbul Streets v0.4.0 — İstanbul açık harita verileriyle çevrimdışı çalışan %100 orijinal açık dünya oyunu.',
+      'Istanbul Streets v0.5.0 — İstanbul açık harita verileriyle çevrimdışı çalışan %100 orijinal açık dünya oyunu.',
     aboutDataHeading: 'Harita ve Türetilmiş Veri Atıfları (public/derived-data/)',
     aboutOriginalityNote:
       'Tüm karakterler, araçlar, markalar ve kurumlar kurgusaldır; gerçek kişi, ev adresi veya işletme logosu yoktur. Tüm ibadethaneler otomatik şiddetsiz Güvenli Alandır.',
@@ -157,7 +163,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
   },
   en: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.4.0 · Open World',
+    milestoneTag: 'v0.5.0 · Open World',
     fpsLabel: 'FPS',
     drawsLabel: 'Draws',
     trisLabel: 'Tris',
@@ -166,9 +172,12 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     speedUnit: 'km/h',
     physicsReady: 'Physics OK',
     physicsLoading: 'Physics…',
-    qualityNormal: 'Normal',
-    qualityLite: 'Lite',
+    qualityLow: 'Low',
+    qualityMedium: 'Medium',
+    qualityHigh: 'High',
+    qualityUltra: 'Ultra',
     timeDay: 'Day',
+    timeSunset: 'Sunset',
     timeNight: 'Night',
     settingsButton: 'Settings',
     pauseButton: 'Pause',
@@ -202,7 +211,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     reportCopied: 'Report copied to clipboard!',
     aboutTitle: 'About & ODbL / Open Data Attributions',
     aboutSubtitle:
-      'Istanbul Streets v0.4.0 — 100% original offline open-world game built from open Istanbul geospatial data.',
+      'Istanbul Streets v0.5.0 — 100% original offline open-world game built from open Istanbul geospatial data.',
     aboutDataHeading: 'Map & Derived Data Attributions (public/derived-data/)',
     aboutOriginalityNote:
       'All characters, vehicles, brands, and agencies are fictional; zero real people, home addresses, or brand logos. All places of worship are automatic Safe Zones.',

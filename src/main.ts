@@ -19,7 +19,14 @@ import {
   stepOnFootPlayer,
   type VehicleColliderOBB,
 } from './core/playerController';
-import { suggestQualityTier, type QualityTier } from './core/quality';
+import {
+  getQualityPreset,
+  nextQualityTier,
+  normalizeQualityTier,
+  suggestQualityTier,
+  type QualityTier,
+} from './core/quality';
+import { nextAtmospherePreset } from './core/timeCycle';
 import { findSanctuaryZone } from './core/sanctuary';
 import { SaveStore, type SaveData } from './core/save';
 import { RoadTrafficSimulator } from './core/traffic';
@@ -61,7 +68,7 @@ import { ProceduralSoundEngine } from './runtime/soundEngine';
 import { HudOverlay } from './ui/HudOverlay';
 import { MinimapRenderer } from './ui/MinimapRenderer';
 
-const APP_VERSION = '0.4.0';
+const APP_VERSION = '0.5.0';
 
 interface ActiveRegionRuntime {
   meta: RegionRegistryEntry;
@@ -184,17 +191,16 @@ async function loadRegionBundle(
     qualityTier,
     timeOfDay,
   );
-  const trafficCount = qualityTier === 'lite' ? 12 : 18;
-  const pedCount = qualityTier === 'lite' ? 16 : 32;
+  const qPreset = getQualityPreset(qualityTier);
   const seed = regionId === 'esenler-namik-kemal' ? 34034 : 34001;
   const traffic = new RoadTrafficSimulator(
     roadGraph,
-    trafficCount,
+    qPreset.trafficCount,
     seed,
     manifest.spawn.x,
     manifest.spawn.z,
   );
-  const pedestrians = new PedestrianSimulator(roadGraph, pedCount, seed + 17);
+  const pedestrians = new PedestrianSimulator(roadGraph, qPreset.pedestrianCount, seed + 17);
   const missions = new TaxiMissionManager(manifest.landmarks, roadGraph.nodes, seed + 99);
 
   return { meta, manifest, terrain, roadGraph, scene, traffic, pedestrians, missions };
@@ -221,10 +227,12 @@ async function bootstrap(): Promise<void> {
     const nav = navigator as Navigator & { deviceMemory?: number };
     save.qualityTier = suggestQualityTier(nav.hardwareConcurrency, nav.deviceMemory);
   }
-  if (params.get('mode') === 'lite') save.qualityTier = 'lite';
-  if (params.get('mode') === 'normal') save.qualityTier = 'normal';
+  const urlMode = normalizeQualityTier(params.get('mode'));
+  if (urlMode) save.qualityTier = urlMode;
 
-  let timeOfDay: TimeOfDay = params.get('time') === 'night' ? 'night' : 'day';
+  const urlTime = params.get('time');
+  let timeOfDay: TimeOfDay =
+    urlTime === 'night' ? 'night' : urlTime === 'sunset' ? 'sunset' : 'day';
   let activeRegionId: RegionId = resolveRegionId(params.get('region') ?? save.activeRegionId);
   let paused = false;
   let renderFrozen = false;
@@ -571,7 +579,13 @@ async function bootstrap(): Promise<void> {
 
   const setQuality = (tier: QualityTier): void => {
     save.qualityTier = tier;
+    const preset = getQualityPreset(tier);
     runtime.scene.applyQuality(save.qualityTier);
+    const fx = inVehicle ? playerVehicle.x : playerX;
+    const fz = inVehicle ? playerVehicle.z : playerZ;
+    runtime.traffic.setMaxActiveCount(preset.trafficCount, fx, fz);
+    runtime.pedestrians.setMaxActiveCount(preset.pedestrianCount, fx, fz);
+    runtime.scene.updateStreaming(fx, fz);
     hud.setState(
       save.locale,
       save.qualityTier,
@@ -585,7 +599,7 @@ async function bootstrap(): Promise<void> {
   };
 
   const toggleQuality = (): void => {
-    setQuality(save.qualityTier === 'normal' ? 'lite' : 'normal');
+    setQuality(nextQualityTier(save.qualityTier));
     sound.playUiTap();
     void triggerLightHaptic();
   };
@@ -605,7 +619,7 @@ async function bootstrap(): Promise<void> {
   };
 
   const toggleTimeOfDay = (): void => {
-    setTimeOfDay(timeOfDay === 'day' ? 'night' : 'day');
+    setTimeOfDay(nextAtmospherePreset(timeOfDay));
     sound.playUiTap();
     void triggerLightHaptic();
   };
