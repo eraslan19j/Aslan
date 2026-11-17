@@ -276,6 +276,88 @@ def repair_region(region_id: str) -> dict[str, Any]:
 
         tile["buildings"] = kept_buildings
 
+    # --- STEP 2B: Eliminate building-on-building duplicate & nested overlaps (GeoQC + Shapely) ---
+    # Deduplicates GPKG multi-layer duplicates (buildings + amenities + tourism) and clips partial overlaps
+    # so zero walls/roofs z-fight on mobile GPUs while keeping every distinct building intact!
+    all_bldg_refs: list[tuple[str, int, dict[str, Any], Polygon]] = []
+    for tkey, tile in tiles.items():
+        for idx_b, b in enumerate(tile.get("buildings", [])):
+            pts = ring_to_coords(b["ring"])
+            if len(pts) < 3:
+                continue
+            p = Polygon(pts)
+            if not p.is_valid:
+                p = p.buffer(0)
+            if not p.is_empty and p.area >= 5.0:
+                all_bldg_refs.append((tkey, idx_b, b, p))
+
+    # Process larger/taller buildings first so inner duplicates are detected deterministically (O(N log N) single STRtree!)
+    all_bldg_refs.sort(key=lambda item: (item[3].area, float(item[2].get("height", 0.0))), reverse=True)
+    full_tree = STRtree([item[3] for item in all_bldg_refs]) if all_bldg_refs else None
+    accepted_by_idx: dict[int, Polygon] = {}
+    drop_ids: set[str] = set()
+    bldg_dups_removed = 0
+    bldg_overlaps_trimmed = 0
+
+    for idx_cur, (_tkey, _idx_b, b, poly) in enumerate(all_bldg_refs):
+        bid = str(b["id"])
+        bh = float(b.get("height", 6.0))
+        hits = [h for h in (full_tree.query(poly, predicate="intersects") if full_tree is not None else []) if h < idx_cur and h in accepted_by_idx]
+        if not hits:
+            accepted_by_idx[idx_cur] = poly
+            continue
+
+        cur_poly = poly
+        should_drop = False
+        was_trimmed = False
+        for h_idx in hits:
+            other = accepted_by_idx[h_idx]
+            inter = cur_poly.intersection(other)
+            if inter.area <= 0.5:
+                continue
+            min_area = min(cur_poly.area, other.area)
+            if inter.area / max(1e-6, min_area) > 0.72:
+                should_drop = True
+                break
+            diff_p = pick_best_polygon(cur_poly.difference(other))
+            if diff_p is None or diff_p.area < 5.0:
+                should_drop = True
+                break
+            diff_p = pick_best_polygon(diff_p.simplify(0.08, preserve_topology=True).buffer(0))
+            if diff_p is None or diff_p.area < 5.0:
+                should_drop = True
+                break
+            cur_poly = diff_p
+            was_trimmed = True
+
+        if should_drop:
+            drop_ids.add(bid)
+            bldg_dups_removed += 1
+        elif was_trimmed:
+            ext_coords = list(cur_poly.exterior.coords)[:-1]
+            new_ring = coords_to_ring([(float(x), float(z)) for x, z in ext_coords])
+            new_pts = ring_to_coords(new_ring)
+            if len(new_pts) >= 3 and validate_trimesh_walls(new_pts, float(b["baseY"]), bh):
+                xs = [pt[0] for pt in new_pts]
+                zs = [pt[1] for pt in new_pts]
+                b["ring"] = new_ring
+                b["minX"] = round(min(xs), 2)
+                b["maxX"] = round(max(xs), 2)
+                b["minZ"] = round(min(zs), 2)
+                b["maxZ"] = round(max(zs), 2)
+                bldg_overlaps_trimmed += 1
+                accepted_by_idx[idx_cur] = Polygon(new_pts)
+            else:
+                drop_ids.add(bid)
+                bldg_dups_removed += 1
+        else:
+            accepted_by_idx[idx_cur] = cur_poly
+
+    if drop_ids:
+        for tile in tiles.values():
+            tile["buildings"] = [b for b in tile.get("buildings", []) if str(b["id"]) not in drop_ids]
+        repaired_building_polys = list(accepted_by_idx.values())
+
     # --- STEP 3: Road Topology & Graph Gap Repair (Preserving Intentional Dead Ends) ---
     bldg_tree = STRtree(repaired_building_polys) if repaired_building_polys else None
     nodes = {n["id"]: n for n in road_graph["nodes"]}
@@ -454,6 +536,8 @@ def repair_region(region_id: str) -> dict[str, Any]:
         "buildingsUntouched": buildings_untouched,
         "buildingsTrimmed": buildings_trimmed,
         "buildingsRemovedUnrecoverable": buildings_removed_unrecoverable,
+        "buildingDuplicatesRemoved": bldg_dups_removed,
+        "buildingOverlapsTrimmed": bldg_overlaps_trimmed,
         "roadOverlapAreaReclaimedM2": round(area_reclaimed_m2, 2),
         "removedStubRoads": removed_stub_roads,
         "cleanedMicroRoadPoints": cleaned_road_segments,

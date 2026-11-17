@@ -287,11 +287,26 @@ def audit_region(region_id: str) -> dict[str, Any]:
                 if len(bldg_tree.query(pt, predicate="intersects")) > 0:
                     sidewalk_inside_building += 1
 
+    # 5. Building-to-building overlap & duplicate audit (GeoQC / Shapely)
+    bldg_bldg_overlaps = 0
+    bldg_bldg_overlap_area = 0.0
+    if bldg_tree is not None:
+        for idx, poly in enumerate(building_polys):
+            for j in bldg_tree.query(poly, predicate="intersects"):
+                if j <= idx:
+                    continue
+                inter = poly.intersection(building_polys[j])
+                if inter.area > 0.5:
+                    bldg_bldg_overlaps += 1
+                    bldg_bldg_overlap_area += float(inter.area)
+
     return {
         "regionId": region_id,
         "tiles": len(tile_files),
         "totalBuildings": len(buildings_all),
         "totalRoads": len(roads_all),
+        "buildingBuildingOverlaps": bldg_bldg_overlaps,
+        "buildingBuildingOverlapAreaM2": round(bldg_bldg_overlap_area, 2),
         "duplicateBuildingIdsAcrossTiles": duplicate_building_ids,
         "invalidBuildingPolygons": invalid_polygons,
         "zeroAreaBuildings": zero_area_buildings,

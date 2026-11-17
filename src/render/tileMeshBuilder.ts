@@ -57,14 +57,17 @@ const ROAD_RGB: Record<RoadClass, [number, number, number]> = {
   tram: [0.85, 0.36, 0.32],
 };
 
+// Unified road deck lifts: ALL drivable asphalt sits cleanly ABOVE the 0.24m concrete curb bed
+// so curbs NEVER slice across T-junctions or cross-street entrances!
+const CURB_DECK_LIFT = 0.24;
 const ROAD_LIFT: Record<RoadClass, number> = {
-  tram: 0.48,
-  primary: 0.42,
-  secondary: 0.38,
-  tertiary: 0.34,
-  residential: 0.3,
-  service: 0.26,
-  pedestrian: 0.23,
+  tram: 0.38,
+  primary: 0.34,
+  secondary: 0.33,
+  tertiary: 0.32,
+  residential: 0.31,
+  service: 0.3,
+  pedestrian: 0.285,
 };
 
 function hashString(str: string): number {
@@ -348,6 +351,7 @@ function buildBatchedBuildingsGeometries(tile: RegionTileData): {
 function buildBatchedRoadsGeometry(
   tile: RegionTileData,
   terrain: TerrainGrid,
+  tileSize = 300,
 ): THREE.BufferGeometry | null {
   if (tile.roads.length === 0) return null;
 
@@ -356,33 +360,81 @@ function buildBatchedRoadsGeometry(
   const uv: number[] = [];
   const col: number[] = [];
 
-  const appendRoadCap = (
+  const tileMinX = tile.tx * tileSize;
+  const tileMaxX = (tile.tx + 1) * tileSize;
+  const tileMinZ = tile.tz * tileSize;
+  const tileMaxZ = (tile.tz + 1) * tileSize;
+  const isNearTileBorder = (x: number, z: number): boolean =>
+    Math.abs(x - tileMinX) < 2.2 ||
+    Math.abs(x - tileMaxX) < 2.2 ||
+    Math.abs(z - tileMinZ) < 2.2 ||
+    Math.abs(z - tileMaxZ) < 2.2;
+
+  // Build lightweight spatial endpoint/segment lookup to distinguish real T-junctions/crossroads from cul-de-sacs
+  const roadSegments: { roadIdx: number; x0: number; z0: number; x1: number; z1: number; halfW: number }[] = [];
+  for (let rIdx = 0; rIdx < tile.roads.length; rIdx += 1) {
+    const road = tile.roads[rIdx]!;
+    const ptCount = Math.floor(road.points.length / 2);
+    const hw = Math.max(1.4, road.width * 0.5);
+    for (let i = 1; i < ptCount; i += 1) {
+      roadSegments.push({
+        roadIdx: rIdx,
+        x0: road.points[(i - 1) * 2]!,
+        z0: road.points[(i - 1) * 2 + 1]!,
+        x1: road.points[i * 2]!,
+        z1: road.points[i * 2 + 1]!,
+        halfW: hw,
+      });
+    }
+  }
+
+  const meetsAnotherRoad = (roadIdx: number, px: number, pz: number, ownHalfW: number): number => {
+    let bestOtherHalfW = 0;
+    for (const seg of roadSegments) {
+      if (seg.roadIdx === roadIdx) continue;
+      const sx = seg.x1 - seg.x0;
+      const sz = seg.z1 - seg.z0;
+      const lenSq = sx * sx + sz * sz;
+      if (lenSq < 0.01) continue;
+      const t = Math.max(0, Math.min(1, ((px - seg.x0) * sx + (pz - seg.z0) * sz) / lenSq));
+      const cx = seg.x0 + sx * t;
+      const cz = seg.z0 + sz * t;
+      const d = Math.hypot(px - cx, pz - cz);
+      if (d <= ownHalfW + seg.halfW + 1.2) {
+        bestOtherHalfW = Math.max(bestOtherHalfW, seg.halfW);
+      }
+    }
+    return bestOtherHalfW;
+  };
+
+  const appendFanCap = (
     cx: number,
     cz: number,
     dirX: number,
     dirZ: number,
-    halfW: number,
+    radius: number,
     yLift: number,
     uMid: number,
     vCoord: number,
     r: number,
     g: number,
     b: number,
+    fullCircle = false,
   ): void => {
-    // 4-step semicircular end-cap so intersections & tile transitions never show sharp half-cut stumps
     const cy = sampleTerrainElevation(terrain, cx, cz) + yLift;
     const baseAngle = Math.atan2(dirZ, dirX);
-    const steps = 4;
+    const steps = fullCircle ? 10 : 5;
+    const sweep = fullCircle ? Math.PI * 2 : Math.PI;
+    const startAngle = fullCircle ? 0 : baseAngle - Math.PI * 0.5;
     for (let s = 0; s < steps; s += 1) {
-      const a0 = baseAngle - Math.PI * 0.5 + (s / steps) * Math.PI;
-      const a1 = baseAngle - Math.PI * 0.5 + ((s + 1) / steps) * Math.PI;
-      const x0 = cx + Math.cos(a0) * halfW;
-      const z0 = cz + Math.sin(a0) * halfW;
-      const x1 = cx + Math.cos(a1) * halfW;
-      const z1 = cz + Math.sin(a1) * halfW;
+      const a0 = startAngle + (s / steps) * sweep;
+      const a1 = startAngle + ((s + 1) / steps) * sweep;
+      const x0 = cx + Math.cos(a0) * radius;
+      const z0 = cz + Math.sin(a0) * radius;
+      const x1 = cx + Math.cos(a1) * radius;
+      const z1 = cz + Math.sin(a1) * radius;
       const y0 = sampleTerrainElevation(terrain, x0, z0) + yLift;
       const y1 = sampleTerrainElevation(terrain, x1, z1) + yLift;
-      // Upward (+Y) CCW winding in XZ (screen-right X, screen-down Z)
       pushTri(
         pos, nor, uv, col,
         cx, cy, cz,
@@ -395,28 +447,150 @@ function buildBatchedRoadsGeometry(
     }
   };
 
-  for (const road of tile.roads) {
+  const appendBevelWedge = (
+    cx: number,
+    cz: number,
+    p0x: number,
+    p0z: number,
+    p1x: number,
+    p1z: number,
+    yLift: number,
+    uCenter: number,
+    uEdge: number,
+    vCoord: number,
+    r: number,
+    g: number,
+    b: number,
+  ): void => {
+    if (Math.hypot(p1x - p0x, p1z - p0z) <= 0.08) return;
+    const cy = sampleTerrainElevation(terrain, cx, cz) + yLift;
+    const y0 = sampleTerrainElevation(terrain, p0x, p0z) + yLift;
+    const y1 = sampleTerrainElevation(terrain, p1x, p1z) + yLift;
+    const cross = (p0x - cx) * (p1z - cz) - (p0z - cz) * (p1x - cx);
+    if (cross < 0) {
+      pushTri(
+        pos, nor, uv, col,
+        cx, cy, cz,
+        p0x, y0, p0z,
+        p1x, y1, p1z,
+        0, 1, 0,
+        uCenter, vCoord, uEdge, vCoord, uEdge, vCoord,
+        r, g, b,
+      );
+    } else {
+      pushTri(
+        pos, nor, uv, col,
+        cx, cy, cz,
+        p1x, y1, p1z,
+        p0x, y0, p0z,
+        0, 1, 0,
+        uCenter, vCoord, uEdge, vCoord, uEdge, vCoord,
+        r, g, b,
+      );
+    }
+  };
+
+  const appendZebraCrosswalk = (
+    cx: number,
+    cz: number,
+    dirX: number,
+    dirZ: number,
+    halfW: number,
+    yLift: number,
+    r: number,
+    g: number,
+    b: number,
+  ): void => {
+    const px = -dirZ * (halfW - 0.12);
+    const pz = dirX * (halfW - 0.12);
+    const depth = 1.05; // 2.1m total crosswalk depth
+    const x0 = cx - dirX * depth;
+    const z0 = cz - dirZ * depth;
+    const x1 = cx + dirX * depth;
+    const z1 = cz + dirZ * depth;
+
+    const ax = x0 - px;
+    const az = z0 - pz;
+    const bx = x0 + px;
+    const bz = z0 + pz;
+    const cxp = x1 + px;
+    const czp = z1 + pz;
+    const dxp = x1 - px;
+    const dzp = z1 - pz;
+
+    const ya = sampleTerrainElevation(terrain, ax, az) + yLift;
+    const yb = sampleTerrainElevation(terrain, bx, bz) + yLift;
+    const yc = sampleTerrainElevation(terrain, cxp, czp) + yLift;
+    const yd = sampleTerrainElevation(terrain, dxp, dzp) + yLift;
+
+    const vSpan = Math.max(1, Math.round((halfW * 2) / 1.4));
+    // Map zebra bars across road width (V spans road width; U spans 0.87..0.99 crosswalk strip)
+    pushTri(
+      pos, nor, uv, col,
+      ax, ya, az,
+      bx, yb, bz,
+      cxp, yc, czp,
+      0, 1, 0,
+      0.87, 0, 0.87, vSpan, 0.99, vSpan,
+      r, g, b,
+    );
+    pushTri(
+      pos, nor, uv, col,
+      ax, ya, az,
+      cxp, yc, czp,
+      dxp, yd, dzp,
+      0, 1, 0,
+      0.87, 0, 0.99, vSpan, 0.99, 0,
+      r, g, b,
+    );
+  };
+
+  // Emit two strictly depth-separated layers per road (STILL 1 draw call!):
+  // 1) Lower unified concrete sidewalk & curb bed (y = terrain + 0.24m, width = halfW + 0.78m)
+  // 2) Higher seamless pure asphalt deck (y = terrain + 0.30..0.34m, width = halfW)
+  // Because ALL asphalt sits above ALL curbs, concrete curbs NEVER cut across T-junctions or road ends!
+  const CURB_RGB: [number, number, number] = [0.92, 0.91, 0.88];
+  const U_CURB_INNER = 0.015;
+  const U_CURB_OUTER = 0.125;
+  const U_CURB_MID = 0.065;
+  const U_ASPHALT_PURE = 0.28;
+
+  for (let rIdx = 0; rIdx < tile.roads.length; rIdx += 1) {
+    const road = tile.roads[rIdx]!;
     const ptCount = Math.floor(road.points.length / 2);
     if (ptCount < 2) continue;
 
-    // Exact repaired road width (zero artificial apron bloat into building facades!)
     const halfW = Math.max(1.4, road.width * 0.5);
-    const yLift = ROAD_LIFT[road.roadClass] ?? 0.26;
+    const curbHalfW = halfW + (road.roadClass === 'tram' ? 0.15 : 0.78);
+    const yLift = ROAD_LIFT[road.roadClass] ?? 0.31;
     const [r, g, b] = ROAD_RGB[road.roadClass] ?? ROAD_RGB.residential;
     const hasCenterLine =
       road.roadClass === 'primary' ||
       road.roadClass === 'secondary' ||
       road.roadClass === 'tertiary' ||
       road.roadClass === 'residential';
-    const uLeft = hasCenterLine ? 0.0 : 0.14;
-    const uRight = hasCenterLine ? 1.0 : 0.46;
-    const uAsphalt = 0.25;
+    // Pure asphalt UV range (ZERO curb stone baked into asphalt ribbon!)
+    const uLeft = hasCenterLine ? 0.155 : 0.19;
+    const uRight = hasCenterLine ? 0.845 : 0.44;
+
+    const startX = road.points[0]!;
+    const startZ = road.points[1]!;
+    const endX = road.points[(ptCount - 1) * 2]!;
+    const endZ = road.points[(ptCount - 1) * 2 + 1]!;
+    const startAtBorder = isNearTileBorder(startX, startZ);
+    const endAtBorder = isNearTileBorder(endX, endZ);
+    const startOtherHW = startAtBorder ? 0 : meetsAnotherRoad(rIdx, startX, startZ, halfW);
+    const endOtherHW = endAtBorder ? 0 : meetsAnotherRoad(rIdx, endX, endZ, halfW);
 
     let distSoFar = 0;
     let prevEndLeftX = 0;
     let prevEndLeftZ = 0;
     let prevEndRightX = 0;
     let prevEndRightZ = 0;
+    let prevCurbLeftX = 0;
+    let prevCurbLeftZ = 0;
+    let prevCurbRightX = 0;
+    let prevCurbRightZ = 0;
     let hasPrevSeg = false;
 
     for (let i = 1; i < ptCount; i += 1) {
@@ -433,78 +607,29 @@ function buildBatchedRoadsGeometry(
       const dirZ = totalDz / totalLen;
       const px = -dirZ * halfW;
       const pz = dirX * halfW;
+      const cpx = -dirZ * curbHalfW;
+      const cpz = dirX * curbHalfW;
 
-      // Start rounded junction cap on the very first segment
       if (!hasPrevSeg) {
-        appendRoadCap(sx0, sz0, -dirX, -dirZ, halfW, yLift, uAsphalt, 0, r, g, b);
+        if (!startAtBorder) {
+          // Lower curb turnaround/junction flare
+          appendFanCap(sx0, sz0, -dirX, -dirZ, curbHalfW, CURB_DECK_LIFT, U_CURB_MID, 0, CURB_RGB[0], CURB_RGB[1], CURB_RGB[2], startOtherHW > 0);
+          // Higher pure asphalt hub (full circle at intersections so no stripes clash; semicircle at cul-de-sacs)
+          const hubR = startOtherHW > 0 ? Math.max(halfW, startOtherHW) * 1.04 : halfW;
+          appendFanCap(sx0, sz0, -dirX, -dirZ, hubR, yLift + (startOtherHW > 0 ? 0.008 : 0), U_ASPHALT_PURE, 0, r, g, b, startOtherHW > 0);
+          // Turkish zebra crosswalk inset cleanly from T-junction / crossroad mouth
+          if (hasCenterLine && startOtherHW > 0 && totalLen >= 13.5) {
+            const cwDist = Math.min(totalLen * 0.35, Math.max(halfW, startOtherHW) + 2.1);
+            appendZebraCrosswalk(sx0 + dirX * cwDist, sz0 + dirZ * cwDist, dirX, dirZ, halfW, yLift + 0.012, r * 1.04, g * 1.04, b * 1.04);
+          }
+        }
       } else {
-        // Fill corner bend wedge seamlessly between previous segment end and current segment start
-        const jcY = sampleTerrainElevation(terrain, sx0, sz0) + yLift;
-        const curStartLeftX = sx0 - px;
-        const curStartLeftZ = sz0 - pz;
-        const curStartRightX = sx0 + px;
-        const curStartRightZ = sz0 + pz;
         const vJoin = distSoFar / 8.0;
-
-        // Left outer bevel wedge (only if edges separated at bend)
-        if (Math.hypot(curStartLeftX - prevEndLeftX, curStartLeftZ - prevEndLeftZ) > 0.08) {
-          const yPrevL = sampleTerrainElevation(terrain, prevEndLeftX, prevEndLeftZ) + yLift;
-          const yCurL = sampleTerrainElevation(terrain, curStartLeftX, curStartLeftZ) + yLift;
-          // Ensure upward normal regardless of turn sign
-          const crossL =
-            (prevEndLeftX - sx0) * (curStartLeftZ - sz0) -
-            (prevEndLeftZ - sz0) * (curStartLeftX - sx0);
-          if (crossL < 0) {
-            pushTri(
-              pos, nor, uv, col,
-              sx0, jcY, sz0,
-              prevEndLeftX, yPrevL, prevEndLeftZ,
-              curStartLeftX, yCurL, curStartLeftZ,
-              0, 1, 0,
-              uAsphalt, vJoin, uLeft, vJoin, uLeft, vJoin,
-              r, g, b,
-            );
-          } else {
-            pushTri(
-              pos, nor, uv, col,
-              sx0, jcY, sz0,
-              curStartLeftX, yCurL, curStartLeftZ,
-              prevEndLeftX, yPrevL, prevEndLeftZ,
-              0, 1, 0,
-              uAsphalt, vJoin, uLeft, vJoin, uLeft, vJoin,
-              r, g, b,
-            );
-          }
-        }
-        // Right outer bevel wedge
-        if (Math.hypot(curStartRightX - prevEndRightX, curStartRightZ - prevEndRightZ) > 0.08) {
-          const yPrevR = sampleTerrainElevation(terrain, prevEndRightX, prevEndRightZ) + yLift;
-          const yCurR = sampleTerrainElevation(terrain, curStartRightX, curStartRightZ) + yLift;
-          const crossR =
-            (prevEndRightX - sx0) * (curStartRightZ - sz0) -
-            (prevEndRightZ - sz0) * (curStartRightX - sx0);
-          if (crossR < 0) {
-            pushTri(
-              pos, nor, uv, col,
-              sx0, jcY, sz0,
-              prevEndRightX, yPrevR, prevEndRightZ,
-              curStartRightX, yCurR, curStartRightZ,
-              0, 1, 0,
-              uAsphalt, vJoin, uRight, vJoin, uRight, vJoin,
-              r, g, b,
-            );
-          } else {
-            pushTri(
-              pos, nor, uv, col,
-              sx0, jcY, sz0,
-              curStartRightX, yCurR, curStartRightZ,
-              prevEndRightX, yPrevR, prevEndRightZ,
-              0, 1, 0,
-              uAsphalt, vJoin, uRight, vJoin, uRight, vJoin,
-              r, g, b,
-            );
-          }
-        }
+        // Seamless bend bevel wedges for BOTH lower curb bed and higher asphalt deck
+        appendBevelWedge(sx0, sz0, prevCurbLeftX, prevCurbLeftZ, sx0 - cpx, sz0 - cpz, CURB_DECK_LIFT, U_CURB_MID, U_CURB_OUTER, vJoin, CURB_RGB[0], CURB_RGB[1], CURB_RGB[2]);
+        appendBevelWedge(sx0, sz0, prevCurbRightX, prevCurbRightZ, sx0 + cpx, sz0 + cpz, CURB_DECK_LIFT, U_CURB_MID, U_CURB_OUTER, vJoin, CURB_RGB[0], CURB_RGB[1], CURB_RGB[2]);
+        appendBevelWedge(sx0, sz0, prevEndLeftX, prevEndLeftZ, sx0 - px, sz0 - pz, yLift, U_ASPHALT_PURE, uLeft, vJoin, r, g, b);
+        appendBevelWedge(sx0, sz0, prevEndRightX, prevEndRightZ, sx0 + px, sz0 + pz, yLift, U_ASPHALT_PURE, uRight, vJoin, r, g, b);
       }
 
       const steps = Math.max(1, Math.min(8, Math.ceil(totalLen / 10)));
@@ -522,6 +647,40 @@ function buildBatchedRoadsGeometry(
         const v1 = (distSoFar + segLen) / 8.0;
         distSoFar += segLen;
 
+        // LAYER 1: Lower continuous concrete sidewalk/curb apron (sits underneath ALL asphalt!)
+        const cax = x0 - cpx;
+        const caz = z0 - cpz;
+        const cbx = x0 + cpx;
+        const cbz = z0 + cpz;
+        const ccx = x1 + cpx;
+        const ccz = z1 + cpz;
+        const cdx = x1 - cpx;
+        const cdz = z1 - cpz;
+        const cya = sampleTerrainElevation(terrain, cax, caz) + CURB_DECK_LIFT;
+        const cyb = sampleTerrainElevation(terrain, cbx, cbz) + CURB_DECK_LIFT;
+        const cyc = sampleTerrainElevation(terrain, ccx, ccz) + CURB_DECK_LIFT;
+        const cyd = sampleTerrainElevation(terrain, cdx, cdz) + CURB_DECK_LIFT;
+
+        pushTri(
+          pos, nor, uv, col,
+          cax, cya, caz,
+          cbx, cyb, cbz,
+          ccx, cyc, ccz,
+          0, 1, 0,
+          U_CURB_INNER, v0, U_CURB_OUTER, v0, U_CURB_OUTER, v1,
+          CURB_RGB[0], CURB_RGB[1], CURB_RGB[2],
+        );
+        pushTri(
+          pos, nor, uv, col,
+          cax, cya, caz,
+          ccx, cyc, ccz,
+          cdx, cyd, cdz,
+          0, 1, 0,
+          U_CURB_INNER, v0, U_CURB_OUTER, v1, U_CURB_INNER, v1,
+          CURB_RGB[0], CURB_RGB[1], CURB_RGB[2],
+        );
+
+        // LAYER 2: Pure dark drivable asphalt carriageway (ZERO concrete curbs inside!)
         const ax = x0 - px;
         const az = z0 - pz;
         const bx = x0 + px;
@@ -536,7 +695,6 @@ function buildBatchedRoadsGeometry(
         const yc = sampleTerrainElevation(terrain, cx, cz) + yLift;
         const yd = sampleTerrainElevation(terrain, dxp, dzp) + yLift;
 
-        // Upward (+Y) CCW winding: (a, b, c) and (a, c, d) with continuous world-meter V UVs
         pushTri(
           pos, nor, uv, col,
           ax, ya, az,
@@ -561,11 +719,20 @@ function buildBatchedRoadsGeometry(
       prevEndLeftZ = sz1 - pz;
       prevEndRightX = sx1 + px;
       prevEndRightZ = sz1 + pz;
+      prevCurbLeftX = sx1 - cpx;
+      prevCurbLeftZ = sz1 - cpz;
+      prevCurbRightX = sx1 + cpx;
+      prevCurbRightZ = sz1 + cpz;
       hasPrevSeg = true;
 
-      // End rounded junction cap on the final segment
-      if (i === ptCount - 1) {
-        appendRoadCap(sx1, sz1, dirX, dirZ, halfW, yLift, uAsphalt, distSoFar / 8.0, r, g, b);
+      if (i === ptCount - 1 && !endAtBorder) {
+        appendFanCap(sx1, sz1, dirX, dirZ, curbHalfW, CURB_DECK_LIFT, U_CURB_MID, distSoFar / 8.0, CURB_RGB[0], CURB_RGB[1], CURB_RGB[2], endOtherHW > 0);
+        const hubR = endOtherHW > 0 ? Math.max(halfW, endOtherHW) * 1.04 : halfW;
+        appendFanCap(sx1, sz1, dirX, dirZ, hubR, yLift + (endOtherHW > 0 ? 0.008 : 0), U_ASPHALT_PURE, distSoFar / 8.0, r, g, b, endOtherHW > 0);
+        if (hasCenterLine && endOtherHW > 0 && totalLen >= 13.5) {
+          const cwDist = Math.min(totalLen * 0.35, Math.max(halfW, endOtherHW) + 2.1);
+          appendZebraCrosswalk(sx1 - dirX * cwDist, sz1 - dirZ * cwDist, dirX, dirZ, halfW, yLift + 0.012, r * 1.04, g * 1.04, b * 1.04);
+        }
       }
     }
   }
@@ -982,7 +1149,7 @@ export function buildTileMeshes(
     group.add(mesh);
   }
 
-  const rGeo = buildBatchedRoadsGeometry(tile, terrain);
+  const rGeo = buildBatchedRoadsGeometry(tile, terrain, tileSize);
   if (rGeo) {
     geometries.push(rGeo);
     const mesh = new THREE.Mesh(rGeo, materials.roadMat);

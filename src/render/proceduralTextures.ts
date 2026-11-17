@@ -396,11 +396,11 @@ export function createIstanbulFacadeTextures(anisotropy = 4): FacadeTextureSet {
 }
 
 /**
- * High-resolution procedural Istanbul asphalt road texture with:
- * - Raised light-grey concrete sidewalk curbs along both edges (u = 0..0.09 & 0.91..1.0)
- * - Subtle yellow/white gutter lines
- * - Textured dark asphalt micro-aggregate & dual lane tire tracks
- * - Crisp dashed white centerline along u = 0.5
+ * High-resolution procedural Istanbul road texture atlas (1 single draw call for curbs + asphalt + crosswalks!):
+ * - u = 0.00..0.14: Clean light-grey Istanbul concrete sidewalk & granite curbstone paving (Layer 1 lower curb bed)
+ * - u = 0.14..0.86: Pure dark aggregate asphalt carriageway + subtle tire tracks + optional dashed white centerline (Layer 2 higher asphalt deck — ZERO curbs inside!)
+ * - u = 0.86..1.00: Crisp white Turkish zebra crosswalk stripes (Yaya Geçidi) over matching asphalt (Layer 3 junction crosswalks)
+ * Separating the lower curb layer from the higher asphalt layer eliminates curb-barrier artifacts at ALL T-junctions & crossroads!
  */
 export function createAsphaltRoadTexture(anisotropy = 8): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -410,63 +410,83 @@ export function createAsphaltRoadTexture(anisotropy = 8): THREE.CanvasTexture {
 
   if (ctx) {
     const rng = createRng(34555);
-    // Asphalt base (bright enough to multiply cleanly with roadClass vertex colors!)
-    ctx.fillStyle = '#b4b9c2';
-    ctx.fillRect(0, 0, 512, 512);
 
-    // Subtle darker twin tire wear tracks in left & right lanes
-    ctx.fillStyle = 'rgba(30,35,44,0.16)';
-    ctx.fillRect(102, 0, 44, 512);
-    ctx.fillRect(172, 0, 44, 512);
-    ctx.fillRect(296, 0, 44, 512);
-    ctx.fillRect(366, 0, 44, 512);
+    // 1. SIDEWALK & CURBSTONE BAND (px 0..72 -> u = 0.00..0.14)
+    ctx.fillStyle = '#ddd9d0';
+    ctx.fillRect(0, 0, 72, 512);
+    // Subtle concrete paving tile blocks
+    for (let y = 0; y < 512; y += 32) {
+      for (let x = 0; x < 64; x += 32) {
+        const shade = 216 + Math.floor(rng.next() * 14);
+        ctx.fillStyle = `rgb(${shade}, ${shade - 3}, ${shade - 9})`;
+        ctx.fillRect(x + 1, y + 1, 30, 30);
+      }
+    }
+    // Crisp granite curb bevel along outer road-side lip (px 62..72)
+    ctx.fillStyle = '#f2efe8';
+    ctx.fillRect(62, 0, 8, 512);
+    ctx.fillStyle = 'rgba(40,42,48,0.28)';
+    for (let y = 0; y < 512; y += 64) {
+      ctx.fillRect(60, y, 12, 3);
+    }
 
-    // Asphalt mineral aggregate noise
-    for (let i = 0; i < 6500; i += 1) {
-      const x = 44 + rng.next() * 424;
+    // 2. PURE ASPHALT CARRIAGEWAY (px 72..440 -> u = 0.14..0.86 — ZERO CURB STRIPES!)
+    ctx.fillStyle = '#b0b5be';
+    ctx.fillRect(72, 0, 368, 512);
+
+    // Subtle darker twin tire wear tracks in both lanes
+    ctx.fillStyle = 'rgba(26,31,40,0.16)';
+    ctx.fillRect(118, 0, 38, 512);
+    ctx.fillRect(178, 0, 38, 512);
+    ctx.fillRect(296, 0, 38, 512);
+    ctx.fillRect(356, 0, 38, 512);
+
+    // Asphalt mineral aggregate noise across full asphalt band
+    for (let i = 0; i < 6200; i += 1) {
+      const x = 73 + rng.next() * 365;
       const y = rng.next() * 512;
       const bright = rng.next() > 0.48;
-      ctx.fillStyle = bright ? 'rgba(255,255,255,0.12)' : 'rgba(15,18,24,0.18)';
+      ctx.fillStyle = bright ? 'rgba(255,255,255,0.11)' : 'rgba(14,17,24,0.19)';
       ctx.fillRect(x, y, 2 + rng.next() * 2, 2 + rng.next() * 3);
     }
 
-    // Subtle gutter shading next to curbs
-    const leftGutter = ctx.createLinearGradient(44, 0, 68, 0);
-    leftGutter.addColorStop(0, 'rgba(10,12,18,0.42)');
-    leftGutter.addColorStop(1, 'rgba(10,12,18,0)');
+    // Subtle dark asphalt gutter shadow right along asphalt edges (px 72..86 and 426..440)
+    const leftGutter = ctx.createLinearGradient(72, 0, 88, 0);
+    leftGutter.addColorStop(0, 'rgba(12,15,22,0.34)');
+    leftGutter.addColorStop(1, 'rgba(12,15,22,0)');
     ctx.fillStyle = leftGutter;
-    ctx.fillRect(44, 0, 24, 512);
+    ctx.fillRect(72, 0, 16, 512);
 
-    const rightGutter = ctx.createLinearGradient(468, 0, 444, 0);
-    rightGutter.addColorStop(0, 'rgba(10,12,18,0.42)');
-    rightGutter.addColorStop(1, 'rgba(10,12,18,0)');
+    const rightGutter = ctx.createLinearGradient(440, 0, 424, 0);
+    rightGutter.addColorStop(0, 'rgba(12,15,22,0.34)');
+    rightGutter.addColorStop(1, 'rgba(12,15,22,0)');
     ctx.fillStyle = rightGutter;
-    ctx.fillRect(444, 0, 24, 512);
+    ctx.fillRect(424, 0, 16, 512);
 
-    // Light concrete sidewalk curb stones on left & right edges (u = 0..0.086 and 0.914..1.0)
-    ctx.fillStyle = '#ece9e2';
-    ctx.fillRect(0, 0, 44, 512);
-    ctx.fillRect(468, 0, 44, 512);
+    // Crisp warm-white outer shoulder paint lines (u = 0.165 and u = 0.835)
+    ctx.fillStyle = 'rgba(246,243,234,0.58)';
+    ctx.fillRect(84, 0, 4, 512);
+    ctx.fillRect(424, 0, 4, 512);
 
-    // Curb stone vertical highlight + joint seams every 64 px
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(39, 0, 4, 512);
-    ctx.fillRect(469, 0, 4, 512);
-    ctx.fillStyle = 'rgba(40,40,42,0.28)';
-    for (let y = 0; y < 512; y += 64) {
-      ctx.fillRect(0, y, 44, 3);
-      ctx.fillRect(468, y, 44, 3);
-    }
-
-    // Subtle outer road edge lines (warm ivory)
-    ctx.fillStyle = 'rgba(248,245,235,0.68)';
-    ctx.fillRect(58, 0, 5, 512);
-    ctx.fillRect(449, 0, 5, 512);
-
-    // Crisp dashed white center lane divider (2 dashes per 512px = ~7.5m repeat)
+    // Crisp dashed white center lane divider (u = 0.50 -> px 256)
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.fillRect(251, 24, 10, 148);
-    ctx.fillRect(251, 280, 10, 148);
+    ctx.fillRect(252, 24, 8, 148);
+    ctx.fillRect(252, 280, 8, 148);
+
+    // 3. ZEBRA CROSSWALK STRIP (px 440..512 -> u = 0.86..1.00)
+    ctx.fillStyle = '#b0b5be';
+    ctx.fillRect(440, 0, 72, 512);
+    for (let i = 0; i < 650; i += 1) {
+      const x = 441 + rng.next() * 70;
+      const y = rng.next() * 512;
+      ctx.fillStyle = rng.next() > 0.5 ? 'rgba(255,255,255,0.1)' : 'rgba(14,17,24,0.18)';
+      ctx.fillRect(x, y, 2, 2);
+    }
+    // High-contrast alternating white zebra bars running perpendicular along V
+    ctx.fillStyle = 'rgba(248,248,244,0.92)';
+    for (let y = 16; y < 512; y += 64) {
+      ctx.fillRect(448, y, 56, 34);
+    }
   }
 
   return configureTexture(

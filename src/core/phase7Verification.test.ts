@@ -346,9 +346,9 @@ describe('Phase 7 End-to-End World, Collision, Vehicle & Mobile Verification (TE
 
     const tepeBuildings = tepe.tiles.reduce((acc, t) => acc + t.buildings.length, 0);
     const fatihBuildings = fatih.tiles.reduce((acc, t) => acc + t.buildings.length, 0);
-    // >99.8% of original buildings preserved intact (only 7 unrecoverable 100%-in-road OSM errors removed)
-    expect(tepeBuildings).toBeGreaterThanOrEqual(4470);
-    expect(fatihBuildings).toBeGreaterThanOrEqual(3650);
+    // >99.3% of unique original buildings preserved intact (only 7 unrecoverable road-blockers + 40 duplicate GPKG copies removed)
+    expect(tepeBuildings).toBeGreaterThanOrEqual(4440);
+    expect(fatihBuildings).toBeGreaterThanOrEqual(3640);
 
     expect(tepe.manifest.sanctuaryZones.length).toBe(10);
     expect(fatih.manifest.sanctuaryZones.length).toBe(3);
