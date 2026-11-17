@@ -1,6 +1,6 @@
 {
   "name": "istanbul-streets",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "description": "Istanbul Streets — 3rd-person open-world action/driving game set in Istanbul (Vite + TypeScript + Three.js + Rapier3D + Capacitor 8).",

@@ -14,6 +14,61 @@ export interface TrafficClassGeometries {
   trimWheelsGeo: THREE.BufferGeometry;
   glassGeo: THREE.BufferGeometry;
   lightsGeo: THREE.BufferGeometry;
+  brakeLightsGeo: THREE.BufferGeometry;
+}
+
+export interface TrafficWheelLayout {
+  wheelR: number;
+  trackHalf: number;
+  frontAxleZ: number;
+  rearAxleZ: number;
+}
+
+export function getTrafficClassWheelLayout(style: TrafficVisualClass): TrafficWheelLayout {
+  if (style === 'sports') {
+    return { wheelR: 0.34, trackHalf: 0.92, frontAxleZ: 1.32, rearAxleZ: -1.32 };
+  }
+  if (style === 'suv') {
+    return { wheelR: 0.38, trackHalf: 0.95, frontAxleZ: 1.42, rearAxleZ: -1.4 };
+  }
+  return { wheelR: 0.34, trackHalf: 0.88, frontAxleZ: 1.32, rearAxleZ: -1.32 };
+}
+
+/**
+ * Builds a single modern 5-spoke alloy wheel + rubber tire + metallic brake rotor
+ * (unit radius 0.34m) shared across ALL instanced NPC cars so every NPC car has
+ * real rotating and front-steering wheels in ONE GPU draw call!
+ */
+export function buildSingleTrafficWheelGeometry(): THREE.BufferGeometry {
+  const r = 0.34;
+  const tire = new THREE.CylinderGeometry(r, r, 0.25, 14);
+  tire.rotateZ(Math.PI / 2);
+  const rimBarrel = new THREE.CylinderGeometry(r * 0.68, r * 0.68, 0.258, 12);
+  rimBarrel.rotateZ(Math.PI / 2);
+  const rotor = new THREE.CylinderGeometry(r * 0.5, r * 0.5, 0.264, 10);
+  rotor.rotateZ(Math.PI / 2);
+  const hub = new THREE.CylinderGeometry(r * 0.2, r * 0.2, 0.278, 8);
+  hub.rotateZ(Math.PI / 2);
+
+  const parts: ColoredGeometryPart[] = [
+    { geometry: tire, color: 0x151922, position: [0, 0, 0] },
+    { geometry: rimBarrel, color: 0xdbe4f0, position: [0, 0, 0] },
+    { geometry: rotor, color: 0x475569, position: [0, 0, 0] },
+    { geometry: hub, color: 0x1e293b, position: [0, 0, 0] },
+  ];
+
+  // 5 machined silver alloy spokes (visible rotation as every NPC car rolls!)
+  for (let s = 0; s < 5; s += 1) {
+    const a = (s * Math.PI * 2) / 5;
+    parts.push({
+      geometry: new THREE.BoxGeometry(0.272, r * 0.92, 0.045),
+      color: 0xf1f5f9,
+      position: [0, 0, 0],
+      rotation: [a, 0, 0],
+    });
+  }
+
+  return mergeColoredParts(parts);
 }
 
 export interface PlayerTaxiRig {
@@ -91,7 +146,6 @@ export function buildTrafficClassGeometries(
   const bodyW = isSports ? 1.92 : isSuv ? 1.98 : 1.84;
   const bodyL = isSports ? 4.38 : isSuv ? 4.62 : 4.3;
   const wheelR = isSuv ? 0.38 : 0.34;
-  const trackHalf = bodyW * 0.5 - 0.04;
   const frontAxleZ = isSuv ? 1.42 : 1.32;
   const rearAxleZ = isSuv ? -1.4 : -1.32;
   const beltY = isSports ? 0.66 : isSuv ? 0.86 : 0.72;
@@ -196,14 +250,24 @@ export function buildTrafficClassGeometries(
     );
   }
 
-  // 2. Dark automotive trim + 4 REAL cylindrical tires + silver alloy rims + bumpers + grille + exhausts
+  // 2. Dark automotive trim + sculpted bumpers + grille + side skirts + dual exhausts
+  // (Wheels are now rendered via dedicated rotating/steering InstancedMesh!)
   const trimParts: ColoredGeometryPart[] = [
-    ...makeWheelParts(wheelR, trackHalf, frontAxleZ, rearAxleZ, isSports ? 0xe2e8f0 : 0xcbd5e1),
-    // Recessed dark underbody pan (sits cleanly BETWEEN wheels, never replaces them!)
+    // Recessed dark underbody pan & wheel-well liners
     {
       geometry: new THREE.BoxGeometry(bodyW * 0.78, 0.14, bodyL * 0.72),
       color: 0x151820,
       position: [0, wheelR * 0.85, 0],
+    },
+    {
+      geometry: new THREE.BoxGeometry(bodyW * 0.86, 0.26, 0.86),
+      color: 0x0f131a,
+      position: [0, wheelR + 0.08, frontAxleZ],
+    },
+    {
+      geometry: new THREE.BoxGeometry(bodyW * 0.86, 0.26, 0.86),
+      color: 0x0f131a,
+      position: [0, wheelR + 0.08, rearAxleZ],
     },
     // Sculpted front bumper splitter & lower air dam
     {
@@ -296,17 +360,28 @@ export function buildTrafficClassGeometries(
     },
   ];
 
-  // 4. Crisp glowing white LED headlights + amber corners + vivid crimson tailbar
+  // 4. Crisp glowing white LED headlights + modern DRL eyebrows + amber side corners
   const lightsParts: ColoredGeometryPart[] = [
     {
-      geometry: new THREE.BoxGeometry(0.36, 0.13, 0.08),
+      geometry: new THREE.BoxGeometry(0.38, 0.12, 0.08),
       color: 0xfff8e1,
       position: [-bodyW * 0.33, beltY + 0.02, bodyL * 0.495],
     },
     {
-      geometry: new THREE.BoxGeometry(0.36, 0.13, 0.08),
+      geometry: new THREE.BoxGeometry(0.38, 0.12, 0.08),
       color: 0xfff8e1,
       position: [bodyW * 0.33, beltY + 0.02, bodyL * 0.495],
+    },
+    // Crisp modern white LED DRL eyebrow strips
+    {
+      geometry: new THREE.BoxGeometry(0.42, 0.032, 0.085),
+      color: 0xe0f2fe,
+      position: [-bodyW * 0.33, beltY + 0.1, bodyL * 0.498],
+    },
+    {
+      geometry: new THREE.BoxGeometry(0.42, 0.032, 0.085),
+      color: 0xe0f2fe,
+      position: [bodyW * 0.33, beltY + 0.1, bodyL * 0.498],
     },
     // Amber front turn accents
     {
@@ -319,27 +394,57 @@ export function buildTrafficClassGeometries(
       color: 0xf59e0b,
       position: [bodyW * 0.47, beltY + 0.02, bodyL * 0.47],
     },
-    // Vivid red rear taillights (full LED bar on sports, dual clusters on sedan/SUV)
+    // Dim running tailbar (always visible even when not braking)
     ...(isSports
       ? [
           {
-            geometry: new THREE.BoxGeometry(bodyW * 0.84, 0.11, 0.08),
-            color: 0xef233c,
-            position: [0, beltY + 0.05, -bodyL * 0.495] as [number, number, number],
+            geometry: new THREE.BoxGeometry(bodyW * 0.84, 0.09, 0.075),
+            color: 0x991b1b,
+            position: [0, beltY + 0.05, -bodyL * 0.492] as [number, number, number],
           },
         ]
       : [
           {
-            geometry: new THREE.BoxGeometry(0.4, 0.15, 0.08),
-            color: 0xef233c,
-            position: [-bodyW * 0.33, beltY + 0.04, -bodyL * 0.495] as [number, number, number],
+            geometry: new THREE.BoxGeometry(0.38, 0.13, 0.075),
+            color: 0x991b1b,
+            position: [-bodyW * 0.33, beltY + 0.04, -bodyL * 0.492] as [number, number, number],
           },
           {
-            geometry: new THREE.BoxGeometry(0.4, 0.15, 0.08),
-            color: 0xef233c,
-            position: [bodyW * 0.33, beltY + 0.04, -bodyL * 0.495] as [number, number, number],
+            geometry: new THREE.BoxGeometry(0.38, 0.13, 0.075),
+            color: 0x991b1b,
+            position: [bodyW * 0.33, beltY + 0.04, -bodyL * 0.492] as [number, number, number],
           },
         ]),
+  ];
+
+  // 5. Dynamic high-intensity crimson brake lights + rear window 3rd LED brake strip (lights up on brake!)
+  const brakeLightsParts: ColoredGeometryPart[] = [
+    ...(isSports
+      ? [
+          {
+            geometry: new THREE.BoxGeometry(bodyW * 0.86, 0.125, 0.09),
+            color: 0xff1e3c,
+            position: [0, beltY + 0.05, -bodyL * 0.498] as [number, number, number],
+          },
+        ]
+      : [
+          {
+            geometry: new THREE.BoxGeometry(0.42, 0.16, 0.09),
+            color: 0xff1e3c,
+            position: [-bodyW * 0.33, beltY + 0.04, -bodyL * 0.498] as [number, number, number],
+          },
+          {
+            geometry: new THREE.BoxGeometry(0.42, 0.16, 0.09),
+            color: 0xff1e3c,
+            position: [bodyW * 0.33, beltY + 0.04, -bodyL * 0.498] as [number, number, number],
+          },
+        ]),
+    // High-mount 3rd brake LED bar along top of rear glass
+    {
+      geometry: new THREE.BoxGeometry(0.46, 0.045, 0.06),
+      color: 0xff2a48,
+      position: [0, roofY - 0.04, isSuv ? -1.48 : -1.04],
+    },
   ];
 
   return {
@@ -347,6 +452,7 @@ export function buildTrafficClassGeometries(
     trimWheelsGeo: mergeColoredParts(trimParts),
     glassGeo: mergeColoredParts(glassParts),
     lightsGeo: mergeColoredParts(lightsParts),
+    brakeLightsGeo: mergeColoredParts(brakeLightsParts),
   };
 }
 
@@ -436,12 +542,12 @@ export function createPlayerTaxiRig(
 
   const plateTex = trackTex(createPlateTexture('34 IST 06'));
 
-  // Glossy metallic clearcoat paint material (supports instant live color swaps on car theft!)
+  // Glossy metallic showroom automotive paint (supports instant live color swaps on car theft!)
   const bodyPaintMat = trackMat(
     new THREE.MeshStandardMaterial({
       color: initialPaintHex,
-      roughness: 0.24,
-      metalness: 0.45,
+      roughness: 0.18,
+      metalness: 0.58,
     }),
   );
   const trimMat = trackMat(
@@ -528,10 +634,15 @@ export function createPlayerTaxiRig(
       // Front aerodynamic bumper splitter & lower air intake
       { geometry: new THREE.BoxGeometry(1.94, 0.23, 0.3), color: 0x1b2029, position: [0, 0.41, 2.08] },
       { geometry: new THREE.BoxGeometry(1.88, 0.06, 0.18), color: 0x0f131a, position: [0, 0.29, 2.16] },
-      // Rear diffuser bumper + twin chrome exhausts
+      // Rear diffuser bumper + sculpted aero fins + quad chrome sport exhaust tips
       { geometry: new THREE.BoxGeometry(1.94, 0.25, 0.3), color: 0x1b2029, position: [0, 0.43, -2.08] },
-      { geometry: new THREE.CylinderGeometry(0.055, 0.055, 0.26, 8), color: 0xdbe4ee, position: [-0.54, 0.34, -2.2], rotation: [Math.PI / 2, 0, 0] },
-      { geometry: new THREE.CylinderGeometry(0.055, 0.055, 0.26, 8), color: 0xdbe4ee, position: [0.54, 0.34, -2.2], rotation: [Math.PI / 2, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.04, 0.14, 0.18), color: 0x0f131a, position: [-0.24, 0.36, -2.18] },
+      { geometry: new THREE.BoxGeometry(0.04, 0.14, 0.18), color: 0x0f131a, position: [0, 0.36, -2.18] },
+      { geometry: new THREE.BoxGeometry(0.04, 0.14, 0.18), color: 0x0f131a, position: [0.24, 0.36, -2.18] },
+      { geometry: new THREE.CylinderGeometry(0.052, 0.052, 0.26, 8), color: 0xe2e8f0, position: [-0.5, 0.34, -2.2], rotation: [Math.PI / 2, 0, 0] },
+      { geometry: new THREE.CylinderGeometry(0.052, 0.052, 0.26, 8), color: 0xe2e8f0, position: [-0.63, 0.34, -2.19], rotation: [Math.PI / 2, 0, 0] },
+      { geometry: new THREE.CylinderGeometry(0.052, 0.052, 0.26, 8), color: 0xe2e8f0, position: [0.5, 0.34, -2.2], rotation: [Math.PI / 2, 0, 0] },
+      { geometry: new THREE.CylinderGeometry(0.052, 0.052, 0.26, 8), color: 0xe2e8f0, position: [0.63, 0.34, -2.19], rotation: [Math.PI / 2, 0, 0] },
       // Side skirts
       { geometry: new THREE.BoxGeometry(1.94, 0.11, 1.88), color: 0x191e27, position: [0, 0.34, 0] },
       // Recessed front mesh grille + chrome accent strip
@@ -551,11 +662,13 @@ export function createPlayerTaxiRig(
   mergedTrim.castShadow = true;
   chassisGroup.add(mergedTrim);
 
-  // 3. Glowing Front LED Headlights
+  // 3. Glowing Front LED Headlights + Modern White DRL Eyebrow Strips
   const mergedHeadlightsGeo = trackGeo(
     mergeColoredParts([
-      { geometry: new THREE.BoxGeometry(0.38, 0.13, 0.08), color: 0xffffff, position: [-0.66, 0.69, 2.14] },
-      { geometry: new THREE.BoxGeometry(0.38, 0.13, 0.08), color: 0xffffff, position: [0.66, 0.69, 2.14] },
+      { geometry: new THREE.BoxGeometry(0.38, 0.12, 0.08), color: 0xffffff, position: [-0.66, 0.69, 2.14] },
+      { geometry: new THREE.BoxGeometry(0.38, 0.12, 0.08), color: 0xffffff, position: [0.66, 0.69, 2.14] },
+      { geometry: new THREE.BoxGeometry(0.44, 0.032, 0.09), color: 0xe0f2fe, position: [-0.66, 0.77, 2.145] },
+      { geometry: new THREE.BoxGeometry(0.44, 0.032, 0.09), color: 0xe0f2fe, position: [0.66, 0.77, 2.145] },
     ]),
   );
   chassisGroup.add(new THREE.Mesh(mergedHeadlightsGeo, headlightMat));

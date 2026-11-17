@@ -6,6 +6,7 @@ import { createRng, type Rng } from './rng';
 import { findSanctuaryZone, type SanctuaryZone } from './sanctuary';
 import type { BuildingSpatialGrid } from './world/collision';
 import type { RoadGraph, RoadGraphNode } from './world/types';
+import { isPointInsideBounds, type PlayableWorldBounds } from './world/worldBounds';
 
 export type PedestrianBehavior = 'walk' | 'idle' | 'run';
 
@@ -54,9 +55,17 @@ export class PedestrianSimulator {
   private readonly agents: PedestrianAgent[] = [];
   private readonly rng: Rng;
 
-  constructor(graph: RoadGraph, count: number, seed = 2026341) {
+  constructor(
+    graph: RoadGraph,
+    count: number,
+    seed = 2026341,
+    playableBounds?: PlayableWorldBounds,
+  ) {
     this.rng = createRng(seed);
     for (const n of graph.nodes) {
+      if (playableBounds && !isPointInsideBounds(n.x, n.z, playableBounds, 4.0)) {
+        continue;
+      }
       this.nodes.set(n.id, n);
     }
 

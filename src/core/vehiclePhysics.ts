@@ -440,15 +440,15 @@ export const DRIVING_MODE_PROFILES: Record<DrivingMode, DrivingModeProfile> = {
   street: {
     mode: 'street',
     maxSteerMult: 1.0,
-    gripFrontMult: 1.12,
-    gripRearMult: 1.14,
+    gripFrontMult: 1.2,
+    gripRearMult: 1.38,
     torqueMult: 1.24,
-    counterSteerAssist: 0.42,
-    tcsStrength: 0.38,
-    absStrength: 0.85,
-    yawStabilizer: 1.85,
-    maxAssistedSlipRad: 0.72, // ~41°
-    driftRearRelease: 0.28,
+    counterSteerAssist: 0.52,
+    tcsStrength: 0.78,
+    absStrength: 0.9,
+    yawStabilizer: 3.4,
+    maxAssistedSlipRad: 0.24, // ~14° planted street grip (handbrake relaxes to ~45°!)
+    driftRearRelease: 0.0, // Never randomly kick out the rear on normal throttle turns
   },
   drift: {
     mode: 'drift',

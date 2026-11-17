@@ -17,6 +17,10 @@ import type {
   TerrainGrid,
 } from '../core/world/types';
 import {
+  buildBarrierColliders,
+  type PerimeterRoadBarrier,
+} from '../core/world/worldBounds';
+import {
   animateCharacterRig,
   createCharacterRig,
   poseCharacterSeated,
@@ -29,7 +33,6 @@ import {
   createContactShadowTexture,
   createIstanbulFacadeTextures,
   createParkGrassTexture,
-  createSkyDomeTexture,
   createUrbanGroundTexture,
 } from './proceduralTextures';
 import {
@@ -39,8 +42,10 @@ import {
 } from './tileMeshBuilder';
 import { VehicleEffectsSystem } from './vehicleEffects';
 import {
+  buildSingleTrafficWheelGeometry,
   buildTrafficClassGeometries,
   createPlayerTaxiRig,
+  getTrafficClassWheelLayout,
   mapArchetypeToTrafficClass,
   setPlayerVehicleAppearance,
   updatePlayerTaxiRig,
@@ -88,7 +93,41 @@ interface TrafficInstancedClass {
   trimWheelsInst: THREE.InstancedMesh;
   glassInst: THREE.InstancedMesh;
   lightsInst: THREE.InstancedMesh;
+  brakeLightsInst: THREE.InstancedMesh;
 }
+
+const SKY_VERTEX_SHADER = /* glsl */ `
+  varying vec3 vWorldDir;
+  void main() {
+    vWorldDir = normalize(position);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const SKY_FRAGMENT_SHADER = /* glsl */ `
+  uniform vec3 uTopColor;
+  uniform vec3 uMidColor;
+  uniform vec3 uHorizonColor;
+  uniform vec3 uSunDir;
+  uniform vec3 uSunColor;
+  uniform float uSunGlow;
+  varying vec3 vWorldDir;
+  void main() {
+    vec3 dir = normalize(vWorldDir);
+    float h = clamp(dir.y, 0.0, 1.0);
+    vec3 col = mix(uHorizonColor, uMidColor, smoothstep(0.0, 0.24, h));
+    col = mix(col, uTopColor, smoothstep(0.2, 0.82, h));
+    // Soft sun / moon atmospheric scattering disc & halo
+    float sunDot = max(dot(dir, normalize(uSunDir)), 0.0);
+    float halo = pow(sunDot, 12.0) * 0.42 * uSunGlow;
+    float disc = smoothstep(0.9965, 0.9992, sunDot) * 1.15 * uSunGlow;
+    col += uSunColor * (halo + disc);
+    // Warm sunset / haze horizon scatter ribbon
+    float band = pow(1.0 - h, 6.0) * (0.28 + 0.35 * pow(sunDot, 3.0)) * uSunGlow;
+    col += uSunColor * band * 0.35;
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
 
 export class RegionWorldScene {
   readonly renderer: THREE.WebGLRenderer;
@@ -110,22 +149,35 @@ export class RegionWorldScene {
   private readonly hemiLight: THREE.HemisphereLight;
   private readonly sunLight: THREE.DirectionalLight;
   private readonly skyDome: THREE.Mesh;
-  private readonly skyMat: THREE.MeshBasicMaterial;
-  private readonly daySkyTex: THREE.CanvasTexture;
-  private readonly sunsetSkyTex: THREE.CanvasTexture;
-  private readonly nightSkyTex: THREE.CanvasTexture;
+  private readonly skyMat: THREE.ShaderMaterial;
+  private readonly starField: THREE.Points;
+  private readonly starMat: THREE.PointsMaterial;
   private readonly waterMesh: THREE.Mesh | null;
   private readonly characterRig: CharacterRig;
   private characterMountedInTaxi = false;
   private readonly taxiRig: PlayerTaxiRig;
 
-  // Sculpted 3-class instanced AI traffic (Sports Coupe, Street Sedan, Crossover SUV — real wheels, sloped glass & LED lights!)
+  // Physical 3D Istanbul municipal roadblock barriers at true playable perimeter (2 draw calls total!)
+  private perimeterBarriersGroup: THREE.Group | null = null;
+  private perimeterBeaconMat: THREE.MeshBasicMaterial | null = null;
+  private readonly perimeterGeometries: THREE.BufferGeometry[] = [];
+  private readonly perimeterMaterials: THREE.Material[] = [];
+
+  // Sculpted 3-class instanced AI traffic + dedicated rotating/steering alloy wheels + dynamic brake lights!
   private readonly trafficClasses: Record<TrafficVisualClass, TrafficInstancedClass>;
+  private readonly trafficWheelInst: THREE.InstancedMesh;
   private readonly trafficColorScratch = new THREE.Color();
+  private readonly wheelParentMat = new THREE.Matrix4();
+  private readonly wheelLocalMat = new THREE.Matrix4();
+  private readonly wheelFinalMat = new THREE.Matrix4();
+  private readonly wheelLocalDummy = new THREE.Object3D();
   private readonly maxTrafficInstances = 36;
 
-  // Instanced sidewalk pedestrians (only 3 draw calls for up to 56 people across Ultra tier!)
-  private readonly pedLegsInst: THREE.InstancedMesh;
+  // Articulated striding instanced sidewalk pedestrians (6 draw calls for up to 56 walkers!)
+  private readonly pedLeftLegInst: THREE.InstancedMesh;
+  private readonly pedRightLegInst: THREE.InstancedMesh;
+  private readonly pedLeftArmInst: THREE.InstancedMesh;
+  private readonly pedRightArmInst: THREE.InstancedMesh;
   private readonly pedTorsoInst: THREE.InstancedMesh;
   private readonly pedHeadInst: THREE.InstancedMesh;
   private readonly maxPedInstances = 56;
@@ -200,24 +252,60 @@ export class RegionWorldScene {
     }
 
     this.scene = new THREE.Scene();
-    this.daySkyTex = createSkyDomeTexture('day');
-    this.sunsetSkyTex = createSkyDomeTexture('sunset');
-    this.nightSkyTex = createSkyDomeTexture('night');
-    this.disposableTextures.push(this.daySkyTex, this.sunsetSkyTex, this.nightSkyTex);
 
-    // 3D Equirectangular Sky Dome (warm sun + wispy clouds by day, stars + moon by night)
-    const skyGeo = new THREE.SphereGeometry(760, 24, 16);
-    this.skyMat = new THREE.MeshBasicMaterial({
-      map: this.daySkyTex,
+    // Vice-inspired smooth GPU atmospheric sky shader dome + glowing solar/lunar disc + night starfield!
+    const skyGeo = new THREE.SphereGeometry(760, 28, 18);
+    this.skyMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uTopColor: { value: new THREE.Color(0x1e64b8) },
+        uMidColor: { value: new THREE.Color(0x63a8e6) },
+        uHorizonColor: { value: new THREE.Color(0xd2e9fa) },
+        uSunDir: { value: new THREE.Vector3(0.45, 0.58, 0.68).normalize() },
+        uSunColor: { value: new THREE.Color(0xfff4d6) },
+        uSunGlow: { value: 1.0 },
+      },
+      vertexShader: SKY_VERTEX_SHADER,
+      fragmentShader: SKY_FRAGMENT_SHADER,
       side: THREE.BackSide,
       depthWrite: false,
       fog: false,
     });
     this.skyDome = new THREE.Mesh(skyGeo, this.skyMat);
-    this.skyDome.renderOrder = -1;
+    this.skyDome.renderOrder = -2;
     this.scene.add(this.skyDome);
     this.disposableGeometries.push(skyGeo);
     this.disposableMaterials.push(this.skyMat);
+
+    // Night sky starfield (260 crisp points on upper hemisphere, 1 draw call only when visible!)
+    const starCount = 260;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i += 1) {
+      // Deterministic golden-angle dome distribution
+      const theta = i * 2.399963229728653;
+      const y = 0.14 + ((i * 0.6180339887) % 1) * 0.84;
+      const rad = Math.sqrt(Math.max(0.01, 1 - y * y));
+      const r = 710;
+      starPos[i * 3] = Math.cos(theta) * rad * r;
+      starPos[i * 3 + 1] = y * r;
+      starPos[i * 3 + 2] = Math.sin(theta) * rad * r;
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    this.starMat = new THREE.PointsMaterial({
+      color: 0xf0f6ff,
+      size: 2.6,
+      sizeAttenuation: false,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      fog: false,
+    });
+    this.starField = new THREE.Points(starGeo, this.starMat);
+    this.starField.renderOrder = -1;
+    this.starField.visible = false;
+    this.scene.add(this.starField);
+    this.disposableGeometries.push(starGeo);
+    this.disposableMaterials.push(this.starMat);
 
     this.camera = new THREE.PerspectiveCamera(
       60,
@@ -342,29 +430,48 @@ export class RegionWorldScene {
     this.disposableTextures.push(...this.taxiRig.textures);
     this.scene.add(this.taxiRig.root);
 
-    // Sculpted 3-class GPU-instanced AI Traffic (Sports Coupe, Sedan/Hatchback, Crossover SUV/Van)
-    // Shared materials -> ultra-low mobile draw calls with real 3D cylinder tires, alloy rims, sloped glass & LED lights!
+    // Sculpted 3-class GPU-instanced AI Traffic matching player showroom quality!
+    // Glossy metallic paint, tinted glass, LED DRLs, dynamic brake lights, AND rotating/steering 5-spoke wheels!
     const trafficBodyMat = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      roughness: 0.26,
-      metalness: 0.42,
+      roughness: 0.2,
+      metalness: 0.54,
     });
     const trafficTrimMat = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      roughness: 0.56,
-      metalness: 0.3,
+      roughness: 0.52,
+      metalness: 0.32,
     });
     const trafficGlassMat = new THREE.MeshStandardMaterial({
       color: 0x162538,
       roughness: 0.08,
-      metalness: 0.84,
+      metalness: 0.86,
     });
     const trafficLightsMat = new THREE.MeshBasicMaterial({ vertexColors: true });
-    this.disposableMaterials.push(trafficBodyMat, trafficTrimMat, trafficGlassMat, trafficLightsMat);
+    const trafficBrakeMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+    const trafficWheelMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.44,
+      metalness: 0.46,
+    });
+    this.disposableMaterials.push(
+      trafficBodyMat,
+      trafficTrimMat,
+      trafficGlassMat,
+      trafficLightsMat,
+      trafficBrakeMat,
+      trafficWheelMat,
+    );
 
     const buildTrafficClassMeshSet = (style: TrafficVisualClass): TrafficInstancedClass => {
       const geos = buildTrafficClassGeometries(style);
-      this.disposableGeometries.push(geos.bodyGeo, geos.trimWheelsGeo, geos.glassGeo, geos.lightsGeo);
+      this.disposableGeometries.push(
+        geos.bodyGeo,
+        geos.trimWheelsGeo,
+        geos.glassGeo,
+        geos.lightsGeo,
+        geos.brakeLightsGeo,
+      );
       const bodyInst = new THREE.InstancedMesh(geos.bodyGeo, trafficBodyMat, this.maxTrafficInstances);
       const trimWheelsInst = new THREE.InstancedMesh(
         geos.trimWheelsGeo,
@@ -381,12 +488,17 @@ export class RegionWorldScene {
         trafficLightsMat,
         this.maxTrafficInstances,
       );
-      for (const inst of [bodyInst, trimWheelsInst, glassInst, lightsInst]) {
+      const brakeLightsInst = new THREE.InstancedMesh(
+        geos.brakeLightsGeo,
+        trafficBrakeMat,
+        this.maxTrafficInstances,
+      );
+      for (const inst of [bodyInst, trimWheelsInst, glassInst, lightsInst, brakeLightsInst]) {
         inst.count = 0;
         inst.frustumCulled = false;
         this.scene.add(inst);
       }
-      return { bodyInst, trimWheelsInst, glassInst, lightsInst };
+      return { bodyInst, trimWheelsInst, glassInst, lightsInst, brakeLightsInst };
     };
 
     this.trafficClasses = {
@@ -395,37 +507,60 @@ export class RegionWorldScene {
       suv: buildTrafficClassMeshSet('suv'),
     };
 
-    // Sculpted instanced sidewalk pedestrians (same 3 draw calls for 56 walkers — real twin legs, arms & hair!)
-    const pedLegsGeo = mergeColoredParts([
-      { geometry: new THREE.CylinderGeometry(0.08, 0.068, 0.72, 7), color: 0xffffff, position: [-0.095, 0, 0] },
-      { geometry: new THREE.CylinderGeometry(0.08, 0.068, 0.72, 7), color: 0xffffff, position: [0.095, 0, 0] },
-      { geometry: new THREE.BoxGeometry(0.11, 0.08, 0.2), color: 0xe2e8f0, position: [-0.095, -0.35, 0.03] },
-      { geometry: new THREE.BoxGeometry(0.11, 0.08, 0.2), color: 0xe2e8f0, position: [0.095, -0.35, 0.03] },
+    // Single InstancedMesh for ALL rotating & steering NPC wheels (max 36 cars x 4 = 144 wheels = 1 draw call!)
+    const singleTrafficWheelGeo = buildSingleTrafficWheelGeometry();
+    this.disposableGeometries.push(singleTrafficWheelGeo);
+    this.trafficWheelInst = new THREE.InstancedMesh(
+      singleTrafficWheelGeo,
+      trafficWheelMat,
+      this.maxTrafficInstances * 4,
+    );
+    this.trafficWheelInst.count = 0;
+    this.trafficWheelInst.frustumCulled = false;
+    this.scene.add(this.trafficWheelInst);
+
+    // Articulated striding instanced sidewalk pedestrians (natural walking legs + pumping arms + hair!)
+    const pedSingleLegGeo = mergeColoredParts([
+      { geometry: new THREE.CylinderGeometry(0.078, 0.062, 0.72, 8), color: 0xffffff, position: [0, -0.36, 0] },
+      { geometry: new THREE.BoxGeometry(0.115, 0.085, 0.21), color: 0xe2e8f0, position: [0, -0.71, 0.035] },
+    ]);
+    const pedSingleArmGeo = mergeColoredParts([
+      { geometry: new THREE.CylinderGeometry(0.056, 0.046, 0.48, 8), color: 0xffffff, position: [0, -0.24, 0] },
+      { geometry: new THREE.SphereGeometry(0.046, 6, 6), color: 0xe5b28c, position: [0, -0.49, 0] },
     ]);
     const pedTorsoGeo = mergeColoredParts([
-      { geometry: new THREE.BoxGeometry(0.38, 0.54, 0.21), color: 0xffffff, position: [0, 0, 0] },
-      { geometry: new THREE.CylinderGeometry(0.06, 0.052, 0.48, 7), color: 0xf4f6f9, position: [-0.24, -0.02, 0] },
-      { geometry: new THREE.CylinderGeometry(0.06, 0.052, 0.48, 7), color: 0xf4f6f9, position: [0.24, -0.02, 0] },
+      { geometry: new THREE.BoxGeometry(0.39, 0.54, 0.22), color: 0xffffff, position: [0, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.37, 0.12, 0.23), color: 0x1e293b, position: [0, -0.24, 0] },
     ]);
     const pedHeadGeo = mergeColoredParts([
-      { geometry: new THREE.SphereGeometry(0.135, 9, 9), color: 0xe5b28c, position: [0, 0, 0], scale: [0.92, 1.06, 0.95] },
+      { geometry: new THREE.SphereGeometry(0.135, 10, 9), color: 0xe5b28c, position: [0, 0, 0], scale: [0.92, 1.06, 0.95] },
       {
-        geometry: new THREE.SphereGeometry(0.142, 9, 7, 0, Math.PI * 2, 0, Math.PI * 0.58),
+        geometry: new THREE.SphereGeometry(0.142, 10, 7, 0, Math.PI * 2, 0, Math.PI * 0.58),
         color: 0x1e1a18,
-        position: [0, 0.02, -0.015],
+        position: [0, 0.022, -0.015],
         rotation: [-0.2, 0, 0],
       },
     ]);
     const pedLegsMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 });
-    const pedTorsoMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.68 });
-    const pedHeadMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.74 });
-    this.disposableGeometries.push(pedLegsGeo, pedTorsoGeo, pedHeadGeo);
+    const pedTorsoMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.66 });
+    const pedHeadMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.72 });
+    this.disposableGeometries.push(pedSingleLegGeo, pedSingleArmGeo, pedTorsoGeo, pedHeadGeo);
     this.disposableMaterials.push(pedLegsMat, pedTorsoMat, pedHeadMat);
 
-    this.pedLegsInst = new THREE.InstancedMesh(pedLegsGeo, pedLegsMat, this.maxPedInstances);
+    this.pedLeftLegInst = new THREE.InstancedMesh(pedSingleLegGeo, pedLegsMat, this.maxPedInstances);
+    this.pedRightLegInst = new THREE.InstancedMesh(pedSingleLegGeo, pedLegsMat, this.maxPedInstances);
+    this.pedLeftArmInst = new THREE.InstancedMesh(pedSingleArmGeo, pedTorsoMat, this.maxPedInstances);
+    this.pedRightArmInst = new THREE.InstancedMesh(pedSingleArmGeo, pedTorsoMat, this.maxPedInstances);
     this.pedTorsoInst = new THREE.InstancedMesh(pedTorsoGeo, pedTorsoMat, this.maxPedInstances);
     this.pedHeadInst = new THREE.InstancedMesh(pedHeadGeo, pedHeadMat, this.maxPedInstances);
-    for (const inst of [this.pedLegsInst, this.pedTorsoInst, this.pedHeadInst]) {
+    for (const inst of [
+      this.pedLeftLegInst,
+      this.pedRightLegInst,
+      this.pedLeftArmInst,
+      this.pedRightArmInst,
+      this.pedTorsoInst,
+      this.pedHeadInst,
+    ]) {
       inst.count = 0;
       inst.frustumCulled = false;
       this.scene.add(inst);
@@ -817,18 +952,184 @@ export class RegionWorldScene {
     return this.timeOfDay;
   }
 
+  /**
+   * Places physical 3D Istanbul municipal roadblock barriers (heavy concrete jersey blocks +
+   * red/white reflective striped steel boards + traffic cones + flashing amber warning beacons)
+   * at every perimeter road exit AND registers exact matching colliders in `spatialGrid`!
+   * Total GPU cost: 2 draw calls for the entire map perimeter.
+   */
+  setPerimeterBarriers(barriers: readonly PerimeterRoadBarrier[]): void {
+    // Clean up any previous barriers
+    if (this.perimeterBarriersGroup) {
+      this.scene.remove(this.perimeterBarriersGroup);
+      this.perimeterBarriersGroup = null;
+    }
+    for (const g of this.perimeterGeometries) g.dispose();
+    for (const m of this.perimeterMaterials) m.dispose();
+    this.perimeterGeometries.length = 0;
+    this.perimeterMaterials.length = 0;
+    this.perimeterBeaconMat = null;
+
+    // Register exact oriented 2D colliders so player cars bump physically into the visible barricades!
+    this.spatialGrid.addTile('__perimeter_barriers__', buildBarrierColliders(barriers));
+
+    if (barriers.length === 0) return;
+
+    const structureParts: ColoredGeometryPart[] = [];
+    const beaconParts: ColoredGeometryPart[] = [];
+
+    for (const b of barriers) {
+      const groundY = sampleTerrainElevation(this.terrain, b.x, b.z) + 0.24;
+      const span = Math.max(5.5, b.width);
+      const rx = -b.dirZ;
+      const rz = b.dirX;
+      const fx = b.dirX;
+      const fz = b.dirZ;
+      // Rotate local X along perpendicular road width, local Z along road exit direction
+      const boardYaw = b.yaw;
+
+      // 1. Concrete jersey barrier base blocks across the entire road span
+      const blockCount = Math.max(2, Math.round(span / 2.6));
+      const blockW = span / blockCount;
+      for (let i = 0; i < blockCount; i += 1) {
+        const offset = -span * 0.5 + (i + 0.5) * blockW;
+        const bx = b.x + rx * offset;
+        const bz = b.z + rz * offset;
+        const by = sampleTerrainElevation(this.terrain, bx, bz) + 0.24;
+        // Concrete Jersey barrier lower & upper bevel
+        structureParts.push(
+          {
+            geometry: new THREE.BoxGeometry(blockW - 0.1, 0.56, 0.68),
+            color: 0xcbd5e1,
+            position: [bx, by + 0.28, bz],
+            rotation: [0, boardYaw, 0],
+          },
+          {
+            geometry: new THREE.BoxGeometry(blockW - 0.14, 0.42, 0.36),
+            color: 0xdbe2ea,
+            position: [bx, by + 0.72, bz],
+            rotation: [0, boardYaw, 0],
+          },
+        );
+        // Alternating vivid Turkish red & reflective white chevron warning plank on top!
+        const stripeCount = 4;
+        const stripeW = (blockW - 0.12) / stripeCount;
+        for (let s = 0; s < stripeCount; s += 1) {
+          const sOff = offset - (blockW - 0.12) * 0.5 + (s + 0.5) * stripeW;
+          structureParts.push({
+            geometry: new THREE.BoxGeometry(stripeW + 0.01, 0.28, 0.12),
+            color: (i + s) % 2 === 0 ? 0xdc2626 : 0xf8fafc,
+            position: [b.x + rx * sOff, by + 1.12, b.z + rz * sOff],
+            rotation: [0, boardYaw, 0],
+          });
+        }
+        // Steel uprights anchoring warning rail
+        structureParts.push({
+          geometry: new THREE.BoxGeometry(0.08, 0.52, 0.08),
+          color: 0x334155,
+          position: [bx, by + 0.96, bz],
+          rotation: [0, boardYaw, 0],
+        });
+      }
+
+      // 2. Pair of reflective orange/white traffic cones slightly in front of roadblock
+      for (const side of [-0.38, 0.38]) {
+        const cx = b.x + rx * (span * side) - fx * 1.15;
+        const cz = b.z + rz * (span * side) - fz * 1.15;
+        const cy = sampleTerrainElevation(this.terrain, cx, cz) + 0.24;
+        structureParts.push(
+          {
+            geometry: new THREE.BoxGeometry(0.42, 0.08, 0.42),
+            color: 0x1e293b,
+            position: [cx, cy + 0.04, cz],
+          },
+          {
+            geometry: new THREE.ConeGeometry(0.18, 0.68, 7),
+            color: 0xf97316,
+            position: [cx, cy + 0.4, cz],
+          },
+          {
+            geometry: new THREE.CylinderGeometry(0.095, 0.125, 0.14, 7),
+            color: 0xf8fafc,
+            position: [cx, cy + 0.46, cz],
+          },
+        );
+      }
+
+      // 3. Flashing amber hazard beacon lamps mounted left, center & right atop the barricade
+      for (const bSide of [-0.42, 0, 0.42]) {
+        const lx = b.x + rx * (span * bSide);
+        const lz = b.z + rz * (span * bSide);
+        beaconParts.push({
+          geometry: new THREE.BoxGeometry(0.24, 0.24, 0.2),
+          color: 0xffb703,
+          position: [lx, groundY + 1.38, lz],
+          rotation: [0, boardYaw, 0],
+        });
+      }
+    }
+
+    const group = new THREE.Group();
+    group.name = 'perimeter-roadblock-barriers';
+
+    const structGeo = mergeColoredParts(structureParts);
+    const structMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.72,
+      metalness: 0.16,
+    });
+    const structMesh = new THREE.Mesh(structGeo, structMat);
+    structMesh.castShadow = false;
+    structMesh.receiveShadow = true;
+    group.add(structMesh);
+
+    const beaconGeo = mergeColoredParts(beaconParts);
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xffb703 });
+    const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+    group.add(beaconMesh);
+
+    this.perimeterGeometries.push(structGeo, beaconGeo);
+    this.perimeterMaterials.push(structMat, beaconMat);
+    this.perimeterBeaconMat = beaconMat;
+    this.perimeterBarriersGroup = group;
+    this.scene.add(group);
+  }
+
   private applyLighting(): void {
     const preset = getQualityPreset(this.qualityTier);
     const tc = getTimeCycleProfile(this.timeOfDay);
     const farDist = preset.fogFar + 190;
 
-    this.skyMat.map =
-      this.timeOfDay === 'day'
-        ? this.daySkyTex
-        : this.timeOfDay === 'sunset'
-          ? this.sunsetSkyTex
-          : this.nightSkyTex;
-    this.skyMat.needsUpdate = true;
+    // Update GPU atmospheric sky shader colors & solar/lunar scattering
+    const skyUniforms = this.skyMat.uniforms;
+    if (this.timeOfDay === 'day') {
+      (skyUniforms.uTopColor!.value as THREE.Color).setHex(0x1b60b5);
+      (skyUniforms.uMidColor!.value as THREE.Color).setHex(0x69b0eb);
+      (skyUniforms.uHorizonColor!.value as THREE.Color).setHex(0xd6ecfc);
+      (skyUniforms.uSunColor!.value as THREE.Color).setHex(0xfff4d6);
+      skyUniforms.uSunGlow!.value = 1.05;
+      this.starField.visible = false;
+      this.starMat.opacity = 0;
+    } else if (this.timeOfDay === 'sunset') {
+      (skyUniforms.uTopColor!.value as THREE.Color).setHex(0x272a5e);
+      (skyUniforms.uMidColor!.value as THREE.Color).setHex(0xb8526e);
+      (skyUniforms.uHorizonColor!.value as THREE.Color).setHex(0xffa66b);
+      (skyUniforms.uSunColor!.value as THREE.Color).setHex(0xffcc70);
+      skyUniforms.uSunGlow!.value = 1.45;
+      this.starField.visible = true;
+      this.starMat.opacity = 0.28;
+    } else {
+      (skyUniforms.uTopColor!.value as THREE.Color).setHex(0x040917);
+      (skyUniforms.uMidColor!.value as THREE.Color).setHex(0x0c1b36);
+      (skyUniforms.uHorizonColor!.value as THREE.Color).setHex(0x1b2e4d);
+      (skyUniforms.uSunColor!.value as THREE.Color).setHex(0xcbe2ff);
+      skyUniforms.uSunGlow!.value = 0.62;
+      this.starField.visible = true;
+      this.starMat.opacity = 0.88;
+    }
+    (skyUniforms.uSunDir!.value as THREE.Vector3)
+      .set(tc.sunOffset[0], Math.max(18, tc.sunOffset[1]), tc.sunOffset[2])
+      .normalize();
 
     this.bgColor.setHex(tc.skyHorizonHex);
     this.scene.background = this.bgColor;
@@ -868,6 +1169,8 @@ export class RegionWorldScene {
 
   updateTraffic(agents: readonly TrafficAgent[]): void {
     const counts: Record<TrafficVisualClass, number> = { sports: 0, sedan: 0, suv: 0 };
+    const brakeCounts: Record<TrafficVisualClass, number> = { sports: 0, sedan: 0, suv: 0 };
+    let wheelIdx = 0;
 
     for (let i = 0; i < agents.length; i += 1) {
       const a = agents[i]!;
@@ -881,9 +1184,10 @@ export class RegionWorldScene {
       const scaleZ = a.archetype === 'hatchback' ? 0.91 : a.archetype === 'van' || a.archetype === 'dolmus' ? 1.07 : 1.0;
       const scaleY = a.archetype === 'van' || a.archetype === 'dolmus' ? 1.12 : 1.0;
 
+      // Dynamic pitch & body roll suspension copied from player vehicle mechanics!
       this.dummyObj.rotation.order = 'YXZ';
       this.dummyObj.position.set(a.x, baseRoadY, a.z);
-      this.dummyObj.rotation.set(-a.pitch, a.heading, 0);
+      this.dummyObj.rotation.set(-a.pitch + a.suspPitch, a.heading, a.suspRoll);
       this.dummyObj.scale.set(1, scaleY, scaleZ);
       this.dummyObj.updateMatrix();
 
@@ -893,15 +1197,52 @@ export class RegionWorldScene {
       bucket.trimWheelsInst.setMatrixAt(idx, this.dummyObj.matrix);
       bucket.glassInst.setMatrixAt(idx, this.dummyObj.matrix);
       bucket.lightsInst.setMatrixAt(idx, this.dummyObj.matrix);
+
+      // Dynamic bright crimson brake lights + high-mount 3rd LED strip when braking or hit!
+      if (a.braking) {
+        const bIdx = brakeCounts[cls];
+        brakeCounts[cls] = bIdx + 1;
+        bucket.brakeLightsInst.setMatrixAt(bIdx, this.dummyObj.matrix);
+      }
+
+      // 4 REAL rotating & front-steering 5-spoke alloy wheels per NPC car!
+      const wl = getTrafficClassWheelLayout(cls);
+      const wheelScale = wl.wheelR / 0.34;
+      this.dummyObj.rotation.set(-a.pitch, a.heading, 0);
+      this.dummyObj.scale.set(1, 1, 1);
+      this.dummyObj.updateMatrix();
+      this.wheelParentMat.copy(this.dummyObj.matrix);
+
+      const placements: [number, number, boolean][] = [
+        [-wl.trackHalf, wl.frontAxleZ * scaleZ, true],
+        [wl.trackHalf, wl.frontAxleZ * scaleZ, true],
+        [-wl.trackHalf, wl.rearAxleZ * scaleZ, false],
+        [wl.trackHalf, wl.rearAxleZ * scaleZ, false],
+      ];
+
+      this.wheelLocalDummy.rotation.order = 'YXZ';
+      for (const [wx, wz, isFront] of placements) {
+        if (wheelIdx >= this.maxTrafficInstances * 4) break;
+        this.wheelLocalDummy.position.set(wx, wl.wheelR, wz);
+        this.wheelLocalDummy.rotation.set(a.wheelSpin, isFront ? a.steerAngle : 0, 0);
+        this.wheelLocalDummy.scale.set(1, wheelScale, wheelScale);
+        this.wheelLocalDummy.updateMatrix();
+        this.wheelLocalMat.copy(this.wheelLocalDummy.matrix);
+        this.wheelFinalMat.multiplyMatrices(this.wheelParentMat, this.wheelLocalMat);
+        this.trafficWheelInst.setMatrixAt(wheelIdx, this.wheelFinalMat);
+        wheelIdx += 1;
+      }
     }
 
     for (const cls of ['sports', 'sedan', 'suv'] as const) {
       const bucket = this.trafficClasses[cls];
       const c = counts[cls];
+      const bc = brakeCounts[cls];
       bucket.bodyInst.count = c;
       bucket.trimWheelsInst.count = c;
       bucket.glassInst.count = c;
       bucket.lightsInst.count = c;
+      bucket.brakeLightsInst.count = bc;
       if (c > 0) {
         bucket.bodyInst.instanceMatrix.needsUpdate = true;
         bucket.trimWheelsInst.instanceMatrix.needsUpdate = true;
@@ -911,6 +1252,14 @@ export class RegionWorldScene {
           bucket.bodyInst.instanceColor.needsUpdate = true;
         }
       }
+      if (bc > 0) {
+        bucket.brakeLightsInst.instanceMatrix.needsUpdate = true;
+      }
+    }
+
+    this.trafficWheelInst.count = wheelIdx;
+    if (wheelIdx > 0) {
+      this.trafficWheelInst.instanceMatrix.needsUpdate = true;
     }
   }
 
@@ -918,46 +1267,93 @@ export class RegionWorldScene {
     const count = Math.min(agents.length, this.maxPedInstances);
     const colorsDirty = count !== this.lastPedCount;
     this.lastPedCount = count;
-    this.pedLegsInst.count = count;
+    this.pedLeftLegInst.count = count;
+    this.pedRightLegInst.count = count;
+    this.pedLeftArmInst.count = count;
+    this.pedRightArmInst.count = count;
     this.pedTorsoInst.count = count;
     this.pedHeadInst.count = count;
+
+    this.dummyObj.rotation.order = 'YXZ';
 
     for (let i = 0; i < count; i += 1) {
       const p = agents[i]!;
       const isIdle = p.behavior === 'idle';
-      const bob = isIdle ? 0 : Math.abs(Math.sin(p.stridePhase)) * (p.behavior === 'run' ? 0.085 : 0.055);
-      const lean = p.behavior === 'run' ? 0.14 : 0;
-      const baseY = p.y + 0.34;
+      const isRun = p.behavior === 'run';
+      const strideSin = isIdle ? 0 : Math.sin(p.stridePhase);
+      const bob = isIdle ? 0 : Math.abs(Math.cos(p.stridePhase)) * (isRun ? 0.085 : 0.048);
+      const legSwing = strideSin * (isRun ? 0.85 : 0.54);
+      const armSwing = strideSin * (isRun ? 0.9 : 0.46);
+      const lean = isRun ? 0.16 : isIdle ? 0 : 0.05;
+      const baseY = p.y + 0.32;
 
-      this.dummyObj.rotation.set(lean, p.heading, 0);
+      const sinH = Math.sin(p.heading);
+      const cosH = Math.cos(p.heading);
+      // Right lateral vector relative to pedestrian heading
+      const rightX = cosH;
+      const rightZ = -sinH;
+
       this.dummyObj.scale.set(1, 1, 1);
 
-      this.dummyObj.position.set(p.x, baseY + 0.39 + bob * 0.4, p.z);
+      // Left & Right striding legs swinging smoothly from hip joint!
+      const hipY = baseY + 0.78 + bob * 0.45;
+      this.dummyObj.position.set(p.x - rightX * 0.095, hipY, p.z - rightZ * 0.095);
+      this.dummyObj.rotation.set(legSwing, p.heading, 0);
       this.dummyObj.updateMatrix();
-      this.pedLegsInst.setMatrixAt(i, this.dummyObj.matrix);
-      if (colorsDirty) {
-        this.pedLegsInst.setColorAt(i, PED_PANTS_COLORS[p.pantsColorIndex % PED_PANTS_COLORS.length]!);
-      }
+      this.pedLeftLegInst.setMatrixAt(i, this.dummyObj.matrix);
 
-      this.dummyObj.position.set(p.x, baseY + 1.05 + bob, p.z);
+      this.dummyObj.position.set(p.x + rightX * 0.095, hipY, p.z + rightZ * 0.095);
+      this.dummyObj.rotation.set(-legSwing, p.heading, 0);
+      this.dummyObj.updateMatrix();
+      this.pedRightLegInst.setMatrixAt(i, this.dummyObj.matrix);
+
+      // Torso with subtle counter-twist & sprint lean
+      this.dummyObj.position.set(p.x, baseY + 1.07 + bob, p.z);
+      this.dummyObj.rotation.set(lean, p.heading + strideSin * 0.05, 0);
       this.dummyObj.updateMatrix();
       this.pedTorsoInst.setMatrixAt(i, this.dummyObj.matrix);
-      if (colorsDirty) {
-        this.pedTorsoInst.setColorAt(i, PED_SHIRT_COLORS[p.shirtColorIndex % PED_SHIRT_COLORS.length]!);
-      }
 
-      this.dummyObj.rotation.set(0, p.heading + p.lookYaw, 0);
-      this.dummyObj.position.set(p.x, baseY + 1.52 + bob, p.z);
+      // Opposite swinging arms from shoulder sockets!
+      const shoulderY = baseY + 1.3 + bob;
+      this.dummyObj.position.set(p.x - rightX * 0.24, shoulderY, p.z - rightZ * 0.24);
+      this.dummyObj.rotation.set(-armSwing, p.heading, 0.06);
+      this.dummyObj.updateMatrix();
+      this.pedLeftArmInst.setMatrixAt(i, this.dummyObj.matrix);
+
+      this.dummyObj.position.set(p.x + rightX * 0.24, shoulderY, p.z + rightZ * 0.24);
+      this.dummyObj.rotation.set(armSwing, p.heading, -0.06);
+      this.dummyObj.updateMatrix();
+      this.pedRightArmInst.setMatrixAt(i, this.dummyObj.matrix);
+
+      // Head looking naturally along street or glancing around
+      this.dummyObj.position.set(p.x, baseY + 1.54 + bob, p.z);
+      this.dummyObj.rotation.set(isRun ? -0.08 : 0, p.heading + p.lookYaw, 0);
       this.dummyObj.updateMatrix();
       this.pedHeadInst.setMatrixAt(i, this.dummyObj.matrix);
+
+      if (colorsDirty) {
+        const pantsCol = PED_PANTS_COLORS[p.pantsColorIndex % PED_PANTS_COLORS.length]!;
+        const shirtCol = PED_SHIRT_COLORS[p.shirtColorIndex % PED_SHIRT_COLORS.length]!;
+        this.pedLeftLegInst.setColorAt(i, pantsCol);
+        this.pedRightLegInst.setColorAt(i, pantsCol);
+        this.pedTorsoInst.setColorAt(i, shirtCol);
+        this.pedLeftArmInst.setColorAt(i, shirtCol);
+        this.pedRightArmInst.setColorAt(i, shirtCol);
+      }
     }
 
-    this.pedLegsInst.instanceMatrix.needsUpdate = true;
+    this.pedLeftLegInst.instanceMatrix.needsUpdate = true;
+    this.pedRightLegInst.instanceMatrix.needsUpdate = true;
+    this.pedLeftArmInst.instanceMatrix.needsUpdate = true;
+    this.pedRightArmInst.instanceMatrix.needsUpdate = true;
     this.pedTorsoInst.instanceMatrix.needsUpdate = true;
     this.pedHeadInst.instanceMatrix.needsUpdate = true;
     if (colorsDirty) {
-      if (this.pedLegsInst.instanceColor) this.pedLegsInst.instanceColor.needsUpdate = true;
+      if (this.pedLeftLegInst.instanceColor) this.pedLeftLegInst.instanceColor.needsUpdate = true;
+      if (this.pedRightLegInst.instanceColor) this.pedRightLegInst.instanceColor.needsUpdate = true;
       if (this.pedTorsoInst.instanceColor) this.pedTorsoInst.instanceColor.needsUpdate = true;
+      if (this.pedLeftArmInst.instanceColor) this.pedLeftArmInst.instanceColor.needsUpdate = true;
+      if (this.pedRightArmInst.instanceColor) this.pedRightArmInst.instanceColor.needsUpdate = true;
     }
   }
 
@@ -1157,8 +1553,15 @@ export class RegionWorldScene {
     // Step asphalt skidmarks, volumetric drift smoke & impact sparks
     this.vehicleEffects.update(vehicle, this.camera.position, dt, inVehicle);
 
-    // Keep sky dome centered on camera so horizon never clips or shifts
+    // Keep sky dome & starfield centered on camera so horizon never clips or shifts
     this.skyDome.position.copy(this.camera.position);
+    this.starField.position.copy(this.camera.position);
+
+    // Pulse municipal roadblock amber hazard warning beacons gently!
+    if (this.perimeterBeaconMat) {
+      const flash = Math.sin(this.elapsed * 7.0) > 0 ? 1 : 0;
+      this.perimeterBeaconMat.color.setHex(flash ? 0xffbe0b : 0x5c3a00);
+    }
 
     if (this.waterMesh) {
       this.waterMesh.position.y = 0.35 + Math.sin(this.elapsed * 1.1) * 0.08;
@@ -1219,6 +1622,8 @@ export class RegionWorldScene {
     }
     this.loadedTiles.clear();
     this.loadedTileKeys.clear();
+    for (const g of this.perimeterGeometries) g.dispose();
+    for (const m of this.perimeterMaterials) m.dispose();
     for (const g of this.disposableGeometries) g.dispose();
     for (const m of this.disposableMaterials) m.dispose();
     for (const t of this.disposableTextures) t.dispose();

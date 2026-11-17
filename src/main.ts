@@ -62,6 +62,12 @@ import type {
   RoadGraph,
   TerrainGrid,
 } from './core/world/types';
+import {
+  computePerimeterRoadBarriers,
+  computePlayableWorldBounds,
+  type PerimeterRoadBarrier,
+  type PlayableWorldBounds,
+} from './core/world/worldBounds';
 import { getStrings } from './i18n/strings';
 import {
   RegionWorldScene,
@@ -85,13 +91,15 @@ import {
 import { HudOverlay } from './ui/HudOverlay';
 import { MinimapRenderer } from './ui/MinimapRenderer';
 
-const APP_VERSION = '0.7.0';
+const APP_VERSION = '0.8.0';
 
 interface ActiveRegionRuntime {
   meta: RegionRegistryEntry;
   manifest: RegionManifest;
   terrain: TerrainGrid;
   roadGraph: RoadGraph;
+  playableBounds: PlayableWorldBounds;
+  perimeterBarriers: PerimeterRoadBarrier[];
   scene: RegionWorldScene;
   traffic: RoadTrafficSimulator;
   pedestrians: PedestrianSimulator;
@@ -212,6 +220,9 @@ async function loadRegionBundle(
   const terrain = (await terrainRes.json()) as TerrainGrid;
   const roadGraph = (await graphRes.json()) as RoadGraph;
 
+  const playableBounds = computePlayableWorldBounds(terrain);
+  const perimeterBarriers = computePerimeterRoadBarriers(roadGraph, playableBounds);
+
   const scene = new RegionWorldScene(
     container,
     meta,
@@ -220,6 +231,7 @@ async function loadRegionBundle(
     qualityTier,
     timeOfDay,
   );
+  scene.setPerimeterBarriers(perimeterBarriers);
   const qPreset = getQualityPreset(qualityTier);
   const seed = regionId === 'esenler-namik-kemal' ? 34034 : 34001;
   const traffic = new RoadTrafficSimulator(
@@ -228,10 +240,26 @@ async function loadRegionBundle(
     seed,
     manifest.spawn.x,
     manifest.spawn.z,
+    playableBounds,
   );
-  const pedestrians = new PedestrianSimulator(roadGraph, qPreset.pedestrianCount, seed + 17);
+  const pedestrians = new PedestrianSimulator(
+    roadGraph,
+    qPreset.pedestrianCount,
+    seed + 17,
+    playableBounds,
+  );
 
-  return { meta, manifest, terrain, roadGraph, scene, traffic, pedestrians };
+  return {
+    meta,
+    manifest,
+    terrain,
+    roadGraph,
+    playableBounds,
+    perimeterBarriers,
+    scene,
+    traffic,
+    pedestrians,
+  };
 }
 
 async function bootstrap(): Promise<void> {
@@ -293,7 +321,7 @@ async function bootstrap(): Promise<void> {
   window.addEventListener('keydown', unlockOnce, { passive: true });
 
   let runtime = await loadRegionBundle(container, activeRegionId, save.qualityTier, timeOfDay);
-  const minimap = new MinimapRenderer(runtime.roadGraph);
+  const minimap = new MinimapRenderer(runtime.roadGraph, runtime.playableBounds);
   const clock = new FixedStepClock(60, 0.1, 6);
 
   let playerX = runtime.manifest.spawn.x;
@@ -321,13 +349,13 @@ async function bootstrap(): Promise<void> {
   ): PlayerVehicleState => {
     const rawX = clamp(
       px + Math.sin(heading) * 3.8 + Math.cos(heading) * 1.4,
-      rt.terrain.minX + 12,
-      rt.terrain.maxX - 12,
+      rt.playableBounds.minX + 4,
+      rt.playableBounds.maxX - 4,
     );
     const rawZ = clamp(
       pz + Math.cos(heading) * 3.8 - Math.sin(heading) * 1.4,
-      rt.terrain.minZ + 12,
-      rt.terrain.maxZ - 12,
+      rt.playableBounds.minZ + 4,
+      rt.playableBounds.maxZ - 4,
     );
     const clear = rt.scene.spatialGrid.resolveCircle(rawX, rawZ, 1.35);
     const vy = sampleTerrainElevation(rt.terrain, clear.x, clear.z);
@@ -502,8 +530,8 @@ async function bootstrap(): Promise<void> {
   };
 
   const teleportTo = (x: number, z: number): void => {
-    const tx = clamp(x, runtime.terrain.minX + 12, runtime.terrain.maxX - 12);
-    const tz = clamp(z, runtime.terrain.minZ + 12, runtime.terrain.maxZ - 12);
+    const tx = clamp(x, runtime.playableBounds.minX + 3, runtime.playableBounds.maxX - 3);
+    const tz = clamp(z, runtime.playableBounds.minZ + 3, runtime.playableBounds.maxZ - 3);
     const ty = sampleTerrainElevation(runtime.terrain, tx, tz);
     if (inVehicle) {
       playerVehicle.x = tx;
@@ -556,12 +584,7 @@ async function bootstrap(): Promise<void> {
       runtime.scene.spatialGrid,
       (x, z) => sampleTerrainElevation(runtime.terrain, x, z),
       collectActiveVehicleOBBs(),
-      {
-        minX: runtime.terrain.minX,
-        maxX: runtime.terrain.maxX,
-        minZ: runtime.terrain.minZ,
-        maxZ: runtime.terrain.maxZ,
-      },
+      runtime.playableBounds,
     );
     playerX = exit.x;
     playerY = exit.y;
@@ -609,6 +632,13 @@ async function bootstrap(): Promise<void> {
           drivingMode,
           transmissionMode,
         );
+        // Seamless momentum transfer if claiming a moving car on the avenue!
+        if (claimed.speedMps > 0.4) {
+          playerVehicle.speed = claimed.speedMps;
+          playerVehicle.dyn.vLong = claimed.speedMps;
+          playerVehicle.dyn.vx = Math.sin(claimed.heading) * claimed.speedMps;
+          playerVehicle.dyn.vz = Math.cos(claimed.heading) * claimed.speedMps;
+        }
         runtime.scene.setPlayerVehicleStyle(playerVehicle.archetype, playerVehicle.paintHex);
         runtime.scene.resetVehicleEffects();
         const vehName =
@@ -781,7 +811,7 @@ async function bootstrap(): Promise<void> {
         playerVehicle.archetype,
         playerVehicle.paintHex,
       );
-      minimap.setRoadGraph(runtime.roadGraph);
+      minimap.setRoadGraph(runtime.roadGraph, runtime.playableBounds);
       runtime.scene.updateStreaming(playerX, playerZ);
       attachCanvasDrag(runtime.scene.renderer.domElement);
       hud.setLandmarks(runtime.manifest.landmarks);
@@ -1265,17 +1295,12 @@ async function bootstrap(): Promise<void> {
           if (shiftUp) manualShiftVehicle(playerVehicle, 1);
           if (shiftDown) manualShiftVehicle(playerVehicle, -1);
 
-          const surfaceGrip = timeOfDay === 'night' ? 0.86 : timeOfDay === 'sunset' ? 0.94 : 1.0;
+          const surfaceGrip = timeOfDay === 'night' ? 0.94 : timeOfDay === 'sunset' ? 0.97 : 1.0;
           const res = stepPlayerVehicle(
             playerVehicle,
             { throttle, brake, steer, handbrake: hb, surfaceGrip },
             dt,
-            {
-              minX: runtime.terrain.minX,
-              maxX: runtime.terrain.maxX,
-              minZ: runtime.terrain.minZ,
-              maxZ: runtime.terrain.maxZ,
-            },
+            runtime.playableBounds,
             sampleElev,
             runtime.scene.spatialGrid,
           );
@@ -1301,12 +1326,14 @@ async function bootstrap(): Promise<void> {
             void triggerDrivingHaptic('drift', clamp(playerVehicle.dyn.driftAngleDeg / 55, 0.25, 0.7));
           }
 
-          // Solid momentum collision against AI traffic using full 2D velocity vector!
+          // Solid momentum collision against AI traffic using full 2D velocity vector & vehicle mass!
           const trafficHit = runtime.traffic.resolvePlayerVehicleCollision(
             playerVehicle.x,
             playerVehicle.z,
             playerVehicle.dyn.vx,
             playerVehicle.dyn.vz,
+            1.15,
+            VEHICLE_PHYSICS_SPECS[playerVehicle.archetype].massKg,
           );
           if (trafficHit.collided) {
             applyVehicleCollisionImpulse(
@@ -1349,12 +1376,7 @@ async function bootstrap(): Promise<void> {
             intent.sprint,
             runtime.scene.getCameraYaw(),
             dt,
-            {
-              minX: runtime.terrain.minX,
-              maxX: runtime.terrain.maxX,
-              minZ: runtime.terrain.minZ,
-              maxZ: runtime.terrain.maxZ,
-            },
+            runtime.playableBounds,
             sampleElev,
             runtime.scene.spatialGrid,
             activeVehicles,
@@ -1370,7 +1392,7 @@ async function bootstrap(): Promise<void> {
         }
 
         // Advance road-graph AI traffic & obstacle-aware sidewalk pedestrians around active player
-        runtime.traffic.step(dt, playerX, playerZ, sampleElev);
+        runtime.traffic.step(dt, playerX, playerZ, sampleElev, runtime.scene.spatialGrid);
         runtime.pedestrians.step(
           dt,
           playerX,

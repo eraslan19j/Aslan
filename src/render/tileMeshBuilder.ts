@@ -968,6 +968,110 @@ function appendTaperedPrism(
   }
 }
 
+export interface PlannedStreetProp {
+  kind: 'tree' | 'lamp' | 'bench' | 'trashBin' | 'sign' | 'shrub';
+  x: number;
+  z: number;
+  dirX: number;
+  dirZ: number;
+  seed: number;
+  isStop?: boolean;
+}
+
+interface TileRoadSegment {
+  roadIdx: number;
+  x0: number;
+  z0: number;
+  x1: number;
+  z1: number;
+  halfW: number;
+}
+
+function collectTileRoadSegments(tile: RegionTileData): TileRoadSegment[] {
+  const segs: TileRoadSegment[] = [];
+  for (let rIdx = 0; rIdx < tile.roads.length; rIdx += 1) {
+    const road = tile.roads[rIdx]!;
+    const ptCount = Math.floor(road.points.length / 2);
+    const halfW = Math.max(1.5, road.width * 0.5);
+    for (let i = 1; i < ptCount; i += 1) {
+      segs.push({
+        roadIdx: rIdx,
+        x0: road.points[(i - 1) * 2]!,
+        z0: road.points[(i - 1) * 2 + 1]!,
+        x1: road.points[i * 2]!,
+        z1: road.points[i * 2 + 1]!,
+        halfW,
+      });
+    }
+  }
+  return segs;
+}
+
+function distToSegmentSq(
+  px: number,
+  pz: number,
+  x0: number,
+  z0: number,
+  x1: number,
+  z1: number,
+): number {
+  const sx = x1 - x0;
+  const sz = z1 - z0;
+  const lenSq = sx * sx + sz * sz;
+  if (lenSq < 1e-6) {
+    return (px - x0) * (px - x0) + (pz - z0) * (pz - z0);
+  }
+  const t = Math.max(0, Math.min(1, ((px - x0) * sx + (pz - z0) * sz) / lenSq));
+  const cx = x0 + sx * t;
+  const cz = z0 + sz * t;
+  return (px - cx) * (px - cx) + (pz - cz) * (pz - cz);
+}
+
+/**
+ * Checks whether (px, pz) stays strictly outside EVERY asphalt road lane and junction mouth
+ * in this tile by at least `clearance` meters beyond each road's asphalt half-width.
+ */
+export function isPointClearOfTileRoads(
+  tile: RegionTileData,
+  px: number,
+  pz: number,
+  clearance: number,
+  precomputedSegs?: readonly TileRoadSegment[],
+): boolean {
+  const segs = precomputedSegs ?? collectTileRoadSegments(tile);
+  let closeRoadCount = 0;
+  let firstCloseRoadIdx = -1;
+
+  for (let i = 0; i < segs.length; i += 1) {
+    const seg = segs[i]!;
+    const minAllow = seg.halfW + clearance;
+    const minX = Math.min(seg.x0, seg.x1) - minAllow - 2.4;
+    const maxX = Math.max(seg.x0, seg.x1) + minAllow + 2.4;
+    const minZ = Math.min(seg.z0, seg.z1) - minAllow - 2.4;
+    const maxZ = Math.max(seg.z0, seg.z1) + minAllow + 2.4;
+    if (px < minX || px > maxX || pz < minZ || pz > maxZ) continue;
+
+    const dSq = distToSegmentSq(px, pz, seg.x0, seg.z0, seg.x1, seg.z1);
+    if (dSq < minAllow * minAllow) {
+      return false;
+    }
+
+    // Reject props squeezed tightly into multi-road intersection corners/mouths!
+    const junctionMargin = seg.halfW + Math.max(clearance + 1.8, 2.8);
+    if (dSq < junctionMargin * junctionMargin) {
+      if (firstCloseRoadIdx === -1) {
+        firstCloseRoadIdx = seg.roadIdx;
+        closeRoadCount = 1;
+      } else if (seg.roadIdx !== firstCloseRoadIdx) {
+        closeRoadCount += 1;
+        if (closeRoadCount >= 2) return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 /** Checks if a point is clear of all building bounding boxes in this tile. */
 function isClearOfBuildings(tile: RegionTileData, px: number, pz: number, margin: number): boolean {
   for (const b of tile.buildings) {
@@ -981,6 +1085,195 @@ function isClearOfBuildings(tile: RegionTileData, px: number, pz: number, margin
     }
   }
   return true;
+}
+
+/**
+ * Pure deterministic street-prop placement planner verifying EVERY tree, palm, cypress,
+ * street lamp, traffic sign, bench, shrub & bin is strictly clear of:
+ *   1. ALL road lanes & multi-road junction mouths in the tile
+ *   2. ALL building footprints
+ *   3. ALL previously placed props (zero overlapping trees/poles!)
+ */
+export function planTileStreetProps(tile: RegionTileData): PlannedStreetProp[] {
+  const placed: PlannedStreetProp[] = [];
+  const segs = collectTileRoadSegments(tile);
+
+  const canPlace = (
+    x: number,
+    z: number,
+    buildingMargin: number,
+    roadClearance: number,
+    propSpacing: number,
+  ): boolean => {
+    if (!isClearOfBuildings(tile, x, z, buildingMargin)) return false;
+    if (!isPointClearOfTileRoads(tile, x, z, roadClearance, segs)) return false;
+    const spSq = propSpacing * propSpacing;
+    for (let i = 0; i < placed.length; i += 1) {
+      const p = placed[i]!;
+      const dx = p.x - x;
+      const dz = p.z - z;
+      if (dx * dx + dz * dz < spSq) return false;
+    }
+    return true;
+  };
+
+  // 1. Place park trees, benches & shrubs inside OSM parks (strictly clear of roads & buildings)
+  let treeCount = 0;
+  for (const area of tile.areas) {
+    if (area.kind !== 'park' || treeCount >= 32) continue;
+    const n = Math.floor(area.ring.length / 2);
+    if (n < 3) continue;
+    let cx = 0;
+    let cz = 0;
+    for (let i = 0; i < n; i += 1) {
+      cx += area.ring[i * 2]!;
+      cz += area.ring[i * 2 + 1]!;
+    }
+    cx /= n;
+    cz /= n;
+    const h = hashString(area.id);
+    if (canPlace(cx, cz, 2.2, 1.85, 3.2)) {
+      placed.push({ kind: 'tree', x: cx, z: cz, dirX: 0, dirZ: 1, seed: h });
+      treeCount += 1;
+      if (canPlace(cx + 2.6, cz, 1.1, 1.25, 1.8)) {
+        placed.push({ kind: 'bench', x: cx + 2.6, z: cz, dirX: 0, dirZ: 1, seed: h });
+      }
+      if (canPlace(cx - 2.4, cz + 1.4, 1.0, 1.2, 1.6)) {
+        placed.push({ kind: 'shrub', x: cx - 2.4, z: cz + 1.4, dirX: 0, dirZ: 1, seed: h });
+      }
+    }
+    for (let i = 0; i < n && treeCount < 32; i += Math.max(2, Math.floor(n / 3))) {
+      const px = cx * 0.55 + area.ring[i * 2]! * 0.45;
+      const pz = cz * 0.55 + area.ring[i * 2 + 1]! * 0.45;
+      if (Math.hypot(px - cx, pz - cz) > 6 && canPlace(px, pz, 2.2, 1.85, 3.8)) {
+        placed.push({ kind: 'tree', x: px, z: pz, dirX: 0, dirZ: 1, seed: h + i * 17 });
+        treeCount += 1;
+      }
+    }
+  }
+
+  // 2. Place street lamps, signs & boulevard trees along outer sidewalk edges only
+  let lampCount = 0;
+  for (const road of tile.roads) {
+    if (
+      road.roadClass !== 'primary' &&
+      road.roadClass !== 'secondary' &&
+      road.roadClass !== 'tertiary'
+    ) {
+      continue;
+    }
+    if (lampCount >= 22) break;
+    const ptCount = Math.floor(road.points.length / 2);
+    if (ptCount < 2) continue;
+
+    let accDist = 14;
+    const spacing = 36;
+    const roadHalfW = Math.max(1.5, road.width * 0.5);
+    const lampOffset = roadHalfW + 0.92;
+    const treeOffset = roadHalfW + 1.68;
+    let sideToggle = hashString(road.id) % 2 === 0 ? 1 : -1;
+
+    // Traffic/crosswalk sign cleanly behind curb away from intersection mouth
+    const sx0 = road.points[0]!;
+    const sz0 = road.points[1]!;
+    const sx1 = road.points[2]!;
+    const sz1 = road.points[3]!;
+    const sLen = Math.hypot(sx1 - sx0, sz1 - sz0);
+    if (sLen > 12 && lampCount < 22) {
+      const snx = -(sz1 - sz0) / sLen;
+      const snz = (sx1 - sx0) / sLen;
+      const signX = sx0 + ((sx1 - sx0) / sLen) * 6.5 + snx * lampOffset;
+      const signZ = sz0 + ((sz1 - sz0) / sLen) * 6.5 + snz * lampOffset;
+      if (canPlace(signX, signZ, 0.85, 0.78, 2.4)) {
+        placed.push({
+          kind: 'sign',
+          x: signX,
+          z: signZ,
+          dirX: -snx,
+          dirZ: -snz,
+          seed: hashString(road.id),
+          isStop: road.roadClass === 'primary' || hashString(road.id) % 2 === 0,
+        });
+      }
+    }
+
+    for (let i = 1; i < ptCount && lampCount < 22; i += 1) {
+      const x0 = road.points[(i - 1) * 2]!;
+      const z0 = road.points[(i - 1) * 2 + 1]!;
+      const x1 = road.points[i * 2]!;
+      const z1 = road.points[i * 2 + 1]!;
+      const dx = x1 - x0;
+      const dz = z1 - z0;
+      const len = Math.hypot(dx, dz);
+      if (len < 3) continue;
+
+      const nx = -dz / len;
+      const nz = dx / len;
+      let cursor = spacing - accDist;
+      while (cursor <= len && lampCount < 22) {
+        // Keep away from start/end vertices of short segments where intersections meet
+        if (cursor > 4.0 && len - cursor > 4.0) {
+          const t = cursor / len;
+          const rx = x0 + dx * t;
+          const rz = z0 + dz * t;
+          const lx = rx + nx * lampOffset * sideToggle;
+          const lz = rz + nz * lampOffset * sideToggle;
+
+          if (canPlace(lx, lz, 0.9, 0.78, 4.5)) {
+            placed.push({
+              kind: 'lamp',
+              x: lx,
+              z: lz,
+              dirX: -nx * sideToggle,
+              dirZ: -nz * sideToggle,
+              seed: hashString(road.id) + lampCount,
+            });
+            lampCount += 1;
+
+            const oppTreeX = rx - nx * treeOffset * sideToggle;
+            const oppTreeZ = rz - nz * treeOffset * sideToggle;
+            const oppFurnX = rx - nx * (lampOffset + 0.25) * sideToggle;
+            const oppFurnZ = rz - nz * (lampOffset + 0.25) * sideToggle;
+
+            if (lampCount % 2 === 0 && treeCount < 42 && canPlace(oppTreeX, oppTreeZ, 1.95, 1.48, 3.8)) {
+              placed.push({
+                kind: 'tree',
+                x: oppTreeX,
+                z: oppTreeZ,
+                dirX: 0,
+                dirZ: 1,
+                seed: hashString(road.id) + lampCount * 31,
+              });
+              treeCount += 1;
+            } else if (lampCount % 3 === 1 && canPlace(oppFurnX, oppFurnZ, 1.0, 0.92, 2.5)) {
+              placed.push({
+                kind: 'bench',
+                x: oppFurnX,
+                z: oppFurnZ,
+                dirX: nx * sideToggle,
+                dirZ: nz * sideToggle,
+                seed: hashString(road.id) + lampCount,
+              });
+            } else if (lampCount % 3 === 2 && canPlace(oppFurnX, oppFurnZ, 0.8, 0.82, 2.2)) {
+              placed.push({
+                kind: 'trashBin',
+                x: oppFurnX,
+                z: oppFurnZ,
+                dirX: 0,
+                dirZ: 1,
+                seed: hashString(road.id) + lampCount,
+              });
+            }
+          }
+        }
+        sideToggle *= -1;
+        cursor += spacing;
+      }
+      accDist = (accDist + len) % spacing;
+    }
+  }
+
+  return placed;
 }
 
 /**
@@ -1129,125 +1422,35 @@ function buildBatchedStreetPropsGeometry(
   };
 
   const appendStreetLamp = (lx: number, lz: number, dirX: number, dirZ: number): void => {
-    const baseY = sampleTerrainElevation(terrain, lx, lz) + 0.2;
-    // Galvanized dark steel post
-    appendBoxProp(pos, nor, uv, col, lx, baseY, lz, 0.09, 5.6, 0.09, 0.24, 0.27, 0.31);
-    // Horizontal bracket reaching toward road
-    const armX = lx + dirX * 0.65;
-    const armZ = lz + dirZ * 0.65;
-    appendBoxProp(pos, nor, uv, col, armX, baseY + 5.45, armZ, 0.55, 0.1, 0.55, 0.26, 0.29, 0.34);
-    // Warm lantern head
-    const headX = lx + dirX * 1.05;
-    const headZ = lz + dirZ * 1.05;
-    appendBoxProp(pos, nor, uv, col, headX, baseY + 5.26, headZ, 0.24, 0.16, 0.24, 1.0, 0.89, 0.62);
+    const baseY = sampleTerrainElevation(terrain, lx, lz) + 0.22;
+    // Modern anthracite tapered pedestal + galvanized steel mast
+    appendTaperedPrism(pos, nor, uv, col, lx, baseY, lz, 0.14, 0.1, 0.65, 6, 0.18, 0.2, 0.24, false, true);
+    appendTaperedPrism(pos, nor, uv, col, lx, baseY + 0.65, lz, 0.085, 0.055, 5.15, 6, 0.26, 0.3, 0.35, false, false);
+    // Sleek angled gooseneck arm leaning gracefully over the curb
+    const armX = lx + dirX * 0.52;
+    const armZ = lz + dirZ * 0.52;
+    appendBoxProp(pos, nor, uv, col, armX, baseY + 5.72, armZ, 0.48, 0.08, 0.48, 0.24, 0.28, 0.34);
+    // Slim modern cobra-head LED housing + bright warm-white LED diffuser
+    const headX = lx + dirX * 0.96;
+    const headZ = lz + dirZ * 0.96;
+    appendBoxProp(pos, nor, uv, col, headX, baseY + 5.72, headZ, 0.26, 0.09, 0.26, 0.19, 0.22, 0.27);
+    appendBoxProp(pos, nor, uv, col, headX, baseY + 5.64, headZ, 0.22, 0.06, 0.22, 1.0, 0.93, 0.72);
   };
 
-  // 1. Place park trees inside OSM parks (capped cleanly per tile)
-  let treeCount = 0;
-  for (const area of tile.areas) {
-    if (area.kind !== 'park' || treeCount >= 32) continue;
-    const n = Math.floor(area.ring.length / 2);
-    if (n < 3) continue;
-    let cx = 0;
-    let cz = 0;
-    for (let i = 0; i < n; i += 1) {
-      cx += area.ring[i * 2]!;
-      cz += area.ring[i * 2 + 1]!;
-    }
-    cx /= n;
-    cz /= n;
-    const h = hashString(area.id);
-    if (isClearOfBuildings(tile, cx, cz, 2.2)) {
-      appendTree(cx, cz, h);
-      treeCount += 1;
-      if (isClearOfBuildings(tile, cx + 2.6, cz, 1.0)) appendBench(cx + 2.6, cz);
-      if (isClearOfBuildings(tile, cx - 2.4, cz + 1.4, 0.9)) appendShrub(cx - 2.4, cz + 1.4, h);
-    }
-    // Add 1–2 extra trees partway toward vertices for larger parks
-    for (let i = 0; i < n && treeCount < 32; i += Math.max(2, Math.floor(n / 3))) {
-      const px = cx * 0.55 + area.ring[i * 2]! * 0.45;
-      const pz = cz * 0.55 + area.ring[i * 2 + 1]! * 0.45;
-      if (Math.hypot(px - cx, pz - cz) > 6 && isClearOfBuildings(tile, px, pz, 2.2)) {
-        appendTree(px, pz, h + i * 17);
-        treeCount += 1;
-      }
-    }
-  }
-
-  // 2. Place street lamps & occasional boulevard trees along main roads (always clear of buildings & driving lanes)
-  let lampCount = 0;
-  for (const road of tile.roads) {
-    if (
-      road.roadClass !== 'primary' &&
-      road.roadClass !== 'secondary' &&
-      road.roadClass !== 'tertiary'
-    ) {
-      continue;
-    }
-    if (lampCount >= 22) break;
-    const ptCount = Math.floor(road.points.length / 2);
-    if (ptCount < 2) continue;
-
-    let accDist = 14;
-    const spacing = 36;
-    const halfW = road.width * 0.5 + 0.42;
-    let sideToggle = hashString(road.id) % 2 === 0 ? 1 : -1;
-
-    // Place a crisp traffic/crosswalk sign near road entry if sidewalk space is clear
-    const sx0 = road.points[0]!;
-    const sz0 = road.points[1]!;
-    const sx1 = road.points[2]!;
-    const sz1 = road.points[3]!;
-    const sLen = Math.hypot(sx1 - sx0, sz1 - sz0);
-    if (sLen > 6 && lampCount < 22) {
-      const snx = -(sz1 - sz0) / sLen;
-      const snz = (sx1 - sx0) / sLen;
-      const signX = sx0 + ((sx1 - sx0) / sLen) * 3.8 + snx * halfW;
-      const signZ = sz0 + ((sz1 - sz0) / sLen) * 3.8 + snz * halfW;
-      if (isClearOfBuildings(tile, signX, signZ, 0.75)) {
-        appendTrafficSign(signX, signZ, road.roadClass === 'primary' || hashString(road.id) % 2 === 0);
-      }
-    }
-
-    for (let i = 1; i < ptCount && lampCount < 22; i += 1) {
-      const x0 = road.points[(i - 1) * 2]!;
-      const z0 = road.points[(i - 1) * 2 + 1]!;
-      const x1 = road.points[i * 2]!;
-      const z1 = road.points[i * 2 + 1]!;
-      const dx = x1 - x0;
-      const dz = z1 - z0;
-      const len = Math.hypot(dx, dz);
-      if (len < 2) continue;
-
-      const nx = -dz / len;
-      const nz = dx / len;
-      let cursor = spacing - accDist;
-      while (cursor <= len && lampCount < 22) {
-        const t = cursor / len;
-        const rx = x0 + dx * t;
-        const rz = z0 + dz * t;
-        const lx = rx + nx * halfW * sideToggle;
-        const lz = rz + nz * halfW * sideToggle;
-
-        if (isClearOfBuildings(tile, lx, lz, 0.85)) {
-          appendStreetLamp(lx, lz, -nx * sideToggle, -nz * sideToggle);
-          lampCount += 1;
-          // Occasional curbside tree / planter / bench / trash bin opposite the lamp when sidewalk allows
-          const oppX = rx - nx * (halfW + 0.55) * sideToggle;
-          const oppZ = rz - nz * (halfW + 0.55) * sideToggle;
-          if (lampCount % 2 === 0 && treeCount < 42 && isClearOfBuildings(tile, oppX, oppZ, 1.85)) {
-            appendTree(oppX, oppZ, hashString(road.id) + lampCount * 31);
-            treeCount += 1;
-          } else if (lampCount % 3 === 1 && isClearOfBuildings(tile, oppX, oppZ, 0.95)) {
-            appendBench(oppX, oppZ);
-          } else if (lampCount % 3 === 2 && isClearOfBuildings(tile, oppX, oppZ, 0.7)) {
-            appendTrashBin(oppX, oppZ);
-          }
-        }
-        sideToggle *= -1;
-        cursor += spacing;
-      }
-      accDist = (accDist + len) % spacing;
+  const plannedProps = planTileStreetProps(tile);
+  for (const prop of plannedProps) {
+    if (prop.kind === 'tree') {
+      appendTree(prop.x, prop.z, prop.seed);
+    } else if (prop.kind === 'lamp') {
+      appendStreetLamp(prop.x, prop.z, prop.dirX, prop.dirZ);
+    } else if (prop.kind === 'bench') {
+      appendBench(prop.x, prop.z);
+    } else if (prop.kind === 'trashBin') {
+      appendTrashBin(prop.x, prop.z);
+    } else if (prop.kind === 'sign') {
+      appendTrafficSign(prop.x, prop.z, Boolean(prop.isStop));
+    } else if (prop.kind === 'shrub') {
+      appendShrub(prop.x, prop.z, prop.seed);
     }
   }
 

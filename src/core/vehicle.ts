@@ -411,8 +411,12 @@ export function stepPlayerVehicle(
   dyn.gearShiftPulse = Math.max(0, dyn.gearShiftPulse - safeOuterDt * 6.0);
   dyn.impactPulse = Math.max(0, dyn.impactPulse - safeOuterDt * 5.0);
 
-  // Progressive steering ramp (faster snap-back to center, silky smooth mobile button turn-in)
-  const steerRate = Math.abs(steerIn) < Math.abs(v.steerVisual) ? 14.0 : 9.2;
+  // Progressive steering ramp: crisp snap-back to center, speed-smoothed turn-in on highway speeds
+  const curAbsSpeed = Math.hypot(dyn.vx, dyn.vz);
+  const highSpeedSteerSmooth =
+    dyn.drivingMode === 'street' ? clamp((curAbsSpeed - 12) / 26, 0, 1) * 4.2 : 0;
+  const steerRate =
+    Math.abs(steerIn) < Math.abs(v.steerVisual) ? 15.0 : Math.max(4.6, 9.2 - highSpeedSteerSmooth);
   v.steerVisual += (steerIn - v.steerVisual) * Math.min(1, safeOuterDt * steerRate);
 
   // Sync velocity vector if caller mutated scalar v.speed externally (e.g. teleport / test setup)
@@ -430,7 +434,7 @@ export function stepPlayerVehicle(
   // Turbo blow-off valve & overrun exhaust crackle when lifting off high throttle
   if (pSpec.hasTurbo && dyn.prevThrottle > 0.65 && throttleIn < 0.12 && dyn.turboBoost > 0.45) {
     dyn.blowOffPulse = Math.max(dyn.blowOffPulse, clamp(dyn.turboBoost * 0.85, 0.35, 1.0));
-    if (dyn.rpm > pSpec.redlineRpm * 0.62) {
+    if (dyn.rpm > pSpec.redlineRpm * 0.54) {
       dyn.backfirePulse = Math.max(dyn.backfirePulse, 0.85);
     }
   }
@@ -563,14 +567,18 @@ export function stepPlayerVehicle(
     dyn.vLat = vLat;
 
     // 1. Speed-sensitive steering angle + CarX Street intelligent counter-steer assist
-    const highSpeedTaper = 1.0 - clamp((absSpeed - 12.0) / 48.0, 0, dyn.drivingMode === 'drift' ? 0.36 : 0.62);
+    const highSpeedTaper =
+      dyn.drivingMode === 'street'
+        ? 1.0 - clamp((absSpeed - 7.5) / 36.0, 0, 0.74)
+        : 1.0 - clamp((absSpeed - 12.0) / 48.0, 0, dyn.drivingMode === 'drift' ? 0.36 : 0.62);
     const maxLock = pSpec.maxSteerRad * mode.maxSteerMult * highSpeedTaper;
     let steerAngle = v.steerVisual * maxLock;
 
     if (mode.counterSteerAssist > 0 && vLong > 3.2) {
       const bodySlip = Math.atan2(vLat, Math.max(vLong, 2.2));
-      if (Math.abs(bodySlip) > 0.08) {
-        // Counter-steer naturally aligns front tires toward velocity vector during drifts!
+      const slipThresh = dyn.drivingMode === 'street' && !handbrake ? 0.045 : 0.08;
+      if (Math.abs(bodySlip) > slipThresh) {
+        // Counter-steer naturally aligns front tires toward velocity vector!
         const csContribution = clamp(bodySlip * mode.counterSteerAssist, -0.58, 0.58);
         steerAngle = clamp(steerAngle + csContribution, -pSpec.maxSteerRad * mode.maxSteerMult, pSpec.maxSteerRad * mode.maxSteerMult);
       }
@@ -611,10 +619,12 @@ export function stepPlayerVehicle(
     const shiftCut = dyn.shiftTimer > 0 ? 0.08 : 1.0;
     const turboTorqueMult = 1.0 + dyn.turboBoost * 0.16;
 
-    // Traction Control (TCS) gently trims excess torque in 'street' mode; completely off in 'drift' & 'sim'
+    // Traction Control (TCS): full straight-line launch power, trims excess wheelspin & cornering oversteer in 'street' mode!
+    const lateralSlipMetric = dyn.drivingMode === 'street' ? Math.max(0, (Math.abs(vLat) - 1.1) * 0.16) : 0;
+    const tcsSlip = Math.max(dyn.maxSkidIntensity, lateralSlipMetric + 0.36 * (lateralSlipMetric > 0 ? 1 : 0));
     const tcsFactor =
-      mode.tcsStrength > 0 && !handbrake && dyn.maxSkidIntensity > 0.35
-        ? clamp(1.0 - (dyn.maxSkidIntensity - 0.35) * mode.tcsStrength * 0.9, 0.45, 1.0)
+      mode.tcsStrength > 0 && !handbrake && tcsSlip > 0.38
+        ? clamp(1.0 - (tcsSlip - 0.38) * mode.tcsStrength * 1.05, 0.42, 1.0)
         : 1.0;
 
     // Soft top-speed electronic governor smoothly matching each car's topSpeedMps
@@ -724,10 +734,14 @@ export function stepPlayerVehicle(
       let wheelBrakeForce = (effBrake * pSpec.maxBrakeTorqueNm * brakeBias) / pSpec.wheelRadius;
       const rearLockedByHandbrake = handbrake && !isFront;
 
-      // Tire grip multiplier (front/rear balance + surface wetness + drift release)
+      // Tire grip multiplier (front/rear balance + surface wetness + intentional drift release)
       let gripMu = pSpec.baseGrip * surfaceGrip * (isFront ? mode.gripFrontMult : mode.gripRearMult);
-      if (!isFront && (handbrake || (effThrottle > 0.55 && Math.abs(vLat) > 1.8))) {
-        gripMu *= 1.0 - mode.driftRearRelease * (handbrake ? 1.0 : 0.48);
+      if (!isFront) {
+        if (handbrake) {
+          gripMu *= 1.0 - Math.max(0.42, mode.driftRearRelease);
+        } else if (mode.driftRearRelease > 0 && effThrottle > 0.55 && Math.abs(vLat) > 1.8) {
+          gripMu *= 1.0 - mode.driftRearRelease * 0.48;
+        }
       }
       // Subtle tire load sensitivity (real tires lose a bit of mu per Newton as load spikes)
       const loadSens = clamp(1.06 - (loadN / (totalWeightN * 0.45)) * 0.12, 0.85, 1.08);
@@ -826,17 +840,28 @@ export function stepPlayerVehicle(
     const slopeGravityN = -pSpec.massKg * 9.81 * slopeSin * 0.62;
     sumFxBody += -aeroDragN + slopeGravityN;
 
-    // 5. CarX Street / GTA Yaw Stabilizer (keeps wild drifts heroic & recoverable in Street/Drift; 0 in Sim!)
+    // 5. Street ESC / Drift Yaw Stabilizer (planted highway control in Street; wild recoverable slides in Drift; 0 in Sim!)
     if (mode.yawStabilizer > 0 && vLong > 2.8) {
       const bodySlip = Math.atan2(vLat, Math.max(vLong, 2.0));
-      const overSlip = Math.max(0, Math.abs(bodySlip) - mode.maxAssistedSlipRad * 0.65);
-      // Damp excessive angular velocity + pull nose smoothly back if angle exceeds max assisted drift angle
-      const yawDampTorque = -dyn.yawRate * pSpec.yawInertia * mode.yawStabilizer * (0.45 + overSlip * 2.2);
+      const streetGripActive = dyn.drivingMode === 'street' && !handbrake;
+      const effectiveMaxSlip = streetGripActive ? mode.maxAssistedSlipRad : Math.max(mode.maxAssistedSlipRad, 0.78);
+      const slipFloor = streetGripActive ? effectiveMaxSlip * 0.35 : effectiveMaxSlip * 0.65;
+      const overSlip = Math.max(0, Math.abs(bodySlip) - slipFloor);
+
+      // Damp excessive angular velocity + pull nose smoothly back into alignment
+      const yawDampTorque =
+        -dyn.yawRate * pSpec.yawInertia * mode.yawStabilizer * (streetGripActive ? 0.68 + overSlip * 2.8 : 0.45 + overSlip * 2.2);
       const angleRestoreTorque =
         overSlip > 0
-          ? Math.sign(bodySlip) * overSlip * pSpec.yawInertia * mode.yawStabilizer * 3.8
+          ? Math.sign(bodySlip) * overSlip * pSpec.yawInertia * mode.yawStabilizer * (streetGripActive ? 5.2 : 3.8)
           : 0;
       sumYawTorque += yawDampTorque + angleRestoreTorque;
+
+      // Active Electronic Stability Control (ESC) lateral scrub in Street mode prevents fishtailing at 100+ km/h
+      if (streetGripActive && vLong > 6.0 && Math.abs(vLat) > 0.25) {
+        const speedFactor = clamp((vLong - 6.0) / 14.0, 0, 1);
+        sumFyBody -= vLat * pSpec.massKg * speedFactor * 3.8;
+      }
     }
 
     // 6. Integrate linear & angular accelerations
@@ -869,10 +894,18 @@ export function stepPlayerVehicle(
       }
     }
 
-    // Integrate heading & world position
+    // Integrate heading & world position (clamped cleanly to exact PlayableWorldBounds aligned with physical barriers)
     v.heading += dyn.yawRate * subDt;
-    let nextX = clamp(v.x + dyn.vx * subDt, bounds.minX + 10, bounds.maxX - 10);
-    let nextZ = clamp(v.z + dyn.vz * subDt, bounds.minZ + 10, bounds.maxZ - 10);
+    const rawNextX = v.x + dyn.vx * subDt;
+    const rawNextZ = v.z + dyn.vz * subDt;
+    let nextX = clamp(rawNextX, bounds.minX, bounds.maxX);
+    let nextZ = clamp(rawNextZ, bounds.minZ, bounds.maxZ);
+    if (nextX !== rawNextX) {
+      dyn.vx *= -0.18;
+    }
+    if (nextZ !== rawNextZ) {
+      dyn.vz *= -0.18;
+    }
 
     // 7. 6-point oriented building polygon collision (front axle + rear axle + 4 bumper corners)
     const cFwdX = Math.sin(v.heading);
@@ -1096,8 +1129,8 @@ export function computeSafeExitPosition(
   ];
 
   for (const c of candidates) {
-    const cx = bounds ? clamp(c.x, bounds.minX + 8, bounds.maxX - 8) : c.x;
-    const cz = bounds ? clamp(c.z, bounds.minZ + 8, bounds.maxZ - 8) : c.z;
+    const cx = bounds ? clamp(c.x, bounds.minX + 0.8, bounds.maxX - 0.8) : c.x;
+    const cz = bounds ? clamp(c.z, bounds.minZ + 0.8, bounds.maxZ - 0.8) : c.z;
     const bRes = spatialGrid.resolveCircle(cx, cz, PLAYER_CAPSULE_RADIUS + 0.12);
     if (bRes.collided) continue;
 
@@ -1126,7 +1159,7 @@ export function computeSafeExitPosition(
     PLAYER_CAPSULE_RADIUS + 0.05,
     ownObb,
   );
-  const fx = bounds ? clamp(outOwn.x, bounds.minX + 8, bounds.maxX - 8) : outOwn.x;
-  const fz = bounds ? clamp(outOwn.z, bounds.minZ + 8, bounds.maxZ - 8) : outOwn.z;
+  const fx = bounds ? clamp(outOwn.x, bounds.minX + 0.8, bounds.maxX - 0.8) : outOwn.x;
+  const fz = bounds ? clamp(outOwn.z, bounds.minZ + 0.8, bounds.maxZ - 0.8) : outOwn.z;
   return { x: fx, y: sampleElev(fx, fz), z: fz };
 }

@@ -1,6 +1,7 @@
 import type { SanctuaryZone } from '../core/sanctuary';
 import type { TrafficAgent } from '../core/traffic';
 import type { RoadGraph } from '../core/world/types';
+import type { PlayableWorldBounds } from '../core/world/worldBounds';
 
 interface MinimapRoadSegment {
   x1: number;
@@ -35,9 +36,10 @@ export class MinimapRenderer {
   private readonly ctx: CanvasRenderingContext2D | null;
   private minorSegments: MinimapRoadSegment[] = [];
   private majorSegments: MinimapRoadSegment[] = [];
+  private playableBounds: PlayableWorldBounds | null = null;
   private rangeMeters = 135;
 
-  constructor(graph: RoadGraph) {
+  constructor(graph: RoadGraph, bounds?: PlayableWorldBounds) {
     this.element = document.createElement('canvas');
     this.element.className = 'minimap-canvas';
     this.element.width = 168;
@@ -50,10 +52,11 @@ export class MinimapRenderer {
       this.rangeMeters = this.rangeMeters < 180 ? 235 : 135;
     });
 
-    this.setRoadGraph(graph);
+    this.setRoadGraph(graph, bounds);
   }
 
-  setRoadGraph(graph: RoadGraph): void {
+  setRoadGraph(graph: RoadGraph, bounds?: PlayableWorldBounds): void {
+    this.playableBounds = bounds ?? null;
     const nodeMap = new Map<string, { x: number; z: number }>();
     for (let i = 0; i < graph.nodes.length; i += 1) {
       const n = graph.nodes[i]!;
@@ -164,6 +167,34 @@ export class MinimapRenderer {
       ctx.lineTo(cx + (dx2 * rightX + dz2 * rightZ) * scale, cy - (dx2 * fwdX + dz2 * fwdZ) * scale);
     }
     ctx.stroke();
+
+    // Playable neighborhood perimeter roadblock line (matches physical 3D municipal barricades!)
+    if (this.playableBounds) {
+      const b = this.playableBounds;
+      const corners: [number, number][] = [
+        [b.minX, b.minZ],
+        [b.maxX, b.minZ],
+        [b.maxX, b.maxZ],
+        [b.minX, b.maxZ],
+      ];
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.72)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i += 1) {
+        const [wx, wz] = corners[i]!;
+        const dx = wx - px;
+        const dz = wz - pz;
+        const sx = cx + (dx * rightX + dz * rightZ) * scale;
+        const sy = cy - (dx * fwdX + dz * fwdZ) * scale;
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // Green worship sanctuary safe zones
     const sancMaxDistSq = (radius + 24) * (radius + 24);

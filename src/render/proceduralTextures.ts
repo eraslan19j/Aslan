@@ -120,19 +120,28 @@ export function createIstanbulFacadeTextures(anisotropy = 4): FacadeTextureSet {
             uEmCtx.fillRect(dx + 2, dy + 2, dw - 4, dh * 0.55);
           }
 
-          // Balcony concrete parapet lip + dark wrought-iron railing bars
+          // Modern architectural smoked-glass balcony balustrade + dark anthracite railing
           const railY = fy + floorH - 76;
           uCtx.fillStyle = '#e3dcd0';
           uCtx.fillRect(nx - 4, fy + floorH - 22, nw + 8, 22);
-          uCtx.fillStyle = 'rgba(30,28,26,0.22)';
+          uCtx.fillStyle = 'rgba(30,28,26,0.24)';
           uCtx.fillRect(nx - 4, fy + floorH - 22, nw + 8, 4);
 
-          // Iron railing top bar + vertical balusters
-          uCtx.fillStyle = '#2d333b';
+          // Smoked architectural glass panel behind railing
+          uCtx.fillStyle = 'rgba(32, 58, 84, 0.36)';
+          uCtx.fillRect(nx, railY + 4, nw, 46);
+          uCtx.fillStyle = 'rgba(200, 228, 255, 0.16)';
+          uCtx.fillRect(nx + 4, railY + 6, nw * 0.35, 42);
+
+          // Brushed anthracite handrail + vertical balusters
+          uCtx.fillStyle = '#262d38';
           uCtx.fillRect(nx - 2, railY, nw + 4, 5);
+          uCtx.fillStyle = '#9aa8b8';
+          uCtx.fillRect(nx - 2, railY, nw + 4, 1.5);
+          uCtx.fillStyle = '#262d38';
           uCtx.fillRect(nx - 2, railY + 48, nw + 4, 4);
-          for (let px = nx + 4; px < nx + nw - 2; px += 11) {
-            uCtx.fillRect(px, railY, 3, 52);
+          for (let px = nx + 4; px < nx + nw - 2; px += 14) {
+            uCtx.fillRect(px, railY, 2.5, 52);
           }
 
           // Occasional white AC condenser unit on balcony corner
@@ -195,8 +204,8 @@ export function createIstanbulFacadeTextures(anisotropy = 4): FacadeTextureSet {
           uCtx.fillStyle = 'rgba(30,25,20,0.25)';
           uCtx.fillRect(wx - 8, wy + wh + 12, ww + 16, 4);
 
-          if (rng.next() < 0.5) {
-            uEmCtx.fillStyle = rng.next() < 0.5 ? '#ffd078' : '#ffba52';
+          if (rng.next() < 0.56) {
+            uEmCtx.fillStyle = rng.next() < 0.72 ? '#ffd078' : '#d2ecff';
             uEmCtx.fillRect(wx + 2, wy + 2, ww - 4, wh - 4);
           }
         }
@@ -311,13 +320,33 @@ export function createIstanbulFacadeTextures(anisotropy = 4): FacadeTextureSet {
         const sw = bayWidth - 24;
         const signY = shopTop + 34;
 
-        // Clean blank fascia signboard (fictional, zero real logos!)
+        // Modern illuminated Istanbul storefront signboard (Vice-inspired neon glow at dusk/night!)
         const [cMain, cStripe] = awningColors[b % awningColors.length]!;
-        gCtx.fillStyle = cMain;
-        gCtx.fillRect(sx, signY, sw, 30);
-        gCtx.fillStyle = 'rgba(255,255,255,0.22)';
-        gCtx.fillRect(sx + 8, signY + 10, sw - 16, 5);
-        gCtx.fillRect(sx + 18, signY + 19, sw - 36, 4);
+        const shopLabels = ['KAFE', 'FIRIN', '', 'MARKET'];
+        const neonColors = ['#ff8c42', '#ffd166', '#66d9ff', '#52e5a8'];
+        const label = shopLabels[b] ?? 'KAFE';
+        const neonHex = neonColors[b % neonColors.length]!;
+
+        gCtx.fillStyle = '#181e28';
+        gCtx.fillRect(sx, signY, sw, 32);
+        gCtx.strokeStyle = neonHex;
+        gCtx.lineWidth = 2.5;
+        gCtx.strokeRect(sx + 2, signY + 2, sw - 4, 28);
+        gCtx.fillStyle = '#ffffff';
+        gCtx.font = 'bold 16px sans-serif';
+        gCtx.textAlign = 'center';
+        gCtx.textBaseline = 'middle';
+        gCtx.fillText(label, sx + sw * 0.5, signY + 17);
+
+        // Luminous neon signboard border + lettering in emissive map for vivid Istanbul nightlife!
+        gEmCtx.strokeStyle = neonHex;
+        gEmCtx.lineWidth = 2.5;
+        gEmCtx.strokeRect(sx + 2, signY + 2, sw - 4, 28);
+        gEmCtx.fillStyle = neonHex;
+        gEmCtx.font = 'bold 16px sans-serif';
+        gEmCtx.textAlign = 'center';
+        gEmCtx.textBaseline = 'middle';
+        gEmCtx.fillText(label, sx + sw * 0.5, signY + 17);
 
         // Striped sloped shop awning
         const awnY = signY + 32;

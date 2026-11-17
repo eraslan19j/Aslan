@@ -271,8 +271,8 @@ export function stepOnFootPlayer(
   let curZ = player.z;
 
   for (let s = 0; s < subSteps; s += 1) {
-    curX = clamp(curX + player.vx * subDt, bounds.minX + 8, bounds.maxX - 8);
-    curZ = clamp(curZ + player.vz * subDt, bounds.minZ + 8, bounds.maxZ - 8);
+    curX = clamp(curX + player.vx * subDt, bounds.minX, bounds.maxX);
+    curZ = clamp(curZ + player.vz * subDt, bounds.minZ, bounds.maxZ);
 
     // 1. Static environment (exact 2D building footprints)
     const bRes = spatialGrid.resolveCircle(curX, curZ, player.radius);
