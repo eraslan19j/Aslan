@@ -84,12 +84,24 @@ try {
   const first = samples[0];
   const last = samples[samples.length - 1];
   const maxDrawCalls = Math.max(...samples.map((s) => s.perf?.drawCalls ?? 0));
-  const geoDrift = (last?.perf?.geometries ?? 0) - (first?.perf?.geometries ?? 0);
+  const firstGeos = first?.perf?.geometries ?? 0;
+  const lastGeos = last?.perf?.geometries ?? 0;
+  const firstTiles = first?.perf?.loadedTiles ?? 0;
+  const lastTiles = last?.perf?.loadedTiles ?? 0;
+  const geoDrift = lastGeos - firstGeos;
   const texDrift = (last?.perf?.textures ?? 0) - (first?.perf?.textures ?? 0);
   const heapGrowthMb =
     first?.usedHeapMb != null && last?.usedHeapMb != null
       ? Number((last.usedHeapMb - first.usedHeapMb).toFixed(2))
       : null;
+
+  // Each active 300m tile holds up to 5 batched geometries (upper, ground/roof, roads, areas, props)
+  // plus ~35 persistent scene/character/taxi/landmark geometries.
+  // Checking bounded total geometries catches any real unload/dispose leak even as the car
+  // drives across tile borders (e.g. 9 -> 12 tiles in hysteresis window) and warms frustum uploads.
+  const maxExpectedGeometries = 45 + lastTiles * 6;
+  const tileDelta = Math.max(0, lastTiles - firstTiles);
+  const allowedGeoDrift = 32 + tileDelta * 6;
 
   const summary = {
     soakMinutesRequested: SOAK_MINUTES,
@@ -97,8 +109,11 @@ try {
     sampleCount: samples.length,
     regionId: first?.regionId ?? null,
     maxDrawCalls,
+    firstTiles,
+    lastTiles,
     firstGeometries: first?.perf?.geometries ?? null,
     lastGeometries: last?.perf?.geometries ?? null,
+    maxExpectedGeometries,
     geoDrift,
     texDrift,
     firstHeapMb: first?.usedHeapMb ?? null,
@@ -112,8 +127,10 @@ try {
 
   if (errors.length > 0) throw new Error(`${errors.length} console/page errors during soak`);
   if (maxDrawCalls > 150) throw new Error(`Draw calls exceeded 150 budget: ${maxDrawCalls}`);
-  if (geoDrift > 24 || texDrift > 4) {
-    throw new Error(`GPU resource leak: geoDrift=${geoDrift}, texDrift=${texDrift}`);
+  if (lastGeos > maxExpectedGeometries || geoDrift > allowedGeoDrift || texDrift > 4) {
+    throw new Error(
+      `GPU resource leak: lastGeos=${lastGeos} (max ${maxExpectedGeometries}), geoDrift=${geoDrift} (max ${allowedGeoDrift}), texDrift=${texDrift}`,
+    );
   }
   if (heapGrowthMb !== null && heapGrowthMb > 65) {
     throw new Error(`JS heap grew by ${heapGrowthMb} MB during soak`);
