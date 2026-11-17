@@ -128,6 +128,73 @@ async function checkHudLayout(page) {
   });
 }
 
+async function waitForTilesStable(page, minTiles = 4, maxWaitMs = 6000) {
+  const start = Date.now();
+  let lastTiles = -1;
+  let stablePolls = 0;
+  while (Date.now() - start < maxWaitMs) {
+    const tiles = await page.evaluate(() => window.__game?.perf?.loadedTiles ?? 0);
+    if (tiles >= minTiles && tiles === lastTiles) {
+      stablePolls += 1;
+      if (stablePolls >= 2) return tiles;
+    } else {
+      stablePolls = 0;
+    }
+    lastTiles = tiles;
+    await page.waitForTimeout(350);
+  }
+  return lastTiles;
+}
+
+async function captureScreenshotRobust(page) {
+  // Drain WebGL pipeline and pause rAF cleanly so Chromium SwiftShader compositor never deadlocks
+  await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            window.__game?.setRenderFrozen?.(true);
+            const c = document.querySelector('#app > canvas') ?? document.querySelector('canvas');
+            const gl = c?.getContext('webgl2') || c?.getContext('webgl');
+            gl?.finish?.();
+            window.setTimeout(resolve, 140);
+          });
+        });
+      }),
+  );
+
+  try {
+    return await page.screenshot({ animations: 'disabled', timeout: 30000 });
+  } catch (err) {
+    console.warn(
+      `WARN: page.screenshot timed out/failed (${err instanceof Error ? err.message : String(err)}); retrying via CDP Page.captureScreenshot`,
+    );
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      const { data } = await cdp.send('Page.captureScreenshot', {
+        format: 'png',
+        fromSurface: true,
+      });
+      return Buffer.from(data, 'base64');
+    } finally {
+      await cdp.detach().catch(() => {});
+    }
+  }
+}
+
+async function releaseWebGLContext(page) {
+  await page
+    .evaluate(() => {
+      window.__game?.setRenderFrozen?.(true);
+      const canvases = document.querySelectorAll('canvas');
+      for (const c of canvases) {
+        const gl = c.getContext('webgl2') || c.getContext('webgl');
+        gl?.getExtension('WEBGL_lose_context')?.loseContext();
+      }
+    })
+    .catch(() => {});
+}
+
 const results = [];
 const allErrors = [];
 
@@ -137,18 +204,18 @@ try {
     const shots = [
       {
         file: `${slug}_01_start.png`,
-        label: 'Başlangıç (3. Şahıs)',
+        label: 'Başlangıç (3. Şahıs · High)',
         viewport: { width: 1280, height: 720 },
-        query: `?region=${regionId}&touch=0&mode=normal&time=day`,
+        query: `?region=${regionId}&touch=0&mode=high&time=day`,
         setup: async (page) => {
           await page.evaluate(() => window.__game.setCameraMode('follow'));
         },
       },
       {
         file: `${slug}_02_street.png`,
-        label: 'Sokak Seviyesi',
+        label: 'Sokak Seviyesi (Sculpted Trafik)',
         viewport: { width: 1280, height: 720 },
-        query: `?region=${regionId}&touch=0&mode=normal&time=day`,
+        query: `?region=${regionId}&touch=0&mode=medium&time=day`,
         setup: async (page) => {
           await page.evaluate(() => window.__game.setCameraMode('street'));
         },
@@ -157,7 +224,7 @@ try {
         file: `${slug}_03_overview.png`,
         label: 'Geniş Görünüm',
         viewport: { width: 1280, height: 720 },
-        query: `?region=${regionId}&touch=0&mode=normal&time=day`,
+        query: `?region=${regionId}&touch=0&mode=medium&time=day`,
         setup: async (page) => {
           await page.evaluate(() => window.__game.setCameraMode('overview'));
         },
@@ -166,16 +233,16 @@ try {
         file: `${slug}_04_night.png`,
         label: 'Gece Modu',
         viewport: { width: 1280, height: 720 },
-        query: `?region=${regionId}&touch=0&mode=normal&time=night`,
+        query: `?region=${regionId}&touch=0&mode=medium&time=night`,
         setup: async (page) => {
           await page.evaluate(() => window.__game.setCameraMode('street'));
         },
       },
       {
         file: `${slug}_05_lite.png`,
-        label: 'Lite Modu',
+        label: 'Düşük (Low) Mod',
         viewport: { width: 1280, height: 720 },
-        query: `?region=${regionId}&touch=0&mode=lite&time=day`,
+        query: `?region=${regionId}&touch=0&mode=low&time=day`,
         setup: async (page) => {
           await page.evaluate(() => window.__game.setCameraMode('follow'));
         },
@@ -184,7 +251,7 @@ try {
         file: `${slug}_06_touch_20x9.png`,
         label: '20:9 Yatay Dokunmatik',
         viewport: { width: 880, height: 396 },
-        query: `?region=${regionId}&touch=1&mode=normal&time=day`,
+        query: `?region=${regionId}&touch=1&mode=medium&time=day`,
         setup: async (page) => {
           await page.evaluate(() => window.__game.setCameraMode('follow'));
         },
@@ -197,7 +264,7 @@ try {
           file: 'esenler_07_driving_20x9.png',
           label: '20:9 GTA Serbest Sürüş (Spor Coupe)',
           viewport: { width: 880, height: 396 },
-          query: `?region=${regionId}&touch=1&mode=normal&time=day`,
+          query: `?region=${regionId}&touch=1&mode=high&time=day`,
           setup: async (page) => {
             await page.evaluate(() => {
               window.__game.enterVehicle();
@@ -218,7 +285,7 @@ try {
           file: 'esenler_09_sunset_driving.png',
           label: 'Vice City Gün Batımı (Sürüş + Kavşak)',
           viewport: { width: 1280, height: 720 },
-          query: `?region=${regionId}&touch=0&mode=ultra&time=sunset`,
+          query: `?region=${regionId}&touch=0&mode=high&time=sunset`,
           setup: async (page) => {
             await page.evaluate(() => {
               window.__game.enterVehicle();
@@ -247,7 +314,7 @@ try {
         { timeout: 40000 },
       );
       await s.setup(page);
-      await page.waitForTimeout(750);
+      await waitForTilesStable(page, 4, 5500);
 
       const telemetry = await page.evaluate(() => ({
         regionId: window.__game.regionId,
@@ -260,17 +327,7 @@ try {
       }));
       const hudIssues = await checkHudLayout(page);
 
-      // Pause rAF right after a painted frame so SwiftShader compositor never starves screenshot capture
-      await page.evaluate(
-        () =>
-          new Promise((resolve) => {
-            window.requestAnimationFrame(() => {
-              window.__game?.setRenderFrozen?.(true);
-              window.setTimeout(resolve, 60);
-            });
-          }),
-      );
-      const buf = await page.screenshot({ animations: 'disabled' });
+      const buf = await captureScreenshotRobust(page);
       writeFileSync(join(OUT_DIR, s.file), buf);
       const analysis = analyzePng(buf);
       const regression = compareWithReference(s.file, analysis.png);
@@ -298,6 +355,7 @@ try {
         errors: pageErrors,
       });
 
+      await releaseWebGLContext(page);
       await page.close();
     }
   }
