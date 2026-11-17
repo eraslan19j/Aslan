@@ -277,7 +277,9 @@ try {
   if ((snapshot.pedestrianCount ?? 0) < 10) {
     fail(`Too few sidewalk pedestrians: ${snapshot.pedestrianCount}`);
   }
-  if (!snapshot.activeMissionPhase) fail('No active Sarı Taksi fare mission generated');
+  if (snapshot.activeMissionPhase !== null) {
+    fail(`Expected pure GTA Free-Roam (no forced taxi mission), got ${snapshot.activeMissionPhase}`);
+  }
   if (!snapshot.hasCanvas || snapshot.canvasW === 0 || snapshot.canvasH === 0) {
     fail('Canvas missing or zero size');
   }

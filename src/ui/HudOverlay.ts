@@ -546,7 +546,7 @@ export class HudOverlay {
     this.speedUnitEl.textContent = t.speedUnit;
     this.sprintBtn.textContent = t.sprintButton;
     this.enterCarBtn.textContent = t.enterCarButton;
-    this.callTaxiBtn.textContent = '🚕';
+    this.callTaxiBtn.textContent = '🚗';
     this.callTaxiBtn.title = t.callTaxiButton;
     this.exitCarBtn.textContent = t.exitCarButton;
     this.gasBtn.textContent = t.gasButton;
@@ -582,7 +582,8 @@ export class HudOverlay {
     this.enterCarBtn.classList.toggle('touch-hidden', !view.nearVehicle);
     this.callTaxiBtn.classList.toggle('touch-hidden', view.nearVehicle);
 
-    this.cashEl.textContent = `₺${view.cash}`;
+    // Pure GTA Free-Roam HUD: hide forced taxi fare cash badge
+    this.cashEl.classList.add('touch-hidden');
     if (view.wantedStars > 0) {
       this.wantedEl.classList.remove('touch-hidden');
       this.wantedEl.textContent = `${'★'.repeat(view.wantedStars)}${'☆'.repeat(5 - view.wantedStars)}`;

@@ -8,6 +8,10 @@ import { createVehicleState, stepPlayerVehicle } from '../core/vehicle';
 import { BuildingSpatialGrid } from '../core/world/collision';
 import type { RegionTileData, RoadGraph, TerrainGrid } from '../core/world/types';
 import { buildTileMeshes, applyTileDistanceLod } from './tileMeshBuilder';
+import {
+  buildSculptedPoliceBodyGeometry,
+  buildTrafficClassGeometries,
+} from './vehicleMesh';
 
 function makeFlatTerrain(): TerrainGrid {
   return {
@@ -176,5 +180,54 @@ describe('Open-World Upgrade Verification (Stages B–G)', () => {
     expect(traffic.getAgents().some((a) => !a.parked)).toBe(true);
     traffic.setMaxActiveCount(getQualityPreset('low').trafficCount, 20, 20);
     expect(traffic.getAgents().length).toBe(getQualityPreset('low').trafficCount);
+  });
+
+  it('builds sculpted wheeled NPC traffic archetypes (sports/sedan/suv) & supports GTA free-roam car takeover', () => {
+    // Verify all 3 instanced NPC silhouettes have rich sculpted body, wheel/trim, glass, and light geometries
+    for (const style of ['sports', 'sedan', 'suv'] as const) {
+      const geos = buildTrafficClassGeometries(style);
+      expect(geos.bodyGeo.getAttribute('position').count).toBeGreaterThan(200);
+      // 4 cylindrical tires + rims + hubs + bumpers + grille + exhausts -> high sculpted detail, zero plain boxes!
+      expect(geos.trimWheelsGeo.getAttribute('position').count).toBeGreaterThan(450);
+      expect(geos.glassGeo.getAttribute('position').count).toBeGreaterThan(60);
+      expect(geos.lightsGeo.getAttribute('position').count).toBeGreaterThan(80);
+    }
+    expect(buildSculptedPoliceBodyGeometry().getAttribute('position').count).toBeGreaterThan(450);
+
+    // Verify GTA Free-Roam NPC car theft/swap preserves the player's old car parked in the world
+    const graph: RoadGraph = {
+      schemaVersion: 1,
+      regionId: 'test',
+      nodes: [
+        { id: 'n0', x: 0, y: 0, z: 0 },
+        { id: 'n1', x: 0, y: 0, z: 50 },
+      ],
+      edges: [
+        { id: 'e0', from: 'n0', to: 'n1', lengthMeters: 50, roadClass: 'primary', width: 8, oneWay: false, speedLimitKph: 45 },
+      ],
+    };
+    const traffic = new RoadTrafficSimulator(graph, 8, 77, 0, 25);
+    const target = traffic.getAgents()[0]!;
+    const origArchetype = target.archetype;
+    const nearest = traffic.findNearestAgent(target.x + 1.0, target.z, 5.5);
+    expect(nearest?.id).toBe(target.id);
+
+    const claimed = traffic.swapWithPlayerVehicle(target.id, {
+      archetype: 'sports',
+      paintHex: 0xdc2626,
+      x: 10,
+      y: 0,
+      z: 10,
+      heading: 1.2,
+      pitch: 0,
+    });
+    expect(claimed).not.toBeNull();
+    expect(claimed!.archetype).toBe(origArchetype);
+    // Player's previous crimson sports coupe stays cleanly parked at (10, 10)
+    const replacedSlot = traffic.getAgents().find((a) => a.id === target.id)!;
+    expect(replacedSlot.archetype).toBe('sports');
+    expect(replacedSlot.paintHex).toBe(0xdc2626);
+    expect(replacedSlot.parked).toBe(true);
+    expect(replacedSlot.x).toBe(10);
   });
 });

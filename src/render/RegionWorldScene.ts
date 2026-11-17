@@ -6,7 +6,7 @@ import type { PedestrianAgent } from '../core/pedestrians';
 import { getQualityPreset, type QualityTier } from '../core/quality';
 import { getTimeCycleProfile } from '../core/timeCycle';
 import type { TrafficAgent } from '../core/traffic';
-import type { PlayerVehicleState } from '../core/vehicle';
+import type { PlayerVehicleState, VehicleArchetype } from '../core/vehicle';
 import type { PoliceUnit } from '../core/wanted';
 import { BuildingSpatialGrid } from '../core/world/collision';
 import type { RegionRegistryEntry } from '../core/world/regions';
@@ -40,9 +40,14 @@ import {
   type BuiltTileGroup,
 } from './tileMeshBuilder';
 import {
+  buildSculptedPoliceBodyGeometry,
+  buildTrafficClassGeometries,
   createPlayerTaxiRig,
+  mapArchetypeToTrafficClass,
+  setPlayerVehicleAppearance,
   updatePlayerTaxiRig,
   type PlayerTaxiRig,
+  type TrafficVisualClass,
 } from './vehicleMesh';
 
 export type QaCameraMode = 'follow' | 'street' | 'overview';
@@ -80,13 +85,12 @@ export interface WorldTelemetry {
   activeBuildings: number;
 }
 
-const TRAFFIC_COLORS = [
-  new THREE.Color(0xf6b800), // Istanbul taxi yellow
-  new THREE.Color(0x2867a8), // Dolmus blue
-  new THREE.Color(0xe2e8f0), // Pearl silver sedan
-  new THREE.Color(0x9a3737), // Burgundy sedan
-  new THREE.Color(0x3a4a5e), // Graphite slate sedan
-];
+interface TrafficInstancedClass {
+  bodyInst: THREE.InstancedMesh;
+  trimWheelsInst: THREE.InstancedMesh;
+  glassInst: THREE.InstancedMesh;
+  lightsInst: THREE.InstancedMesh;
+}
 
 export class RegionWorldScene {
   readonly renderer: THREE.WebGLRenderer;
@@ -114,11 +118,9 @@ export class RegionWorldScene {
   private characterMountedInTaxi = false;
   private readonly taxiRig: PlayerTaxiRig;
 
-  // Upgraded 4-part instanced AI traffic (4 draw calls total for up to 36 vehicles across Ultra tier!)
-  private readonly trafficChassisInst: THREE.InstancedMesh;
-  private readonly trafficCabinInst: THREE.InstancedMesh;
-  private readonly trafficRoofInst: THREE.InstancedMesh;
-  private readonly trafficUnderInst: THREE.InstancedMesh;
+  // Sculpted 3-class instanced AI traffic (Sports Coupe, Street Sedan, Crossover SUV — real wheels, sloped glass & LED lights!)
+  private readonly trafficClasses: Record<TrafficVisualClass, TrafficInstancedClass>;
+  private readonly trafficColorScratch = new THREE.Color();
   private readonly maxTrafficInstances = 36;
 
   // Instanced sidewalk pedestrians (only 3 draw calls for up to 56 people across Ultra tier!)
@@ -339,58 +341,90 @@ export class RegionWorldScene {
     this.disposableMaterials.push(...this.characterRig.materials);
     this.scene.add(this.characterRig.root);
 
-    // Detailed stylized Istanbul Yellow Taxi (checkered stripe, TAKSİ sign, steerable rolling wheels!)
-    this.taxiRig = createPlayerTaxiRig(contactShadowTex);
+    // Detailed GTA Free-Roam Coastal Sports Coupe (dynamically adapts paint & class when entering any street car!)
+    this.taxiRig = createPlayerTaxiRig(contactShadowTex, 'sports');
     this.disposableGeometries.push(...this.taxiRig.geometries);
     this.disposableMaterials.push(...this.taxiRig.materials);
     this.disposableTextures.push(...this.taxiRig.textures);
     this.scene.add(this.taxiRig.root);
 
-    // Upgraded 4-part Instanced AI Traffic (4 draw calls total for up to 24 moving vehicles!)
-    const chassisGeo = new THREE.BoxGeometry(1.86, 0.56, 4.25);
-    const cabinGeo = new THREE.BoxGeometry(1.56, 0.46, 2.15);
-    const roofGeo = new THREE.BoxGeometry(1.58, 0.1, 2.05);
-    const underGeo = new THREE.BoxGeometry(1.94, 0.34, 3.35);
-
-    const chassisMat = new THREE.MeshStandardMaterial({ roughness: 0.36, metalness: 0.28 });
-    const cabinMat = new THREE.MeshStandardMaterial({
-      color: 0x243b53,
-      roughness: 0.16,
-      metalness: 0.55,
+    // Sculpted 3-class GPU-instanced AI Traffic (Sports Coupe, Sedan/Hatchback, Crossover SUV/Van)
+    // Shared materials -> ultra-low mobile draw calls with real 3D cylinder tires, alloy rims, sloped glass & LED lights!
+    const trafficBodyMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.26,
+      metalness: 0.42,
     });
-    const roofMat = new THREE.MeshStandardMaterial({ roughness: 0.36, metalness: 0.25 });
-    const underMat = new THREE.MeshStandardMaterial({ color: 0x181c24, roughness: 0.9 });
+    const trafficTrimMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.56,
+      metalness: 0.3,
+    });
+    const trafficGlassMat = new THREE.MeshStandardMaterial({
+      color: 0x162538,
+      roughness: 0.08,
+      metalness: 0.84,
+    });
+    const trafficLightsMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+    this.disposableMaterials.push(trafficBodyMat, trafficTrimMat, trafficGlassMat, trafficLightsMat);
 
-    this.disposableGeometries.push(chassisGeo, cabinGeo, roofGeo, underGeo);
-    this.disposableMaterials.push(chassisMat, cabinMat, roofMat, underMat);
+    const buildTrafficClassMeshSet = (style: TrafficVisualClass): TrafficInstancedClass => {
+      const geos = buildTrafficClassGeometries(style);
+      this.disposableGeometries.push(geos.bodyGeo, geos.trimWheelsGeo, geos.glassGeo, geos.lightsGeo);
+      const bodyInst = new THREE.InstancedMesh(geos.bodyGeo, trafficBodyMat, this.maxTrafficInstances);
+      const trimWheelsInst = new THREE.InstancedMesh(
+        geos.trimWheelsGeo,
+        trafficTrimMat,
+        this.maxTrafficInstances,
+      );
+      const glassInst = new THREE.InstancedMesh(
+        geos.glassGeo,
+        trafficGlassMat,
+        this.maxTrafficInstances,
+      );
+      const lightsInst = new THREE.InstancedMesh(
+        geos.lightsGeo,
+        trafficLightsMat,
+        this.maxTrafficInstances,
+      );
+      for (const inst of [bodyInst, trimWheelsInst, glassInst, lightsInst]) {
+        inst.count = 0;
+        inst.frustumCulled = false;
+        this.scene.add(inst);
+      }
+      return { bodyInst, trimWheelsInst, glassInst, lightsInst };
+    };
 
-    this.trafficChassisInst = new THREE.InstancedMesh(
-      chassisGeo,
-      chassisMat,
-      this.maxTrafficInstances,
-    );
-    this.trafficCabinInst = new THREE.InstancedMesh(cabinGeo, cabinMat, this.maxTrafficInstances);
-    this.trafficRoofInst = new THREE.InstancedMesh(roofGeo, roofMat, this.maxTrafficInstances);
-    this.trafficUnderInst = new THREE.InstancedMesh(underGeo, underMat, this.maxTrafficInstances);
+    this.trafficClasses = {
+      sports: buildTrafficClassMeshSet('sports'),
+      sedan: buildTrafficClassMeshSet('sedan'),
+      suv: buildTrafficClassMeshSet('suv'),
+    };
 
-    for (const inst of [
-      this.trafficChassisInst,
-      this.trafficCabinInst,
-      this.trafficRoofInst,
-      this.trafficUnderInst,
-    ]) {
-      inst.count = 0;
-      inst.frustumCulled = false;
-      this.scene.add(inst);
-    }
-
-    // Instanced sidewalk pedestrians (3 draw calls total for 36 living city walkers!)
-    const pedLegsGeo = new THREE.BoxGeometry(0.32, 0.78, 0.22);
-    const pedTorsoGeo = new THREE.BoxGeometry(0.42, 0.56, 0.24);
-    const pedHeadGeo = new THREE.SphereGeometry(0.145, 8, 8);
-    const pedLegsMat = new THREE.MeshStandardMaterial({ roughness: 0.84 });
-    const pedTorsoMat = new THREE.MeshStandardMaterial({ roughness: 0.72 });
-    const pedHeadMat = new THREE.MeshStandardMaterial({ color: 0xe2ae88, roughness: 0.76 });
+    // Sculpted instanced sidewalk pedestrians (same 3 draw calls for 56 walkers — real twin legs, arms & hair!)
+    const pedLegsGeo = mergeColoredParts([
+      { geometry: new THREE.CylinderGeometry(0.08, 0.068, 0.72, 7), color: 0xffffff, position: [-0.095, 0, 0] },
+      { geometry: new THREE.CylinderGeometry(0.08, 0.068, 0.72, 7), color: 0xffffff, position: [0.095, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.11, 0.08, 0.2), color: 0xe2e8f0, position: [-0.095, -0.35, 0.03] },
+      { geometry: new THREE.BoxGeometry(0.11, 0.08, 0.2), color: 0xe2e8f0, position: [0.095, -0.35, 0.03] },
+    ]);
+    const pedTorsoGeo = mergeColoredParts([
+      { geometry: new THREE.BoxGeometry(0.38, 0.54, 0.21), color: 0xffffff, position: [0, 0, 0] },
+      { geometry: new THREE.CylinderGeometry(0.06, 0.052, 0.48, 7), color: 0xf4f6f9, position: [-0.24, -0.02, 0] },
+      { geometry: new THREE.CylinderGeometry(0.06, 0.052, 0.48, 7), color: 0xf4f6f9, position: [0.24, -0.02, 0] },
+    ]);
+    const pedHeadGeo = mergeColoredParts([
+      { geometry: new THREE.SphereGeometry(0.135, 9, 9), color: 0xe5b28c, position: [0, 0, 0], scale: [0.92, 1.06, 0.95] },
+      {
+        geometry: new THREE.SphereGeometry(0.142, 9, 7, 0, Math.PI * 2, 0, Math.PI * 0.58),
+        color: 0x1e1a18,
+        position: [0, 0.02, -0.015],
+        rotation: [-0.2, 0, 0],
+      },
+    ]);
+    const pedLegsMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 });
+    const pedTorsoMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.68 });
+    const pedHeadMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.74 });
     this.disposableGeometries.push(pedLegsGeo, pedTorsoGeo, pedHeadGeo);
     this.disposableMaterials.push(pedLegsMat, pedTorsoMat, pedHeadMat);
 
@@ -403,19 +437,13 @@ export class RegionWorldScene {
       this.scene.add(inst);
     }
 
-    // Fictional Şehir Polisi patrol cars (merged navy-white cruiser + flashing roof lightbar)
-    const policeBodyGeo = mergeColoredParts([
-      { geometry: new THREE.BoxGeometry(1.94, 0.32, 3.4), color: 0x151921, position: [0, 0.24, 0] },
-      { geometry: new THREE.BoxGeometry(1.88, 0.56, 4.35), color: 0x0f274a, position: [0, 0.58, 0] },
-      { geometry: new THREE.BoxGeometry(1.91, 0.22, 2.2), color: 0xf8fafc, position: [0, 0.64, -0.05] },
-      { geometry: new THREE.BoxGeometry(1.56, 0.46, 2.1), color: 0x1e334d, position: [0, 1.05, -0.15] },
-      { geometry: new THREE.BoxGeometry(1.58, 0.1, 1.85), color: 0xf8fafc, position: [0, 1.32, -0.15] },
-    ]);
-    const policeBeaconGeo = new THREE.BoxGeometry(0.95, 0.16, 0.26);
+    // Fictional Şehir Polisi sculpted wheeled patrol cruisers + flashing roof LED lightbar
+    const policeBodyGeo = buildSculptedPoliceBodyGeometry();
+    const policeBeaconGeo = new THREE.BoxGeometry(0.95, 0.14, 0.22);
     const policeBodyMat = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      roughness: 0.32,
-      metalness: 0.34,
+      roughness: 0.28,
+      metalness: 0.38,
     });
     this.policeBeaconMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6 });
     this.disposableGeometries.push(policeBodyGeo, policeBeaconGeo);
@@ -892,64 +920,55 @@ export class RegionWorldScene {
     this.applyLighting();
   }
 
+  setPlayerVehicleStyle(archetype: VehicleArchetype, paintHex: number): void {
+    setPlayerVehicleAppearance(this.taxiRig, archetype, paintHex);
+  }
+
   updateTraffic(agents: readonly TrafficAgent[]): void {
-    const count = Math.min(agents.length, this.maxTrafficInstances);
-    this.trafficChassisInst.count = count;
-    this.trafficCabinInst.count = count;
-    this.trafficRoofInst.count = count;
-    this.trafficUnderInst.count = count;
+    const counts: Record<TrafficVisualClass, number> = { sports: 0, sedan: 0, suv: 0 };
 
-    for (let i = 0; i < count; i += 1) {
+    for (let i = 0; i < agents.length; i += 1) {
       const a = agents[i]!;
-      const scaleY = a.archetype === 'dolmus' ? 1.32 : 1.0;
-      const scaleZ = a.archetype === 'dolmus' ? 1.15 : 1.0;
-      const baseRoadY = a.y + 0.34;
+      const cls = mapArchetypeToTrafficClass(a.archetype);
+      const idx = counts[cls];
+      if (idx >= this.maxTrafficInstances) continue;
+      counts[cls] = idx + 1;
 
-      const color =
-        a.archetype === 'taxi'
-          ? TRAFFIC_COLORS[0]!
-          : a.archetype === 'dolmus'
-            ? TRAFFIC_COLORS[1]!
-            : TRAFFIC_COLORS[2 + (a.colorIndex % 3)]!;
+      const bucket = this.trafficClasses[cls];
+      const baseRoadY = a.y + 0.31;
+      const scaleZ = a.archetype === 'hatchback' ? 0.91 : a.archetype === 'van' || a.archetype === 'dolmus' ? 1.07 : 1.0;
+      const scaleY = a.archetype === 'van' || a.archetype === 'dolmus' ? 1.12 : 1.0;
 
-      // Undercarriage / wheel shadow block (slope-aligned to hills!)
       this.dummyObj.rotation.order = 'YXZ';
-      this.dummyObj.position.set(a.x, baseRoadY + 0.24, a.z);
+      this.dummyObj.position.set(a.x, baseRoadY, a.z);
       this.dummyObj.rotation.set(-a.pitch, a.heading, 0);
-      this.dummyObj.scale.set(1, 1, scaleZ);
-      this.dummyObj.updateMatrix();
-      this.trafficUnderInst.setMatrixAt(i, this.dummyObj.matrix);
-
-      // Lower painted chassis
-      this.dummyObj.position.set(a.x, baseRoadY + 0.56 * scaleY, a.z);
       this.dummyObj.scale.set(1, scaleY, scaleZ);
       this.dummyObj.updateMatrix();
-      this.trafficChassisInst.setMatrixAt(i, this.dummyObj.matrix);
-      this.trafficChassisInst.setColorAt(i, color);
 
-      // Glossy dark greenhouse cabin
-      this.dummyObj.position.set(a.x, baseRoadY + 1.04 * scaleY, a.z);
-      this.dummyObj.scale.set(1, scaleY * 0.9, scaleZ * 0.92);
-      this.dummyObj.updateMatrix();
-      this.trafficCabinInst.setMatrixAt(i, this.dummyObj.matrix);
-
-      // Painted roof cap
-      this.dummyObj.position.set(a.x, baseRoadY + 1.3 * scaleY, a.z);
-      this.dummyObj.scale.set(1, 1, scaleZ * 0.88);
-      this.dummyObj.updateMatrix();
-      this.trafficRoofInst.setMatrixAt(i, this.dummyObj.matrix);
-      this.trafficRoofInst.setColorAt(i, color);
+      this.trafficColorScratch.setHex(a.paintHex);
+      bucket.bodyInst.setMatrixAt(idx, this.dummyObj.matrix);
+      bucket.bodyInst.setColorAt(idx, this.trafficColorScratch);
+      bucket.trimWheelsInst.setMatrixAt(idx, this.dummyObj.matrix);
+      bucket.glassInst.setMatrixAt(idx, this.dummyObj.matrix);
+      bucket.lightsInst.setMatrixAt(idx, this.dummyObj.matrix);
     }
 
-    this.trafficUnderInst.instanceMatrix.needsUpdate = true;
-    this.trafficChassisInst.instanceMatrix.needsUpdate = true;
-    this.trafficCabinInst.instanceMatrix.needsUpdate = true;
-    this.trafficRoofInst.instanceMatrix.needsUpdate = true;
-    if (this.trafficChassisInst.instanceColor) {
-      this.trafficChassisInst.instanceColor.needsUpdate = true;
-    }
-    if (this.trafficRoofInst.instanceColor) {
-      this.trafficRoofInst.instanceColor.needsUpdate = true;
+    for (const cls of ['sports', 'sedan', 'suv'] as const) {
+      const bucket = this.trafficClasses[cls];
+      const c = counts[cls];
+      bucket.bodyInst.count = c;
+      bucket.trimWheelsInst.count = c;
+      bucket.glassInst.count = c;
+      bucket.lightsInst.count = c;
+      if (c > 0) {
+        bucket.bodyInst.instanceMatrix.needsUpdate = true;
+        bucket.trimWheelsInst.instanceMatrix.needsUpdate = true;
+        bucket.glassInst.instanceMatrix.needsUpdate = true;
+        bucket.lightsInst.instanceMatrix.needsUpdate = true;
+        if (bucket.bodyInst.instanceColor) {
+          bucket.bodyInst.instanceColor.needsUpdate = true;
+        }
+      }
     }
   }
 

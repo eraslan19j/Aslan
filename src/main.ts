@@ -68,7 +68,7 @@ import { ProceduralSoundEngine } from './runtime/soundEngine';
 import { HudOverlay } from './ui/HudOverlay';
 import { MinimapRenderer } from './ui/MinimapRenderer';
 
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.6.0';
 
 interface ActiveRegionRuntime {
   meta: RegionRegistryEntry;
@@ -278,6 +278,8 @@ async function bootstrap(): Promise<void> {
     px: number,
     pz: number,
     heading: number,
+    archetype = playerVehicle?.archetype ?? 'sports',
+    paintHex = playerVehicle?.paintHex ?? 0xdc2626,
   ): PlayerVehicleState => {
     const rawX = clamp(
       px + Math.sin(heading) * 3.8 + Math.cos(heading) * 1.4,
@@ -291,16 +293,21 @@ async function bootstrap(): Promise<void> {
     );
     const clear = rt.scene.spatialGrid.resolveCircle(rawX, rawZ, 1.35);
     const vy = sampleTerrainElevation(rt.terrain, clear.x, clear.z);
-    return createVehicleState('player-taxi', 'taxi', clear.x, vy, clear.z, heading);
+    rt.scene.setPlayerVehicleStyle(archetype, paintHex);
+    return createVehicleState('player-vehicle', archetype, clear.x, vy, clear.z, heading, paintHex);
   };
 
-  let playerVehicle = placeVehicleNear(
+  let playerVehicle: PlayerVehicleState;
+  playerVehicle = placeVehicleNear(
     runtime,
     runtime.manifest.spawn.x,
     runtime.manifest.spawn.z,
     runtime.manifest.spawn.heading,
+    'sports',
+    0xdc2626,
   );
-  runtime.missions.ensureMission(playerX, playerZ);
+  // Pure GTA Free-Roam: no forced taxi missions on spawn!
+  runtime.scene.updateMissionBeacon(null);
 
   void ensureRapierReady()
     .then(() => {
@@ -470,8 +477,51 @@ async function bootstrap(): Promise<void> {
       exitVehicle();
       return;
     }
-    const dist = distance2D(playerX, playerZ, playerVehicle.x, playerVehicle.z);
-    if (dist <= ENTER_VEHICLE_DISTANCE) {
+    const distOwn = distance2D(playerX, playerZ, playerVehicle.x, playerVehicle.z);
+    const nearNpc = runtime.traffic.findNearestAgent(playerX, playerZ, ENTER_VEHICLE_DISTANCE);
+    const distNpc = nearNpc ? distance2D(playerX, playerZ, nearNpc.x, nearNpc.z) : Infinity;
+
+    // GTA Free-Roam: enter whichever car is closest (your parked ride OR ANY NPC car on the street!)
+    if (nearNpc && distNpc < distOwn && distNpc <= ENTER_VEHICLE_DISTANCE) {
+      const claimed = runtime.traffic.swapWithPlayerVehicle(nearNpc.id, {
+        archetype: playerVehicle.archetype,
+        paintHex: playerVehicle.paintHex,
+        x: playerVehicle.x,
+        y: playerVehicle.y,
+        z: playerVehicle.z,
+        heading: playerVehicle.heading,
+        pitch: playerVehicle.pitch,
+      });
+      if (claimed) {
+        playerVehicle = createVehicleState(
+          'player-vehicle',
+          claimed.archetype,
+          claimed.x,
+          claimed.y,
+          claimed.z,
+          claimed.heading,
+          claimed.paintHex,
+        );
+        runtime.scene.setPlayerVehicleStyle(playerVehicle.archetype, playerVehicle.paintHex);
+        const vehName =
+          claimed.archetype === 'sports'
+            ? save.locale === 'tr'
+              ? 'Spor Coupe'
+              : 'Sports Coupe'
+            : claimed.archetype === 'suv'
+              ? 'SUV'
+              : claimed.archetype === 'van' || claimed.archetype === 'dolmus'
+                ? 'Van'
+                : claimed.archetype === 'hatchback'
+                  ? 'Hatchback'
+                  : 'Sedan';
+        hud.showToast(`🚗 ${vehName}`);
+        enterVehicle();
+        return;
+      }
+    }
+
+    if (distOwn <= ENTER_VEHICLE_DISTANCE) {
       enterVehicle();
     }
   };
@@ -556,8 +606,10 @@ async function bootstrap(): Promise<void> {
         runtime.manifest.spawn.x,
         runtime.manifest.spawn.z,
         runtime.manifest.spawn.heading,
+        playerVehicle.archetype,
+        playerVehicle.paintHex,
       );
-      runtime.missions.ensureMission(playerX, playerZ);
+      runtime.scene.updateMissionBeacon(null);
       minimap.setRoadGraph(runtime.roadGraph);
       runtime.scene.updateStreaming(playerX, playerZ);
       attachCanvasDrag(runtime.scene.renderer.domElement);
@@ -1126,27 +1178,8 @@ async function bootstrap(): Promise<void> {
           wanted.reportOffense(14 * pedStep.closeCalls, inSanctuary);
         }
 
-        // Step Sarı Taksi passenger mission loop
-        const missionEv = runtime.missions.step(dt, playerX, playerZ, inVehicle, speedKph);
-        if (missionEv.type === 'picked_up') {
-          const t = getStrings(save.locale);
-          const dest = save.locale === 'tr' ? missionEv.targetNameTr : missionEv.targetNameEn;
-          hud.showToast(`🚕 ${t.missionPickedUpToast}: ${dest ?? ''}`);
-          sound.playMissionChime(false);
-          void triggerLightHaptic();
-        } else if (missionEv.type === 'completed') {
-          const reward = missionEv.rewardCash ?? 150;
-          save.cash += reward;
-          applySave();
-          const t = getStrings(save.locale);
-          hud.showToast(`💰 ${t.missionCompletedToast} +₺${reward}`);
-          sound.playMissionChime(true);
-          void triggerLightHaptic();
-        } else if (missionEv.type === 'expired') {
-          hud.showToast(getStrings(save.locale).missionExpiredToast);
-        }
-
-        // Step M3 Wanted 1–5★ & fictional Şehir Polisi patrol pursuit
+        // Pure GTA Free-Roam: no forced taxi missions running in open world
+        // Step Wanted 1–5★ & fictional Şehir Polisi patrol pursuit
         const wantedRes = wanted.step(
           dt,
           playerX,
@@ -1157,8 +1190,6 @@ async function bootstrap(): Promise<void> {
           sampleElev,
         );
         if (wantedRes.busted) {
-          save.cash = Math.max(0, save.cash - 50);
-          applySave();
           paused = true;
           hud.openModal('busted');
         }
@@ -1172,7 +1203,7 @@ async function bootstrap(): Promise<void> {
       runtime.scene.updateTraffic(runtime.traffic.getAgents());
       runtime.scene.updatePedestrians(runtime.pedestrians.getAgents());
       runtime.scene.updatePolice(wanted.getUnits());
-      runtime.scene.updateMissionBeacon(runtime.missions.getActive());
+      runtime.scene.updateMissionBeacon(null);
       runtime.scene.updateVisuals(
         playerX,
         playerY,
@@ -1210,7 +1241,7 @@ async function bootstrap(): Promise<void> {
         traffic: runtime.traffic.getAgents(),
         police: wanted.getUnits(),
         sanctuaries: runtime.manifest.sanctuaryZones,
-        mission: runtime.missions.getActive(),
+        mission: null,
         timeSec: elapsedSec,
       });
     }
@@ -1219,7 +1250,8 @@ async function bootstrap(): Promise<void> {
     const activeSanctuary = findSanctuaryZone(playerX, playerZ, runtime.manifest.sanctuaryZones);
     const nearVehicle =
       !inVehicle &&
-      distance2D(playerX, playerZ, playerVehicle.x, playerVehicle.z) <= ENTER_VEHICLE_DISTANCE;
+      (distance2D(playerX, playerZ, playerVehicle.x, playerVehicle.z) <= ENTER_VEHICLE_DISTANCE ||
+        runtime.traffic.findNearestAgent(playerX, playerZ, ENTER_VEHICLE_DISTANCE) !== null);
 
     debugHandle.paused = paused;
     debugHandle.regionId = activeRegionId;
@@ -1260,22 +1292,6 @@ async function bootstrap(): Promise<void> {
 
     if (nowMs - lastHudUpdateMs >= 250) {
       lastHudUpdateMs = nowMs;
-      const t = getStrings(save.locale);
-      const activeMission = runtime.missions.getActive();
-      let missionLabel: string | null = null;
-      if (activeMission) {
-        const mDist = Math.round(
-          distance2D(playerX, playerZ, activeMission.targetX, activeMission.targetZ),
-        );
-        const mName =
-          save.locale === 'tr' ? activeMission.targetNameTr : activeMission.targetNameEn;
-        if (activeMission.phase === 'pickup') {
-          missionLabel = `🚕 ${t.missionPickupPrefix}: ${mName} · ${mDist} m`;
-        } else {
-          missionLabel = `🏁 ${t.missionDropoffPrefix}: ${mName} · ${mDist} m · ${Math.ceil(activeMission.timeRemainingSec)}s`;
-        }
-      }
-
       hud.updateTelemetry({
         fps: fpsSmoothed,
         drawCalls: tel.drawCalls,
@@ -1298,8 +1314,8 @@ async function bootstrap(): Promise<void> {
         drifting: playerVehicle.drifting,
         cash: save.cash,
         wantedStars: wanted.getStars(),
-        missionLabel,
-        missionPhase: activeMission?.phase ?? null,
+        missionLabel: null,
+        missionPhase: null,
       });
     }
 

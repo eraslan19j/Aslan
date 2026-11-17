@@ -195,7 +195,7 @@ try {
       shots.push(
         {
           file: 'esenler_07_driving_20x9.png',
-          label: '20:9 Sürüş Modu (Sarı Taksi)',
+          label: '20:9 GTA Serbest Sürüş (Spor Coupe)',
           viewport: { width: 880, height: 396 },
           query: `?region=${regionId}&touch=1&mode=normal&time=day`,
           setup: async (page) => {

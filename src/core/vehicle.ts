@@ -6,7 +6,28 @@ import {
 } from './playerController';
 import type { BuildingSpatialGrid } from './world/collision';
 
-export type VehicleArchetype = 'taxi' | 'dolmus' | 'sedan';
+export type VehicleArchetype =
+  | 'sports'
+  | 'sedan'
+  | 'suv'
+  | 'hatchback'
+  | 'van'
+  | 'taxi'
+  | 'dolmus';
+
+/** Vibrant Vice-City & modern Istanbul automotive paint palette. */
+export const VEHICLE_PAINT_PALETTE: readonly number[] = [
+  0xdc2626, // Crimson Sport Red (default player ride)
+  0x06b6d4, // Vice City Coastal Cyan
+  0xf8fafc, // Pearl White
+  0x1e293b, // Obsidian Metallic Slate
+  0x2563eb, // Bosphorus Metallic Blue
+  0xf97316, // Sunset Tangerine
+  0x10b981, // Emerald Metallic
+  0x94a3b8, // Titanium Silver
+  0x7c3aed, // Midnight Violet
+  0xeab308, // Solar Gold
+];
 
 export interface VehicleSpec {
   archetype: VehicleArchetype;
@@ -27,6 +48,81 @@ export interface VehicleSpec {
 }
 
 export const VEHICLE_SPECS: Record<VehicleArchetype, VehicleSpec> = {
+  sports: {
+    archetype: 'sports',
+    maxForwardSpeed: 30.0, // ~108 km/h
+    maxReverseSpeed: 9.0,
+    accel: 16.0,
+    brakeDecel: 23.5,
+    drag: 0.9,
+    turnRate: 2.65,
+    collisionRadius: 0.88,
+    axleOffset: 1.12,
+    wheelRadius: 0.35,
+    length: 4.4,
+    width: 1.9,
+    height: 1.32,
+  },
+  sedan: {
+    archetype: 'sedan',
+    maxForwardSpeed: 24.5, // ~88 km/h
+    maxReverseSpeed: 7.8,
+    accel: 12.8,
+    brakeDecel: 19.8,
+    drag: 1.0,
+    turnRate: 2.4,
+    collisionRadius: 0.86,
+    axleOffset: 1.06,
+    wheelRadius: 0.35,
+    length: 4.35,
+    width: 1.84,
+    height: 1.44,
+  },
+  suv: {
+    archetype: 'suv',
+    maxForwardSpeed: 22.8, // ~82 km/h
+    maxReverseSpeed: 7.4,
+    accel: 11.8,
+    brakeDecel: 18.8,
+    drag: 1.06,
+    turnRate: 2.22,
+    collisionRadius: 0.94,
+    axleOffset: 1.16,
+    wheelRadius: 0.38,
+    length: 4.65,
+    width: 1.96,
+    height: 1.76,
+  },
+  hatchback: {
+    archetype: 'hatchback',
+    maxForwardSpeed: 23.2, // ~84 km/h
+    maxReverseSpeed: 7.5,
+    accel: 13.4,
+    brakeDecel: 20.5,
+    drag: 1.02,
+    turnRate: 2.58,
+    collisionRadius: 0.84,
+    axleOffset: 0.94,
+    wheelRadius: 0.33,
+    length: 3.95,
+    width: 1.78,
+    height: 1.45,
+  },
+  van: {
+    archetype: 'van',
+    maxForwardSpeed: 19.8, // ~71 km/h
+    maxReverseSpeed: 6.5,
+    accel: 10.2,
+    brakeDecel: 17.2,
+    drag: 1.12,
+    turnRate: 2.08,
+    collisionRadius: 0.98,
+    axleOffset: 1.32,
+    wheelRadius: 0.38,
+    length: 4.95,
+    width: 2.0,
+    height: 2.04,
+  },
   taxi: {
     archetype: 'taxi',
     maxForwardSpeed: 24.5, // ~88 km/h
@@ -57,26 +153,13 @@ export const VEHICLE_SPECS: Record<VehicleArchetype, VehicleSpec> = {
     width: 2.0,
     height: 2.05,
   },
-  sedan: {
-    archetype: 'sedan',
-    maxForwardSpeed: 22.0, // ~79 km/h
-    maxReverseSpeed: 7.2,
-    accel: 11.5,
-    brakeDecel: 18.5,
-    drag: 1.05,
-    turnRate: 2.3,
-    collisionRadius: 0.86,
-    axleOffset: 1.02,
-    wheelRadius: 0.34,
-    length: 4.2,
-    width: 1.8,
-    height: 1.42,
-  },
 };
 
 export interface PlayerVehicleState {
   id: string;
   archetype: VehicleArchetype;
+  /** Hex paint finish (adopted seamlessly when stealing/entering any NPC street car). */
+  paintHex: number;
   x: number;
   y: number;
   z: number;
@@ -143,10 +226,12 @@ export function createVehicleState(
   y: number,
   z: number,
   heading: number,
+  paintHex = VEHICLE_PAINT_PALETTE[0]!,
 ): PlayerVehicleState {
   return {
     id,
     archetype,
+    paintHex,
     x,
     y,
     z,

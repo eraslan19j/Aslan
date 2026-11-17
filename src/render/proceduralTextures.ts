@@ -753,9 +753,9 @@ export function createTaxiSignTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Fictional Istanbul license plate ("34 T 0421").
+ * Fictional Istanbul street license plate ("34 IST 06").
  */
-export function createPlateTexture(): THREE.CanvasTexture {
+export function createPlateTexture(plateText = '34 IST 06'): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = 192;
   canvas.height = 48;
@@ -776,7 +776,7 @@ export function createPlateTexture(): THREE.CanvasTexture {
     ctx.font = '800 24px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('34 T 0421', 108, 25);
+    ctx.fillText(plateText, 108, 25);
   }
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;

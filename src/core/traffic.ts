@@ -1,11 +1,12 @@
 import { createRng, type Rng } from './rng';
-import type { VehicleArchetype } from './vehicle';
+import { VEHICLE_PAINT_PALETTE, type VehicleArchetype } from './vehicle';
 import type { RoadGraph, RoadGraphEdge, RoadGraphNode } from './world/types';
 
 export interface TrafficAgent {
   id: number;
   archetype: VehicleArchetype;
   colorIndex: number;
+  paintHex: number;
   fromNodeId: string;
   toNodeId: string;
   edgeLength: number;
@@ -92,10 +93,25 @@ export class RoadTrafficSimulator {
     }
     if (this.validStartIds.length === 0) return;
 
-    const archetypes: VehicleArchetype[] = ['taxi', 'taxi', 'dolmus', 'sedan', 'sedan', 'sedan'];
+    const archetypes: VehicleArchetype[] = [
+      'sedan',
+      'sports',
+      'suv',
+      'hatchback',
+      'sedan',
+      'van',
+      'suv',
+      'sports',
+    ];
     for (let i = 0; i < agentCount; i += 1) {
       const archetype = archetypes[i % archetypes.length]!;
-      const agent = this.spawnAgentNear(i, archetype, i % 5, initialFocusX, initialFocusZ);
+      const agent = this.spawnAgentNear(
+        i,
+        archetype,
+        i % VEHICLE_PAINT_PALETTE.length,
+        initialFocusX,
+        initialFocusZ,
+      );
       this.agents.push(agent);
     }
   }
@@ -155,6 +171,7 @@ export class RoadTrafficSimulator {
       id,
       archetype,
       colorIndex,
+      paintHex: VEHICLE_PAINT_PALETTE[colorIndex % VEHICLE_PAINT_PALETTE.length]!,
       fromNodeId: startId,
       toNodeId: link.to,
       edgeLength: link.length,
@@ -172,6 +189,57 @@ export class RoadTrafficSimulator {
     };
   }
 
+  /** Finds the closest NPC vehicle (moving or parked) within GTA car-entry distance. */
+  findNearestAgent(x: number, z: number, maxDist: number): TrafficAgent | null {
+    let best: TrafficAgent | null = null;
+    let bestDistSq = maxDist * maxDist;
+    for (const a of this.agents) {
+      const dx = a.x - x;
+      const dz = a.z - z;
+      const dSq = dx * dx + dz * dz;
+      if (dSq <= bestDistSq) {
+        bestDistSq = dSq;
+        best = a;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * GTA Free-Roam vehicle takeover: claims the targeted NPC car for the player and leaves
+   * the player's previous car cleanly parked in its slot so cars never vanish on swap!
+   */
+  swapWithPlayerVehicle(
+    agentId: number,
+    previousCar: {
+      archetype: VehicleArchetype;
+      paintHex: number;
+      x: number;
+      y: number;
+      z: number;
+      heading: number;
+      pitch: number;
+    },
+  ): TrafficAgent | null {
+    const idx = this.agents.findIndex((a) => a.id === agentId);
+    if (idx < 0) return null;
+    const claimed = { ...this.agents[idx]! };
+    const slot = this.agents[idx]!;
+    slot.archetype = previousCar.archetype;
+    slot.paintHex = previousCar.paintHex;
+    slot.x = previousCar.x;
+    slot.y = previousCar.y;
+    slot.z = previousCar.z;
+    slot.heading = previousCar.heading;
+    slot.pitch = previousCar.pitch;
+    slot.speedMps = 0;
+    slot.targetSpeedMps = 0;
+    slot.braking = false;
+    slot.parked = true;
+    slot.yieldTimer = 0;
+    return claimed;
+  }
+
   /** Dynamically scales active AI traffic density for Android 4-tier quality profiles. */
   setMaxActiveCount(targetCount: number, focusX = 0, focusZ = 0): void {
     const clamped = Math.max(4, Math.min(64, Math.round(targetCount)));
@@ -179,11 +247,26 @@ export class RoadTrafficSimulator {
     while (this.agents.length > clamped) {
       this.agents.pop();
     }
-    const archetypes: VehicleArchetype[] = ['sedan', 'taxi', 'dolmus', 'sedan', 'sedan'];
+    const archetypes: VehicleArchetype[] = [
+      'sedan',
+      'sports',
+      'suv',
+      'hatchback',
+      'van',
+      'sedan',
+    ];
     while (this.agents.length < clamped) {
       const id = this.agents.length;
       const arch = archetypes[id % archetypes.length] ?? 'sedan';
-      this.agents.push(this.spawnAgentNear(id, arch, id % 8, focusX, focusZ));
+      this.agents.push(
+        this.spawnAgentNear(
+          id,
+          arch,
+          id % VEHICLE_PAINT_PALETTE.length,
+          focusX,
+          focusZ,
+        ),
+      );
     }
   }
 
