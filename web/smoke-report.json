@@ -12,8 +12,8 @@
     "activeMissionPhase": "pickup",
     "crashCount": 0,
     "perf": {
-      "fps": 45.96021970004193,
-      "frameMs": 156.8596079491207,
+      "fps": 44.47717856169245,
+      "frameMs": 182.073148986151,
       "drawCalls": 70,
       "triangles": 109419,
       "geometries": 56,
@@ -29,7 +29,7 @@
   "hasMinimap": true,
   "cameraCycleOk": true,
   "audioToggleOk": true,
-  "walkDist": 2.25,
+  "walkDist": 1.33,
   "driveDist": 3.3,
   "driveSpeedKph": 33,
   "driverVisibleInCabin": true,
@@ -40,7 +40,7 @@
   "qualityToggleOk": true,
   "hasAttributions": true,
   "pauseToggleOk": true,
-  "uniqueColors": 1005,
-  "brightFrac": 0.4425,
+  "uniqueColors": 1001,
+  "brightFrac": 0.4426,
   "errors": []
 }

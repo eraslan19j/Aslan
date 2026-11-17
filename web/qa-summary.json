@@ -1,9 +1,9 @@
 {
-  "generatedAtIso": "2026-11-17T08:40:04.824Z",
+  "generatedAtIso": "2026-11-17T08:48:25.307Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 14,
   "totalErrors": 0,
-  "regressionWarnings": 6,
+  "regressionWarnings": 1,
   "hudWarnings": 0,
   "screenshots": [
     {
@@ -20,13 +20,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2412
       },
-      "uniqueColors": 1006,
+      "uniqueColors": 1017,
       "brightFrac": 0.4253,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 11.68,
-        "warning": true
+        "diffPct": 0.09,
+        "warning": false
       },
       "errors": []
     },
@@ -44,13 +44,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2412
       },
-      "uniqueColors": 1033,
-      "brightFrac": 0.3667,
+      "uniqueColors": 1032,
+      "brightFrac": 0.3668,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 6.88,
-        "warning": true
+        "diffPct": 0.01,
+        "warning": false
       },
       "errors": []
     },
@@ -68,13 +68,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2412
       },
-      "uniqueColors": 1484,
+      "uniqueColors": 1483,
       "brightFrac": 0.4671,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 6.05,
-        "warning": true
+        "diffPct": 0.02,
+        "warning": false
       },
       "errors": []
     },
@@ -92,12 +92,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2412
       },
-      "uniqueColors": 1341,
-      "brightFrac": 0.0987,
+      "uniqueColors": 1340,
+      "brightFrac": 0.0986,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 4.84,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -116,13 +116,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2412
       },
-      "uniqueColors": 934,
-      "brightFrac": 0.4941,
+      "uniqueColors": 928,
+      "brightFrac": 0.4942,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 11.31,
-        "warning": true
+        "diffPct": 0.02,
+        "warning": false
       },
       "errors": []
     },
@@ -140,13 +140,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2412
       },
-      "uniqueColors": 852,
-      "brightFrac": 0.4388,
+      "uniqueColors": 857,
+      "brightFrac": 0.4385,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 9.38,
-        "warning": true
+        "diffPct": 0.08,
+        "warning": false
       },
       "errors": []
     },
@@ -164,12 +164,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2412
       },
-      "uniqueColors": 928,
-      "brightFrac": 0.3722,
+      "uniqueColors": 895,
+      "brightFrac": 0.3729,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 17.92,
+        "diffPct": 14.43,
         "warning": true
       },
       "errors": []
@@ -188,12 +188,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2412
       },
-      "uniqueColors": 524,
-      "brightFrac": 0.0365,
+      "uniqueColors": 526,
+      "brightFrac": 0.0363,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.49,
+        "diffPct": 0.23,
         "warning": false
       },
       "errors": []
@@ -217,7 +217,7 @@
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 2.02,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -236,12 +236,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1380
       },
-      "uniqueColors": 854,
+      "uniqueColors": 856,
       "brightFrac": 0.8583,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 1.47,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -260,12 +260,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1380
       },
-      "uniqueColors": 1410,
+      "uniqueColors": 1415,
       "brightFrac": 0.8326,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 4.46,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -284,12 +284,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1380
       },
-      "uniqueColors": 1063,
-      "brightFrac": 0.0352,
+      "uniqueColors": 1066,
+      "brightFrac": 0.0351,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 1.07,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -308,12 +308,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1380
       },
-      "uniqueColors": 757,
+      "uniqueColors": 758,
       "brightFrac": 0.8629,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 1.78,
+        "diffPct": 0.05,
         "warning": false
       },
       "errors": []
@@ -332,12 +332,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1380
       },
-      "uniqueColors": 785,
+      "uniqueColors": 777,
       "brightFrac": 0.8201,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 1.46,
+        "diffPct": 0.04,
         "warning": false
       },
       "errors": []
