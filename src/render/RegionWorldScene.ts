@@ -24,6 +24,7 @@ import {
   type CharacterRig,
 } from './characterMesh';
 import { mergeColoredParts, type ColoredGeometryPart } from './meshMerge';
+import { ensureMeshOptimizerReady } from './meshOptimizer';
 import {
   createAsphaltRoadTexture,
   createContactShadowTexture,
@@ -32,7 +33,11 @@ import {
   createSkyDomeTexture,
   createUrbanGroundTexture,
 } from './proceduralTextures';
-import { buildTileMeshes, type BuiltTileGroup } from './tileMeshBuilder';
+import {
+  applyTileDistanceLod,
+  buildTileMeshes,
+  type BuiltTileGroup,
+} from './tileMeshBuilder';
 import {
   createPlayerTaxiRig,
   updatePlayerTaxiRig,
@@ -162,6 +167,7 @@ export class RegionWorldScene {
     initialQuality: QualityTier,
     initialTimeOfDay: TimeOfDay = 'day',
   ) {
+    void ensureMeshOptimizerReady();
     this.regionMeta = regionMeta;
     this.manifest = manifest;
     this.terrain = terrain;
@@ -728,17 +734,25 @@ export class RegionWorldScene {
     for (const key of diff.toLoad) {
       if (this.loadedTiles.has(key) || this.inflightTiles.has(key)) continue;
       this.inflightTiles.add(key);
-      void this.loadTile(key);
+      void this.loadTile(key, focusX, focusZ);
+    }
+
+    // Apply distance-based tile LOD (culls distant props & shadow passes on mobile GPUs)
+    const shadowsEnabled = getQualityPreset(this.qualityTier).shadowsEnabled;
+    const isLite = this.qualityTier === 'lite';
+    for (const tile of this.loadedTiles.values()) {
+      applyTileDistanceLod(tile, focusX, focusZ, shadowsEnabled, isLite);
     }
   }
 
-  private async loadTile(key: string): Promise<void> {
+  private async loadTile(key: string, focusX: number, focusZ: number): Promise<void> {
     try {
       const res = await fetch(`${this.regionMeta.baseUrl}/tiles/${key}.json`);
       if (!res.ok) return;
       const tile = (await res.json()) as RegionTileData;
       if (this.disposed || this.loadedTiles.has(key)) return;
 
+      const shadowsEnabled = getQualityPreset(this.qualityTier).shadowsEnabled;
       const built = buildTileMeshes(
         tile,
         this.terrain,
@@ -749,8 +763,16 @@ export class RegionWorldScene {
           areaMat: this.areaMat,
           propsMat: this.propsMat,
         },
-        getQualityPreset(this.qualityTier).shadowsEnabled,
+        shadowsEnabled,
         true,
+        this.manifest.tileSize,
+      );
+      applyTileDistanceLod(
+        built,
+        focusX,
+        focusZ,
+        shadowsEnabled,
+        this.qualityTier === 'lite',
       );
       this.tilesRoot.add(built.group);
       this.loadedTiles.set(key, built);

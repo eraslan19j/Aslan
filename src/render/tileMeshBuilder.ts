@@ -6,12 +6,17 @@ import type {
   RoadClass,
   TerrainGrid,
 } from '../core/world/types';
+import { optimizeStaticGeometry } from './meshOptimizer';
 
 export interface BuiltTileGroup {
   key: string;
   group: THREE.Group;
+  centerX: number;
+  centerZ: number;
   buildingCount: number;
   geometries: THREE.BufferGeometry[];
+  propsMesh: THREE.Mesh | null;
+  shadowCasterMeshes: THREE.Mesh[];
 }
 
 export interface TileMaterialBundle {
@@ -168,7 +173,7 @@ function finalizeGeometry(
   geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  geo.computeBoundingSphere();
+  optimizeStaticGeometry(geo);
   return geo;
 }
 
@@ -949,10 +954,13 @@ export function buildTileMeshes(
   materials: TileMaterialBundle,
   shadowsEnabled: boolean,
   includeProps = true,
+  tileSize = 300,
 ): BuiltTileGroup {
   const group = new THREE.Group();
   group.name = `tile:${tile.key}`;
   const geometries: THREE.BufferGeometry[] = [];
+  const shadowCasterMeshes: THREE.Mesh[] = [];
+  let propsMesh: THREE.Mesh | null = null;
 
   const { upperGeo, groundRoofGeo } = buildBatchedBuildingsGeometries(tile);
   if (upperGeo) {
@@ -960,6 +968,8 @@ export function buildTileMeshes(
     const mesh = new THREE.Mesh(upperGeo, materials.upperBuildingMat);
     mesh.castShadow = shadowsEnabled;
     mesh.receiveShadow = shadowsEnabled;
+    mesh.frustumCulled = true;
+    shadowCasterMeshes.push(mesh);
     group.add(mesh);
   }
   if (groundRoofGeo) {
@@ -967,6 +977,8 @@ export function buildTileMeshes(
     const mesh = new THREE.Mesh(groundRoofGeo, materials.groundRoofMat);
     mesh.castShadow = shadowsEnabled;
     mesh.receiveShadow = shadowsEnabled;
+    mesh.frustumCulled = true;
+    shadowCasterMeshes.push(mesh);
     group.add(mesh);
   }
 
@@ -975,6 +987,7 @@ export function buildTileMeshes(
     geometries.push(rGeo);
     const mesh = new THREE.Mesh(rGeo, materials.roadMat);
     mesh.receiveShadow = shadowsEnabled;
+    mesh.frustumCulled = true;
     group.add(mesh);
   }
 
@@ -983,6 +996,7 @@ export function buildTileMeshes(
     geometries.push(aGeo);
     const mesh = new THREE.Mesh(aGeo, materials.areaMat);
     mesh.receiveShadow = shadowsEnabled;
+    mesh.frustumCulled = true;
     group.add(mesh);
   }
 
@@ -993,6 +1007,8 @@ export function buildTileMeshes(
       const mesh = new THREE.Mesh(pGeo, materials.propsMat);
       mesh.castShadow = false;
       mesh.receiveShadow = shadowsEnabled;
+      mesh.frustumCulled = true;
+      propsMesh = mesh;
       group.add(mesh);
     }
   }
@@ -1000,7 +1016,36 @@ export function buildTileMeshes(
   return {
     key: tile.key,
     group,
+    centerX: (tile.tx + 0.5) * tileSize,
+    centerZ: (tile.tz + 0.5) * tileSize,
     buildingCount: tile.buildings.length,
     geometries,
+    propsMesh,
+    shadowCasterMeshes,
   };
+}
+
+/**
+ * Distance-based tile LOD for mobile GPUs:
+ * - LOD 0 (near): full street props + building shadows
+ * - LOD 1 (mid/far): culls distant street furniture props & shadow casting while keeping skyline crisp
+ */
+export function applyTileDistanceLod(
+  tile: BuiltTileGroup,
+  focusX: number,
+  focusZ: number,
+  shadowsEnabled: boolean,
+  lowQuality: boolean,
+): void {
+  const dist = Math.hypot(tile.centerX - focusX, tile.centerZ - focusZ);
+  const propCutoff = lowQuality ? 260 : 370;
+  const shadowCutoff = lowQuality ? 220 : 340;
+
+  if (tile.propsMesh) {
+    tile.propsMesh.visible = dist <= propCutoff;
+  }
+  const castHere = shadowsEnabled && dist <= shadowCutoff;
+  for (const m of tile.shadowCasterMeshes) {
+    m.castShadow = castHere;
+  }
 }

@@ -941,6 +941,7 @@ async function bootstrap(): Promise<void> {
     debugHandle.locale = save.locale;
     debugHandle.physicsReady = physicsReady;
     debugHandle.inVehicle = inVehicle;
+    debugHandle.driverVisibleInCabin = runtime.scene.isCharacterMountedInTaxi();
     debugHandle.speedKph = speedKph;
     debugHandle.cash = save.cash;
     debugHandle.wantedStars = wanted.getStars();
@@ -1215,6 +1216,7 @@ async function bootstrap(): Promise<void> {
     debugHandle.locale = save.locale;
     debugHandle.physicsReady = physicsReady;
     debugHandle.inVehicle = inVehicle;
+    debugHandle.driverVisibleInCabin = runtime.scene.isCharacterMountedInTaxi();
     debugHandle.speedKph = speedKph;
     debugHandle.cash = save.cash;
     debugHandle.wantedStars = wanted.getStars();
