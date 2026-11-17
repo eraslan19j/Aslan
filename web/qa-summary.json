@@ -1,9 +1,9 @@
 {
-  "generatedAtIso": "2026-11-17T22:21:14.426Z",
+  "generatedAtIso": "2026-11-17T22:44:31.822Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 15,
   "totalErrors": 0,
-  "regressionWarnings": 14,
+  "regressionWarnings": 1,
   "hudWarnings": 0,
   "screenshots": [
     {
@@ -16,17 +16,17 @@
         "qualityTier": "high",
         "timeOfDay": "day",
         "drawCalls": 131,
-        "triangles": 351988,
+        "triangles": 351778,
         "loadedTiles": 25,
         "activeBuildings": 4131
       },
-      "uniqueColors": 901,
-      "brightFrac": 0.4119,
+      "uniqueColors": 931,
+      "brightFrac": 0.4074,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 7.75,
-        "warning": true
+        "diffPct": 5.76,
+        "warning": false
       },
       "errors": []
     },
@@ -40,17 +40,17 @@
         "qualityTier": "medium",
         "timeOfDay": "day",
         "drawCalls": 107,
-        "triangles": 258921,
+        "triangles": 258687,
         "loadedTiles": 9,
         "activeBuildings": 2402
       },
-      "uniqueColors": 985,
-      "brightFrac": 0.347,
+      "uniqueColors": 989,
+      "brightFrac": 0.3469,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 12.71,
-        "warning": true
+        "diffPct": 3.37,
+        "warning": false
       },
       "errors": []
     },
@@ -64,17 +64,17 @@
         "qualityTier": "medium",
         "timeOfDay": "day",
         "drawCalls": 117,
-        "triangles": 268632,
+        "triangles": 268470,
         "loadedTiles": 9,
         "activeBuildings": 2402
       },
-      "uniqueColors": 1382,
-      "brightFrac": 0.4174,
+      "uniqueColors": 1397,
+      "brightFrac": 0.4173,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 7.88,
-        "warning": true
+        "diffPct": 0.13,
+        "warning": false
       },
       "errors": []
     },
@@ -88,17 +88,17 @@
         "qualityTier": "medium",
         "timeOfDay": "night",
         "drawCalls": 108,
-        "triangles": 258885,
+        "triangles": 258723,
         "loadedTiles": 9,
         "activeBuildings": 2402
       },
-      "uniqueColors": 1488,
-      "brightFrac": 0.1061,
+      "uniqueColors": 1501,
+      "brightFrac": 0.1039,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 12.23,
-        "warning": true
+        "diffPct": 3.26,
+        "warning": false
       },
       "errors": []
     },
@@ -116,13 +116,13 @@
         "loadedTiles": 9,
         "activeBuildings": 2402
       },
-      "uniqueColors": 808,
-      "brightFrac": 0.4812,
+      "uniqueColors": 801,
+      "brightFrac": 0.4811,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 7.3,
-        "warning": true
+        "diffPct": 1.2,
+        "warning": false
       },
       "errors": []
     },
@@ -136,17 +136,17 @@
         "qualityTier": "medium",
         "timeOfDay": "day",
         "drawCalls": 107,
-        "triangles": 258921,
+        "triangles": 258723,
         "loadedTiles": 9,
         "activeBuildings": 2402
       },
-      "uniqueColors": 785,
-      "brightFrac": 0.4283,
+      "uniqueColors": 772,
+      "brightFrac": 0.4282,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 6.66,
-        "warning": true
+        "diffPct": 3.48,
+        "warning": false
       },
       "errors": []
     },
@@ -160,17 +160,17 @@
         "qualityTier": "high",
         "timeOfDay": "day",
         "drawCalls": 132,
-        "triangles": 357400,
+        "triangles": 357202,
         "loadedTiles": 25,
         "activeBuildings": 4131
       },
-      "uniqueColors": 856,
-      "brightFrac": 0.3409,
+      "uniqueColors": 847,
+      "brightFrac": 0.3403,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 8.95,
-        "warning": true
+        "diffPct": 5.62,
+        "warning": false
       },
       "errors": []
     },
@@ -183,17 +183,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 133,
-        "triangles": 357402,
+        "drawCalls": 134,
+        "triangles": 357264,
         "loadedTiles": 25,
         "activeBuildings": 4131
       },
-      "uniqueColors": 570,
-      "brightFrac": 0.0466,
+      "uniqueColors": 566,
+      "brightFrac": 0.0463,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 1.31,
+        "diffPct": 0.67,
         "warning": false
       },
       "errors": []
@@ -207,17 +207,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "sunset",
-        "drawCalls": 130,
-        "triangles": 351950,
+        "drawCalls": 131,
+        "triangles": 351788,
         "loadedTiles": 25,
         "activeBuildings": 4131
       },
-      "uniqueColors": 1251,
-      "brightFrac": 0.0802,
+      "uniqueColors": 1258,
+      "brightFrac": 0.0808,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 10.55,
+        "diffPct": 8.45,
         "warning": true
       },
       "errors": []
@@ -236,13 +236,13 @@
         "loadedTiles": 24,
         "activeBuildings": 2811
       },
-      "uniqueColors": 854,
+      "uniqueColors": 859,
       "brightFrac": 0.8345,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 18.03,
-        "warning": true
+        "diffPct": 0.02,
+        "warning": false
       },
       "errors": []
     },
@@ -261,12 +261,12 @@
         "activeBuildings": 1377
       },
       "uniqueColors": 836,
-      "brightFrac": 0.8181,
+      "brightFrac": 0.8182,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 40.9,
-        "warning": true
+        "diffPct": 0.02,
+        "warning": false
       },
       "errors": []
     },
@@ -284,13 +284,13 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 1344,
+      "uniqueColors": 1342,
       "brightFrac": 0.7717,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 7.14,
-        "warning": true
+        "diffPct": 0.02,
+        "warning": false
       },
       "errors": []
     },
@@ -308,13 +308,13 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 990,
+      "uniqueColors": 994,
       "brightFrac": 0.0218,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 38,
-        "warning": true
+        "diffPct": 0.02,
+        "warning": false
       },
       "errors": []
     },
@@ -337,8 +337,8 @@
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 18.03,
-        "warning": true
+        "diffPct": 0.01,
+        "warning": false
       },
       "errors": []
     },
@@ -356,13 +356,13 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 785,
+      "uniqueColors": 782,
       "brightFrac": 0.8342,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 15.19,
-        "warning": true
+        "diffPct": 0.03,
+        "warning": false
       },
       "errors": []
     }
