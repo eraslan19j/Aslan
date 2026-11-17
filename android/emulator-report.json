@@ -1,12 +1,12 @@
 {
-  "generatedAtIso": "2026-11-17T04:26:31.330Z",
+  "generatedAtIso": "2026-11-17T06:47:30.058Z",
   "note": "Android x86_64 KVM emulator (SwiftShader GPU) validates layout, landscape, cutout, touch input, Back key, and crash-free launch — NOT real-device FPS.",
   "appAliveAfterBack": true,
   "fatalCount": 0,
   "anrCount": 0,
   "chromiumErrorCount": 0,
   "bootLines": [
-    "11-17 04:26:02.830 I/Capacitor/Console( 2590): File: https://localhost/assets/index-C0X8Q1qH.js - Line 9 - Msg: ISTANBUL_BOOT {\"version\":\"0.2.1\",\"regionId\":\"esenler-namik-kemal\",\"qualityTier\":\"lite\",\"touchUi\":true,\"viewport\":\"866x412\",\"canvas\":\"866x412\",\"glError\":0,\"gpu\":{\"renderer\":\"Android Emulator OpenGL ES Translator (Google SwiftShader)\",\"vendor\":\"Google (Google Inc.)\"}}"
+    "11-17 06:46:57.382 I/Capacitor/Console( 2420): File: https://localhost/assets/index-CKseUOhG.js - Line 9 - Msg: ISTANBUL_BOOT {\"version\":\"0.3.0\",\"regionId\":\"esenler-namik-kemal\",\"qualityTier\":\"lite\",\"touchUi\":true,\"viewport\":\"866x412\",\"canvas\":\"866x412\",\"glError\":0,\"gpu\":{\"renderer\":\"Android Emulator OpenGL ES Translator (Google SwiftShader)\",\"vendor\":\"Google (Google Inc.)\"}}"
   ],
   "fatals": [],
   "anrs": [],
@@ -17,24 +17,24 @@
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 339,
-      "brightFrac": 0.0278
+      "uniqueColors": 1360,
+      "brightFrac": 0.5103
     },
     {
       "file": "qa-out/android/emulator_02_after_joystick.png",
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 339,
-      "brightFrac": 0.0278
+      "uniqueColors": 1362,
+      "brightFrac": 0.5013
     },
     {
       "file": "qa-out/android/emulator_03_pause_back.png",
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 197,
-      "brightFrac": 0.0239
+      "uniqueColors": 233,
+      "brightFrac": 0.0215
     }
   ]
 }
