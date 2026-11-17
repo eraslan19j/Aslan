@@ -26,3 +26,15 @@
 - **Ölçülmemiş Kalanlar:** Gerçek Android telefon FPS/GPU/RAM (`gerçek cihaz ölçülmedi` — kullanıcı `v0.2.0` APK'yı açıp `RAPORU KOPYALA` çıktısını paylaştığında güncellenecek).
 - **Sonraki Oturumun İlk Adımı:** M3 Suç — Yayalar, Wanted 1–5, kurgusal Şehir Polisi AI, 2B minimap, WASTED/BUSTED ve Güvenli Alan silah kilidi.
 
+---
+
+## Oturum 3 — 2026-11-17 (Gerçek Android 16 Ölçümü + `v0.2.1` Görünmez Duvar Çözümü, Tam Görsel Yenileme ve Kurgusal İsimlendirme)
+- **Hedef:** Kullanıcının gerçek Android 16 (`2412DPC0AG`, `ARM Mali-G720 MC7`, WebView 157) üzerinde test ettiği `v0.2.0` geri bildirimlerini eksiksiz çözmek: (1) düz yolda görünmez duvara çarpma hatası, (2) karakter/araç/şehir görsellerinin baştan sona yükseltilmesi, (3) oyun içinde doğrudan `"Esenler"` adlandırmasının kaldırılması ve gerçek cihaz telemetrisinin hafızaya işlenmesi.
+- **Tamamlananlar:**
+  1. **İlk Gerçek Cihaz Telemetrisi Kaydı (`PERF_BUDGET.md`):** `2412DPC0AG (Android 16, ARM Mali-G720 MC7, WebView 157)` üzerinde `v0.2.0` Normal modda **`60.2 FPS` (`16.62 ms`), `58 drawCalls`, `65,298` üçgen, `23.4 MB` JS heap, `0` crash** doğrulandı.
+  2. **Görünmez Duvar Kök Neden & Kesin 2B Çokgen Çözümü:** Çapraz sokaklardaki binaların dikdörtgen AABB köşelerinin 1,743 yol segmentinin 331'ini (%19.0) — başlangıç caddesi 18. m'deki `gpkg_buildings_2717` dâhil — tıkadığı kanıtlandı. `collision.ts` kesin 2B çokgen dar fazı + yüzey normaliyle yenilendi (`331 → 8`, 41× azalma); `vehicle.ts` çift daireli dingil çarpışması (`r=0.88 m`) ve `dt`-ölçekli teğetsel duvar sıyırmasıyla akıcı hâle getirildi. Çapraz köşe, duvar sıyırması ve gerçek başlangıç caddesi 24 m+ açıklığı birim testleriyle kilitlendi (33/33 test yeşil).
+  3. **Tam Görsel Yenileme & Draw-Call Optimizasyonu (`v0.2.1`):** Sıfır ağ çağrılı `proceduralTextures.ts`, eklemli 3B insan karakteri (`characterMesh.ts`, `mergeColoredParts` ile 7 draw call), damalı/plakalı/alaşım jantlı Sarı Taksi (`vehicleMesh.ts`, 11 draw call), prosedürel pencereli/çatılı binalar + şeritli asfalt + kaldırım + 8-kenarlı yuvarlak Akdeniz ağaçları + sokak lambaları (`tileMeshBuilder.ts`), 4-parça AI trafik, degrade gökyüzü kubbesi ve 2048px gölgeler (`RegionWorldScene.ts`) eklendi. İlk CI QA geçişinde (`3d89529`) yakalanan 3 görsel/bütçe kusuru (`174–196` draw call, ters `appendBoxProp` sarımı, alçak ilk-kare kamerası) aynı oturumda `meshMerge.ts`, dışa CCW sarım ve anlık başlangıç kamerasıyla giderildi.
+  4. **Kurgusal Mahalle İsimlendirmesi:** Tüm oyun içi etiketler **`Tepe Mahallesi` / `Hillside Quarter`** ve **`Tarihî Yarımada` / `Historic Peninsula`** olarak güncellendi; `smoke.mjs` ve birim testleri oyuncu arayüzünde `"Esenler"`/`"Namık"` geçmediğini otomatik doğrular.
+- **Sonraki Oturumun İlk Adımı:** M3 Suç — Yayalar, Wanted 1–5, kurgusal Şehir Polisi AI, 2B minimap, WASTED/BUSTED ve Güvenli Alan silah kilidi.
+
+

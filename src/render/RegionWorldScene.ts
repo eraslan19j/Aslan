@@ -19,6 +19,7 @@ import {
   createCharacterRig,
   type CharacterRig,
 } from './characterMesh';
+import { mergeColoredParts, type ColoredGeometryPart } from './meshMerge';
 import {
   createAsphaltRoadTexture,
   createContactShadowTexture,
@@ -174,6 +175,16 @@ export class RegionWorldScene {
       0.4,
       920,
     );
+    // Snap camera immediately to ideal elevated 3rd-person follow position at spawn (no frame-1 dip!)
+    const spawnY = sampleTerrainElevation(terrain, manifest.spawn.x, manifest.spawn.z);
+    const initCamX = manifest.spawn.x + Math.sin(this.cameraYaw) * 7.4;
+    const initCamZ = manifest.spawn.z + Math.cos(this.cameraYaw) * 7.4;
+    const initCamY = Math.max(
+      spawnY + 3.4,
+      sampleTerrainElevation(terrain, initCamX, initCamZ) + 2.4,
+    );
+    this.camera.position.set(initCamX, initCamY, initCamZ);
+    this.camera.lookAt(manifest.spawn.x, spawnY + 1.6, manifest.spawn.z);
 
     this.hemiLight = new THREE.HemisphereLight(0xd4eeff, 0x776858, 1.1);
     this.scene.add(this.hemiLight);
@@ -410,11 +421,6 @@ export class RegionWorldScene {
 
   private buildLandmarks(): void {
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0xede2cf, roughness: 0.78 });
-    const domeMat = new THREE.MeshStandardMaterial({
-      color: 0x6d7d8e,
-      roughness: 0.48,
-      metalness: 0.3,
-    });
     const obeliskMat = new THREE.MeshStandardMaterial({ color: 0xc9a378, roughness: 0.76 });
     const beaconMat = new THREE.MeshStandardMaterial({
       color: 0xf5b800,
@@ -428,32 +434,40 @@ export class RegionWorldScene {
       opacity: 0.32,
       side: THREE.DoubleSide,
     });
-    this.disposableMaterials.push(stoneMat, domeMat, obeliskMat, beaconMat, safeRingMat);
+    this.disposableMaterials.push(stoneMat, obeliskMat, beaconMat, safeRingMat);
+
+    const mosqueMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.68,
+      metalness: 0.16,
+    });
+    this.disposableMaterials.push(mosqueMat);
 
     const addMosque = (lm: LandmarkPin, domeRadius: number, minaretCount: number): void => {
       const g = new THREE.Group();
       const baseY = sampleTerrainElevation(this.terrain, lm.x, lm.z);
       g.position.set(lm.x, baseY, lm.z);
 
-      const baseGeo = new THREE.BoxGeometry(domeRadius * 2.0, domeRadius * 0.82, domeRadius * 2.0);
-      const domeGeo = new THREE.SphereGeometry(
-        domeRadius * 0.92,
-        18,
-        12,
-        0,
-        Math.PI * 2,
-        0,
-        Math.PI * 0.52,
-      );
-      const minGeo = new THREE.CylinderGeometry(0.68, 1.02, domeRadius * 2.25, 10);
-      const coneGeo = new THREE.ConeGeometry(0.84, 3.6, 10);
-      this.disposableGeometries.push(baseGeo, domeGeo, minGeo, coneGeo);
-
-      const base = new THREE.Mesh(baseGeo, stoneMat);
-      base.position.y = domeRadius * 0.36;
-      const dome = new THREE.Mesh(domeGeo, domeMat);
-      dome.position.y = domeRadius * 0.78;
-      g.add(base, dome);
+      const parts: ColoredGeometryPart[] = [
+        {
+          geometry: new THREE.BoxGeometry(domeRadius * 2.0, domeRadius * 0.82, domeRadius * 2.0),
+          color: 0xede2cf,
+          position: [0, domeRadius * 0.36, 0],
+        },
+        {
+          geometry: new THREE.SphereGeometry(
+            domeRadius * 0.92,
+            18,
+            12,
+            0,
+            Math.PI * 2,
+            0,
+            Math.PI * 0.52,
+          ),
+          color: 0x6d7d8e,
+          position: [0, domeRadius * 0.78, 0],
+        },
+      ];
 
       const spread = domeRadius * 1.15;
       const offsets: [number, number][] =
@@ -475,12 +489,24 @@ export class RegionWorldScene {
                 [spread, spread],
               ];
       for (const [ox, oz] of offsets) {
-        const min = new THREE.Mesh(minGeo, stoneMat);
-        min.position.set(ox, domeRadius * 1.12, oz);
-        const cone = new THREE.Mesh(coneGeo, domeMat);
-        cone.position.set(ox, domeRadius * 2.25 + 1.8, oz);
-        g.add(min, cone);
+        parts.push(
+          {
+            geometry: new THREE.CylinderGeometry(0.68, 1.02, domeRadius * 2.25, 10),
+            color: 0xede2cf,
+            position: [ox, domeRadius * 1.12, oz],
+          },
+          {
+            geometry: new THREE.ConeGeometry(0.84, 3.6, 10),
+            color: 0x6d7d8e,
+            position: [ox, domeRadius * 2.25 + 1.8, oz],
+          },
+        );
       }
+
+      const mergedMosqueGeo = mergeColoredParts(parts);
+      this.disposableGeometries.push(mergedMosqueGeo);
+      const mosqueMesh = new THREE.Mesh(mergedMosqueGeo, mosqueMat);
+      g.add(mosqueMesh);
 
       // Subtle sanctuary ground ring
       const ringGeo = new THREE.RingGeometry(
@@ -847,12 +873,12 @@ export class RegionWorldScene {
         this.cameraYaw += diff * Math.min(1, dt * 4.2);
       }
 
-      const camDist = inVehicle ? 9.6 : 6.4;
-      const camHeight = inVehicle ? 3.8 : 2.95;
+      const camDist = inVehicle ? 9.6 : 7.4;
+      const camHeight = inVehicle ? 3.8 : 3.35;
       const desiredX = focusX + Math.sin(this.cameraYaw) * camDist;
       const desiredZ = focusZ + Math.cos(this.cameraYaw) * camDist;
       const camGroundY = sampleTerrainElevation(this.terrain, desiredX, desiredZ);
-      const desiredY = Math.max(focusY + camHeight, camGroundY + 2.2);
+      const desiredY = Math.max(focusY + camHeight, camGroundY + 2.4);
 
       this.camera.position.x = damp(this.camera.position.x, desiredX, 9, dt);
       this.camera.position.y = damp(this.camera.position.y, desiredY, 9, dt);

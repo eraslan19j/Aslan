@@ -74,3 +74,14 @@ Her önemli teknik, ürün veya politika kararı burada tarih ve kanıtla kayıt
   5. **M1.5 Çift Yayınlı QA Hattı (`qa-screens` Dalı + Artifacts):** Sandbox `blob.core.windows.net` artifact CDN'ine erişemediği için hem `ci.yml` (14 Playwright PNG + `qa-summary.md` + `soak-report.json`) hem `android-qa.yml` (x86_64 KVM emülatör PNG + `logcat-app.txt` + `emulator-report.json`) çıktılarını hem Artifact olarak yükler hem de ayrı `qa-screens` dalındaki `web/` ve `android/` klasörlerini temizleyerek günceller. Piksel regresyon farkı `%6` eşiği aşarsa CI uyarısı üretilir.
   6. **%100 Telefondan Kullanıcı Akışı (`docs/USER_TASKS.md`):** Tüm kullanıcı adımları sıfır bilgisayar varsayımıyla Chrome "Masaüstü sitesi" ve F-Droid Termux (`openjdk-17` + `keytool`) kopyala-yapıştır komutlarıyla yeniden yazılır. Gerçek cihaz FPS/RAM verisi yalnızca kullanıcının oyun içi **Ayarlar → RAPORU KOPYALA** JSON çıktısını sohbete yapıştırmasıyla ölçülür.
 
+---
+
+### ADR-010 — Kesin 2B Çokgen Bina Çarpışması, Vertex-Color Mesh Birleştirme ve Kurgusal Mahalle İsimlendirmesi (`v0.2.1`)
+- **Tarih:** 2026-11-17 | **Durum:** Kabul edildi
+- **Bağlam:** Kullanıcının gerçek Android 16 (`2412DPC0AG`, `Mali-G720 MC7`, `60.2 FPS`, `23.4 MB` heap) üzerinde yaptığı `v0.2.0` testinde üç açık geri bildirim geldi: (1) düz yolda görünmez duvara çarpma, (2) karakter/araç/şehir görsellerinin aşırı basit görünmesi ve (3) oyun içinde doğrudan `"Esenler"` ilçe adı kullanılmaması.
+- **Kararlar:**
+  1. **Kesin 2B Çokgen Çarpışma (`src/core/world/collision.ts` + `src/core/vehicle.ts`):** Uzamsal ızgara geniş faz (broad-phase) olarak AABB kullanmaya devam eder; dar faz (narrow-phase) ise her binanın gerçek OSM çokgen kenarlarına olan en kısa mesafeyi, çokgen içi testini ve dışa dönük yüzey normalini hesaplar. Böylece çapraz binaların boş AABB köşeleri artık caddeyi tıkamaz (%19.0 → %0.5). Araç fiziği çift dingil dairesi (`r = 0.88 m`) ve `dt`-ölçekli teğetsel duvar sıyırması kullanır.
+  2. **Vertex-Color Mesh Birleştirme (`src/render/meshMerge.ts`):** Görsel zenginliği 60 FPS ve `<=150` draw-call bütçesi içinde tutmak için karakter uzuvları/gövdesi (7 mesh), Sarı Taksi şasi/cam/tekerlekleri (11 mesh) ve cami landmark'ları tek `BufferGeometry` + `vertexColors` içine pişirilir; prosedürel 2B Canvas dokuları (cephe pencereleri, asfalt şerit/kaldırım, damalı taksi, plaka, çatı çakılı) 0 harici dosya/ağ çağrısıyla üretilir.
+  3. **Oyuncu Yüzünde Kurgusal Mahalle Adlandırması:** Dahili veri dizini ve bölge kimlikleri (`esenler-namik-kemal`, `fatih-sultanahmet-eminonu`) kararlılık için korunurken, oyun içi tüm HUD, menü, bildirim ve bölge etiketlerinde doğrudan ilçe/mahalle adı yerine **`Tepe Mahallesi` (`Hillside Quarter`)** ve **`Tarihî Yarımada` (`Historic Peninsula`)** kullanılır. `smoke.mjs` ve birim testleri oyuncu ekranında `"Esenler"`/`"Namık Kemal"` geçmemesini kalıcı olarak doğrular.
+
+

@@ -495,7 +495,7 @@ function buildBatchedAreasGeometry(
   return finalizeGeometry(pos, nor, uv, col);
 }
 
-/** Appends a fast vertical 4-sided box prism into batched prop geometry arrays. */
+/** Appends a closed outward-wound 6-sided box prism into batched prop geometry arrays. */
 function appendBoxProp(
   pos: number[],
   nor: number[],
@@ -517,11 +517,11 @@ function appendBoxProp(
   const z0 = cz - hz;
   const z1 = cz + hz;
 
-  // 4 vertical faces (slight directional tint for crisp stylized shading)
-  pushQuadWall(pos, nor, uv, col, x0, z1, x1, z1, yBot, yTop, 0, 1, 0, 1, 0, 1, r, g, b);
-  pushQuadWall(pos, nor, uv, col, x1, z0, x0, z0, yBot, yTop, 0, -1, 0, 1, 0, 1, r * 0.85, g * 0.85, b * 0.85);
-  pushQuadWall(pos, nor, uv, col, x1, z1, x1, z0, yBot, yTop, 1, 0, 0, 1, 0, 1, r * 0.94, g * 0.94, b * 0.94);
-  pushQuadWall(pos, nor, uv, col, x0, z0, x0, z1, yBot, yTop, -1, 0, 0, 1, 0, 1, r * 0.8, g * 0.8, b * 0.8);
+  // 4 outward-wound CCW vertical faces matching pushQuadWall normal (dz, 0, -dx)
+  pushQuadWall(pos, nor, uv, col, x1, z1, x0, z1, yBot, yTop, 0, 1, 0, 1, 0, 1, r, g, b); // +Z
+  pushQuadWall(pos, nor, uv, col, x0, z0, x1, z0, yBot, yTop, 0, -1, 0, 1, 0, 1, r * 0.84, g * 0.84, b * 0.84); // -Z
+  pushQuadWall(pos, nor, uv, col, x1, z0, x1, z1, yBot, yTop, 1, 0, 0, 1, 0, 1, r * 0.94, g * 0.94, b * 0.94); // +X
+  pushQuadWall(pos, nor, uv, col, x0, z1, x0, z0, yBot, yTop, -1, 0, 0, 1, 0, 1, r * 0.8, g * 0.8, b * 0.8); // -X
 
   // Top face (+Y)
   pushTri(
@@ -542,6 +542,100 @@ function appendBoxProp(
     0, 0, 1, 1, 1, 0,
     Math.min(1, r * 1.08), Math.min(1, g * 1.08), Math.min(1, b * 1.08),
   );
+
+  // Bottom face (-Y)
+  pushTri(
+    pos, nor, uv, col,
+    x0, yBot, z0,
+    x1, yBot, z0,
+    x1, yBot, z1,
+    0, -1, 0,
+    0, 0, 1, 0, 1, 1,
+    r * 0.72, g * 0.72, b * 0.72,
+  );
+  pushTri(
+    pos, nor, uv, col,
+    x0, yBot, z0,
+    x1, yBot, z1,
+    x0, yBot, z1,
+    0, -1, 0,
+    0, 0, 1, 1, 0, 1,
+    r * 0.72, g * 0.72, b * 0.72,
+  );
+}
+
+/** Appends a closed outward-wound N-sided tapered frustum (for organic tree trunks & canopies). */
+function appendTaperedPrism(
+  pos: number[],
+  nor: number[],
+  uv: number[],
+  col: number[],
+  cx: number,
+  yBot: number,
+  cz: number,
+  rBot: number,
+  rTop: number,
+  h: number,
+  sides: number,
+  r: number,
+  g: number,
+  b: number,
+  capTop: boolean,
+  capBottom: boolean,
+): void {
+  const yTop = yBot + h;
+  for (let i = 0; i < sides; i += 1) {
+    const a0 = (i / sides) * Math.PI * 2;
+    const a1 = ((i + 1) / sides) * Math.PI * 2;
+    const c0 = Math.cos(a0);
+    const s0 = Math.sin(a0);
+    const c1 = Math.cos(a1);
+    const s1 = Math.sin(a1);
+
+    const bx0 = cx + c0 * rBot;
+    const bz0 = cz + s0 * rBot;
+    const bx1 = cx + c1 * rBot;
+    const bz1 = cz + s1 * rBot;
+    const tx0 = cx + c0 * rTop;
+    const tz0 = cz + s0 * rTop;
+    const tx1 = cx + c1 * rTop;
+    const tz1 = cz + s1 * rTop;
+
+    const midA = (a0 + a1) * 0.5;
+    const nx = Math.cos(midA);
+    const nz = Math.sin(midA);
+    const shade = 0.8 + 0.22 * Math.max(0, nx * 0.6 + nz * 0.55);
+    const cr = Math.min(1, r * shade);
+    const cg = Math.min(1, g * shade);
+    const cb = Math.min(1, b * shade);
+
+    // Outward CCW side quad: (b0, t1, b1) and (b0, t0, t1)
+    pushTri(pos, nor, uv, col, bx0, yBot, bz0, tx1, yTop, tz1, bx1, yBot, bz1, nx, 0.25, nz, 0, 0, 1, 1, 1, 0, cr, cg, cb);
+    pushTri(pos, nor, uv, col, bx0, yBot, bz0, tx0, yTop, tz0, tx1, yTop, tz1, nx, 0.25, nz, 0, 0, 0, 1, 1, 1, cr, cg, cb);
+
+    if (capTop && rTop > 0.01) {
+      pushTri(
+        pos, nor, uv, col,
+        cx, yTop, cz,
+        tx1, yTop, tz1,
+        tx0, yTop, tz0,
+        0, 1, 0,
+        0.5, 0.5, 1, 0, 0, 0,
+        Math.min(1, r * 1.12), Math.min(1, g * 1.12), Math.min(1, b * 1.12),
+      );
+    }
+    if (capBottom && rBot > 0.01) {
+      pushTri(
+        pos, nor, uv, col,
+        cx, yBot, cz,
+        bx0, yBot, bz0,
+        bx1, yBot, bz1,
+        0, -1, 0,
+        0.5, 0.5, 0, 0, 1, 0,
+        r * 0.68, g * 0.68, b * 0.68,
+      );
+    }
+  }
 }
 
 /** Checks if a point is clear of all building bounding boxes in this tile. */
@@ -573,23 +667,38 @@ function buildBatchedStreetPropsGeometry(
   const col: number[] = [];
 
   const appendTree = (tx: number, tz: number, seed: number): void => {
-    const baseY = sampleTerrainElevation(terrain, tx, tz) + 0.12;
-    const scale = 0.88 + (seed % 5) * 0.09;
-    // Bark trunk
-    appendBoxProp(pos, nor, uv, col, tx, baseY, tz, 0.22 * scale, 2.3 * scale, 0.22 * scale, 0.34, 0.24, 0.17);
-    // Layered lush Mediterranean plane-tree crown (lower darker foliage + sunlit upper crown)
+    const baseY = sampleTerrainElevation(terrain, tx, tz) + 0.14;
+    const scale = 0.86 + (seed % 5) * 0.08;
     const gShift = ((seed >>> 4) % 5) * 0.025;
-    appendBoxProp(
+    // Tapered 6-sided Mediterranean bark trunk
+    appendTaperedPrism(
       pos, nor, uv, col,
-      tx, baseY + 2.0 * scale, tz,
-      1.35 * scale, 1.55 * scale, 1.35 * scale,
-      0.18 + gShift * 0.4, 0.44 + gShift, 0.2,
+      tx, baseY, tz,
+      0.22 * scale, 0.14 * scale, 2.35 * scale, 6,
+      0.38, 0.27, 0.19,
+      false, false,
     );
-    appendBoxProp(
+    // 3-tier rounded faceted Mediterranean plane-tree crown (100% outward-wound!)
+    appendTaperedPrism(
       pos, nor, uv, col,
-      tx + 0.12, baseY + 3.2 * scale, tz - 0.1,
-      1.05 * scale, 1.25 * scale, 1.05 * scale,
-      0.26 + gShift * 0.5, 0.56 + gShift, 0.25,
+      tx, baseY + 2.05 * scale, tz,
+      0.75 * scale, 1.55 * scale, 0.95 * scale, 8,
+      0.19 + gShift * 0.4, 0.45 + gShift, 0.2,
+      false, true,
+    );
+    appendTaperedPrism(
+      pos, nor, uv, col,
+      tx, baseY + 3.0 * scale, tz,
+      1.55 * scale, 1.28 * scale, 1.1 * scale, 8,
+      0.24 + gShift * 0.45, 0.54 + gShift, 0.23,
+      false, false,
+    );
+    appendTaperedPrism(
+      pos, nor, uv, col,
+      tx, baseY + 4.1 * scale, tz,
+      1.28 * scale, 0.38 * scale, 0.75 * scale, 8,
+      0.31 + gShift * 0.5, 0.62 + gShift, 0.27,
+      true, false,
     );
   };
 
@@ -751,7 +860,7 @@ export function buildTileMeshes(
     if (pGeo) {
       geometries.push(pGeo);
       const mesh = new THREE.Mesh(pGeo, materials.propsMat);
-      mesh.castShadow = shadowsEnabled;
+      mesh.castShadow = false;
       mesh.receiveShadow = shadowsEnabled;
       group.add(mesh);
     }
