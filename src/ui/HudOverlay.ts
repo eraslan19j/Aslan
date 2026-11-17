@@ -1075,20 +1075,30 @@ export class HudOverlay {
           : activeReg.nameEn
         : snap.regionId;
 
+      const isTr = this.locale === 'tr';
       const entries: [string, string][] = [
-        ['FPS / Frame', `${snap.fps} FPS (${snap.frameMs} ms)`],
-        ['Draw / Tris', `${snap.drawCalls} / ${snap.triangles}`],
-        ['Tiles / Bldgs', `${snap.activeTiles} / ${snap.activeBuildings}`],
+        [isTr ? 'FPS / KARE' : 'FPS / FRAME', `${snap.fps} FPS (${snap.frameMs} ms)`],
+        [isTr ? 'ÇİZİM / ÜÇGEN' : 'DRAW / TRIS', `${snap.drawCalls} / ${snap.triangles}`],
+        [isTr ? 'KARO / BİNA' : 'TILES / BLDGS', `${snap.activeTiles} / ${snap.activeBuildings}`],
         [
-          'JS Heap',
+          isTr ? 'JS BELLEK' : 'JS HEAP',
           snap.jsHeapUsedMb !== null
             ? `${snap.jsHeapUsedMb} / ${snap.jsHeapTotalMb ?? '?'} MB`
             : 'N/A',
         ],
-        ['GPU / Renderer', snap.gpuRenderer],
-        ['Audio / Native', `${snap.audioBackend ?? 'WebAudio'} · ${snap.nativePerfProfile ?? 'Web'}`],
-        ['Driving / Gear', `${snap.drivingMode ?? 'street'} · ${snap.transmissionMode ?? 'auto'}`],
-        ['Mode / Quality', `${snap.qualityTier} · ${snap.timeOfDay} · ${regionLabel}`],
+        [isTr ? 'GPU / İŞLEYİCİ' : 'GPU / RENDERER', snap.gpuRenderer],
+        [
+          isTr ? 'SES / DONANIM' : 'AUDIO / NATIVE',
+          `${snap.audioBackend ?? 'WebAudio'} · ${snap.nativePerfProfile ?? 'Web'}`,
+        ],
+        [
+          isTr ? 'SÜRÜŞ / VİTES' : 'DRIVING / GEAR',
+          `${snap.drivingMode ?? 'street'} · ${snap.transmissionMode ?? 'auto'}`,
+        ],
+        [
+          isTr ? 'MOD / KALİTE' : 'MODE / QUALITY',
+          `${snap.qualityTier} · ${snap.timeOfDay} · ${regionLabel}`,
+        ],
       ];
       for (const [k, v] of entries) {
         const item = document.createElement('div');

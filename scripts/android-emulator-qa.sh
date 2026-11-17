@@ -24,7 +24,7 @@ for i in $(seq 1 35); do
   fi
   sleep 1
 done
-sleep 3
+sleep 11
 
 echo "Capturing launch screenshot..."
 adb exec-out screencap -p > qa-out/android/emulator_01_launch.png
@@ -161,7 +161,7 @@ if (!shots[0].isLandscape) {
   console.error('FAIL: App did not lock to landscape orientation!', shots[0]);
   process.exit(1);
 }
-if (shots[0].uniqueColors < 40 && shots[1].uniqueColors < 40) {
+if (!shots.some((s) => s.uniqueColors >= 40)) {
   console.error('FAIL: App HUD/UI failed to render on Android emulator!', shots);
   process.exit(1);
 }

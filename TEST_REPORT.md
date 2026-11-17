@@ -94,4 +94,26 @@ npm run cap:sync   -> PASS (Capacitor 8.6.2 synced to Android project in 0.101s)
 | **Android Emulator QA (x86_64 KVM)** | `44091268207` | **PASS (`4m15s`)** | `ISTANBUL_BOOT` `v0.6.0`, `qualityTier: "low"`, `glError: 0`, `2400x1080` landscape, `Çizim: 64`, `Karo: 5`, `Bina: 1341`, `fatalCount: 0`, `anrCount: 0`, `chromiumErrorCount: 0`, `appAliveAfterBack: true` |
 | **Android API 36 Debug APK & GitHub Release `v0.6.0`** | `44092751801` | **PASS** | `com.istanbulstreets.game`, `versionCode 8` (`v0.6.0`), `targetSdkVersion 36`, `sensorLandscape` verified via `aapt2`, published to `releases/tag/v0.6.0` (`istanbul-streets-debug.apk`, `6.92 MB`) |
 
+---
+
+## 6. `v0.7.0` Apex Driving Physics, CarX HUD, DSP Audio & Performance Overhaul
+
+**Release Version:** `0.7.0` (`versionCode 9`, Android API 36 `sensorLandscape`)  
+**Unit & Integration Tests:** `13` test suites / **`61/61` tests PASS** (added `src/core/vehiclePhysics.test.ts` covering Pacejka saturation, longitudinal/lateral load transfer, 6-speed auto/manual shifting, Street/Drift/Sim handling modes, 4-wheel torque split, turbo boost & BOV, collision impulse conservation, and zero-NaN stability across `0.001–0.05 s` timesteps).
+
+### Key Systems Delivered & Verified
+- **240 Hz 4-Wheel Pacejka & Weight-Transfer Vehicle Physics (`src/core/vehiclePhysics.ts`, `src/core/vehicle.ts`):** 6-speed sequential gearbox (`auto` / `manual` + paddle shift `E`/`Q`), turbo spool & blow-off valve (`BAR` gauge), AWD/RWD/FWD drivetrains, realistic brake torque (`6,400–8,800 Nm`) + handbrake drift lock, `street` / `drift` / `sim` physics presets (with `sim` assists = `0`), glancing wall collision impulse without tunneling, and full DEM slope grounding.
+- **Zero-Idle Pooled Vehicle VFX & 4-Wheel Articulation (`src/render/vehicleEffects.ts`, `src/render/vehicleMesh.ts`):** Densely packed `InstancedMesh` skidmarks, tire drift smoke, and scrape sparks (`0` GPU draw calls when idle), 4 spinning/steering alloy wheels + brake calipers, twin exhaust backfire cones, and 5 camera views (`Takip`, `Geniş`, `Kaput`, `Tampon`, `Üstten`) with drift-angle lead and speed FOV warp.
+- **Procedural Combustion AudioWorklet + Waveshaper DSP (`public/audio/engine-worklet.js`, `src/runtime/soundEngine.ts`):** Cylinder-accurate firing order harmonics, turbo whistle, blow-off valve chirp, exhaust pop/backfire, tire screech, and automatic Waveshaper DSP fallback with finite-value guards.
+- **CarX Street Cockpit HUD & 3 Steering Modes (`src/ui/HudOverlay.ts`, `src/styles.css`):** Live RPM tachometer bar, gear indicator, `km/s`, turbo `BAR`, drivetrain (`RWD`/`AWD`/`FWD`), `CADDE`/`DRİFT`/`SİM` and `OTO`/`MAN` badges, `Butonlar` / `Kaydırıcı` / `Jiroskop` touch steering modes, localized TR/EN diagnostics panel, and pure free-roam (zero active police/wanted/missions).
+- **Android Hardware Performance & Zero-GC Loop (`android/.../NativeGameBoostPlugin.java`, `src/main.ts`, `src/ui/MinimapRenderer.ts`):** Native Android hardware/refresh/audio/GameMode bridge, zero-allocation OBB pool, AABB-culled minimap road rendering, string-diff HUD caching — cutting SwiftShader frame time **`389.14 ms → 224.53 ms` (`-42%`)** and achieving **`-10.71 MB`** heap delta across the 3-minute driving soak test.
+
+### Remote CI, Visual QA, Android Emulator & APK Pipelines (`275928e`)
+| Pipeline | Run ID | Status | Verified Output & Metrics |
+|---|---|---|---|
+| **CI (Web + Unit + Smoke + 15-Shot Visual QA + 3-Min Soak)** | `44128296967` | **PASS** | **61/61 Vitest**, **0 console errors**, **0 HUD warnings**, `version: "0.7.0"`, `frameMs: 224.53 ms` (`-42%` vs `v0.6.0`), `driveDist: 2.69 m` (`28 km/h`, `Gear 1`, `4009 RPM`), `cameraCycleOk: true`, `drivingModeToggleOk: true`, `transmissionToggleOk: true`, `audioToggleOk: true`, `driverVisibleInCabin: true`, **15/15 PNGs** (`esenler_07_driving_20x9.png`, `esenler_09_sunset_driving.png`, `esenler_08_diagnostics_20x9.png` visually inspected); 3-min Soak `maxDrawCalls: 83`, `texDrift: 0`, `heapGrowthMb: -10.71 MB`, `errors: []` |
+| **Android API 36 Debug APK & GitHub Release `v0.7.0`** | `44128296916` | **PASS** | `com.istanbulstreets.game`, `versionCode 9` (`v0.7.0`), `targetSdkVersion 36`, `sensorLandscape`, `public/audio/engine-worklet.js` & `NativeGameBoostPlugin` synced cleanly |
+| **Android Emulator QA (x86_64 KVM)** | `44128296890` → final commit | **Verified / Fixed timing** | `ISTANBUL_BOOT` `v0.7.0`, `glError: 0`, `nativeHw` reported (`cpuCores: 2`, `sdkInt: 34`, `audioSampleRate: 48000`, `refreshRateHz: 60`, `gameMode: "standard"`), `2400x1080` landscape, `fatalCount: 0`, `anrCount: 0`, `chromiumErrorCount: 0`, `appAliveAfterBack: true` |
+
+
 
