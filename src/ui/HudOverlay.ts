@@ -594,7 +594,7 @@ export class HudOverlay {
       ? `<span class="sanctuary-pill" data-testid="sanctuary-banner">${t.sanctuaryBanner} · ${view.sanctuaryLabel}</span>`
       : '';
     const vehiclePromptHtml =
-      !view.inVehicle && view.nearVehicle
+      !view.inVehicle && view.nearVehicle && !this.touchEnabled
         ? `<span class="prompt-pill" data-testid="vehicle-prompt">${t.nearVehiclePrompt}</span>`
         : '';
     const missionHtml = view.missionLabel

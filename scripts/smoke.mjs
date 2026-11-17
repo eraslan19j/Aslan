@@ -185,7 +185,7 @@ try {
   await page.waitForTimeout(Math.max(400, Math.min(1200, SIM_DURATION_MS - 5000)));
 
   const snapshot = await page.evaluate(() => {
-    const c = document.querySelector('canvas');
+    const c = document.querySelector('#app > canvas') ?? document.querySelector('canvas');
     return {
       hasCanvas: Boolean(c),
       canvasW: c?.width ?? 0,
