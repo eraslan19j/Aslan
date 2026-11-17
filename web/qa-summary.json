@@ -1,10 +1,10 @@
 {
-  "generatedAtIso": "2026-11-17T04:45:25.843Z",
+  "generatedAtIso": "2026-11-17T06:51:24.830Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 14,
   "totalErrors": 0,
-  "regressionWarnings": 0,
-  "hudWarnings": 0,
+  "regressionWarnings": 3,
+  "hudWarnings": 3,
   "screenshots": [
     {
       "file": "esenler_01_start.png",
@@ -15,17 +15,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 86,
-        "triangles": 165467,
+        "drawCalls": 93,
+        "triangles": 169979,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 828,
-      "brightFrac": 0.4256,
+      "uniqueColors": 999,
+      "brightFrac": 0.4144,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.17,
+        "diffPct": 3.06,
         "warning": false
       },
       "errors": []
@@ -39,17 +39,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 86,
-        "triangles": 165467,
+        "drawCalls": 93,
+        "triangles": 169979,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 870,
-      "brightFrac": 0.3616,
+      "uniqueColors": 1030,
+      "brightFrac": 0.3591,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 3.06,
         "warning": false
       },
       "errors": []
@@ -63,17 +63,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 98,
-        "triangles": 170655,
+        "drawCalls": 103,
+        "triangles": 175055,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 1289,
-      "brightFrac": 0.4713,
+      "uniqueColors": 1488,
+      "brightFrac": 0.4553,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0,
+        "diffPct": 3.5,
         "warning": false
       },
       "errors": []
@@ -87,17 +87,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "night",
-        "drawCalls": 86,
-        "triangles": 165467,
+        "drawCalls": 93,
+        "triangles": 169979,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 1147,
-      "brightFrac": 0.1003,
+      "uniqueColors": 1289,
+      "brightFrac": 0.1001,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 1.92,
         "warning": false
       },
       "errors": []
@@ -111,17 +111,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "lite",
         "timeOfDay": "day",
-        "drawCalls": 65,
-        "triangles": 107664,
+        "drawCalls": 72,
+        "triangles": 110096,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 747,
-      "brightFrac": 0.4963,
+      "uniqueColors": 917,
+      "brightFrac": 0.4853,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 2.97,
         "warning": false
       },
       "errors": []
@@ -135,17 +135,19 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 86,
-        "triangles": 165467,
+        "drawCalls": 93,
+        "triangles": 169979,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 764,
-      "brightFrac": 0.4269,
-      "hudIssues": [],
+      "uniqueColors": 873,
+      "brightFrac": 0.4294,
+      "hudIssues": [
+        "Minimap overlaps HUD card"
+      ],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.04,
+        "diffPct": 5.54,
         "warning": false
       },
       "errors": []
@@ -159,18 +161,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 73,
-        "triangles": 162489,
+        "drawCalls": 80,
+        "triangles": 167001,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 775,
+      "uniqueColors": 909,
       "brightFrac": 0.363,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 3.28,
-        "warning": false
+        "diffPct": 6.27,
+        "warning": true
       },
       "errors": []
     },
@@ -183,18 +185,20 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 86,
-        "triangles": 165467,
+        "drawCalls": 93,
+        "triangles": 169979,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 504,
+      "uniqueColors": 527,
       "brightFrac": 0.0366,
-      "hudIssues": [],
+      "hudIssues": [
+        "Minimap overlaps HUD card"
+      ],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.26,
-        "warning": false
+        "diffPct": 8.41,
+        "warning": true
       },
       "errors": []
     },
@@ -207,17 +211,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 87,
-        "triangles": 107949,
+        "drawCalls": 90,
+        "triangles": 112301,
         "loadedTiles": 9,
         "activeBuildings": 1382
       },
-      "uniqueColors": 734,
-      "brightFrac": 0.869,
+      "uniqueColors": 864,
+      "brightFrac": 0.844,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 3.5,
         "warning": false
       },
       "errors": []
@@ -231,17 +235,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 87,
-        "triangles": 107949,
+        "drawCalls": 90,
+        "triangles": 112301,
         "loadedTiles": 9,
         "activeBuildings": 1382
       },
-      "uniqueColors": 698,
-      "brightFrac": 0.8821,
+      "uniqueColors": 841,
+      "brightFrac": 0.857,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0,
+        "diffPct": 3.51,
         "warning": false
       },
       "errors": []
@@ -255,17 +259,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 82,
-        "triangles": 109249,
+        "drawCalls": 85,
+        "triangles": 113601,
         "loadedTiles": 9,
         "activeBuildings": 1382
       },
-      "uniqueColors": 1271,
-      "brightFrac": 0.847,
+      "uniqueColors": 1414,
+      "brightFrac": 0.8287,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 3.33,
         "warning": false
       },
       "errors": []
@@ -279,17 +283,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "night",
-        "drawCalls": 87,
-        "triangles": 107949,
+        "drawCalls": 90,
+        "triangles": 112301,
         "loadedTiles": 9,
         "activeBuildings": 1382
       },
-      "uniqueColors": 950,
-      "brightFrac": 0.0359,
+      "uniqueColors": 1072,
+      "brightFrac": 0.037,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 2.55,
         "warning": false
       },
       "errors": []
@@ -303,17 +307,17 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "lite",
         "timeOfDay": "day",
-        "drawCalls": 66,
-        "triangles": 79075,
+        "drawCalls": 69,
+        "triangles": 81347,
         "loadedTiles": 9,
         "activeBuildings": 1382
       },
-      "uniqueColors": 598,
-      "brightFrac": 0.8874,
+      "uniqueColors": 743,
+      "brightFrac": 0.8622,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 3.48,
         "warning": false
       },
       "errors": []
@@ -327,18 +331,20 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "normal",
         "timeOfDay": "day",
-        "drawCalls": 87,
-        "triangles": 107949,
+        "drawCalls": 90,
+        "triangles": 112301,
         "loadedTiles": 9,
         "activeBuildings": 1382
       },
-      "uniqueColors": 713,
-      "brightFrac": 0.8263,
-      "hudIssues": [],
+      "uniqueColors": 764,
+      "brightFrac": 0.8161,
+      "hudIssues": [
+        "Minimap overlaps HUD card"
+      ],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.05,
-        "warning": false
+        "diffPct": 6.88,
+        "warning": true
       },
       "errors": []
     }

@@ -4,17 +4,17 @@
     "elapsedSec": 180,
     "sampleCount": 12,
     "regionId": "esenler-namik-kemal",
-    "maxDrawCalls": 58,
+    "maxDrawCalls": 65,
     "firstTiles": 9,
     "lastTiles": 9,
-    "firstGeometries": 51,
-    "lastGeometries": 63,
+    "firstGeometries": 58,
+    "lastGeometries": 67,
     "maxExpectedGeometries": 99,
-    "geoDrift": 12,
+    "geoDrift": 9,
     "texDrift": 0,
-    "firstHeapMb": 57.42,
-    "lastHeapMb": 37.33,
-    "heapGrowthMb": -20.09,
+    "firstHeapMb": 46.98,
+    "lastHeapMb": 38.92,
+    "heapGrowthMb": -8.06,
     "errors": []
   },
   "samples": [
@@ -22,19 +22,19 @@
       "elapsedSec": 15,
       "regionId": "esenler-namik-kemal",
       "inVehicle": true,
-      "speedKph": 51,
+      "speedKph": 55,
       "perf": {
-        "fps": 43.8825813887647,
-        "frameMs": 230.6524847126855,
-        "drawCalls": 58,
-        "triangles": 106174,
-        "geometries": 51,
+        "fps": 39.676245999688945,
+        "frameMs": 336.8640810073515,
+        "drawCalls": 65,
+        "triangles": 108606,
+        "geometries": 58,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 57.42
+      "usedHeapMb": 46.98
     },
     {
       "elapsedSec": 30,
@@ -42,17 +42,17 @@
       "inVehicle": true,
       "speedKph": 0,
       "perf": {
-        "fps": 10.814232861735686,
-        "frameMs": 960.2464571008219,
-        "drawCalls": 49,
-        "triangles": 77526,
-        "geometries": 52,
+        "fps": 10.828002944369787,
+        "frameMs": 946.0876277532944,
+        "drawCalls": 52,
+        "triangles": 79798,
+        "geometries": 59,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 36.39
+      "usedHeapMb": 37.85
     },
     {
       "elapsedSec": 45,
@@ -60,17 +60,17 @@
       "inVehicle": true,
       "speedKph": 0,
       "perf": {
-        "fps": 6.700763360513586,
-        "frameMs": 826.1588904623486,
-        "drawCalls": 49,
-        "triangles": 77526,
-        "geometries": 52,
+        "fps": 2.774899552201676,
+        "frameMs": 744.0759048560338,
+        "drawCalls": 52,
+        "triangles": 79798,
+        "geometries": 59,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 36.48
+      "usedHeapMb": 38.13
     },
     {
       "elapsedSec": 60,
@@ -78,17 +78,17 @@
       "inVehicle": true,
       "speedKph": 0,
       "perf": {
-        "fps": 2.5291764560344476,
-        "frameMs": 804.6835915861316,
-        "drawCalls": 49,
-        "triangles": 77526,
-        "geometries": 52,
+        "fps": 3.8918348298432557,
+        "frameMs": 601.1635537073871,
+        "drawCalls": 52,
+        "triangles": 79798,
+        "geometries": 59,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 37.27
+      "usedHeapMb": 38.88
     },
     {
       "elapsedSec": 75,
@@ -96,17 +96,17 @@
       "inVehicle": true,
       "speedKph": 0,
       "perf": {
-        "fps": 1.9507156549688112,
-        "frameMs": 734.3667339218805,
-        "drawCalls": 56,
-        "triangles": 92376,
-        "geometries": 52,
+        "fps": 8.091969102065097,
+        "frameMs": 779.4245904100493,
+        "drawCalls": 63,
+        "triangles": 94808,
+        "geometries": 59,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 37.28
+      "usedHeapMb": 38.9
     },
     {
       "elapsedSec": 90,
@@ -114,35 +114,35 @@
       "inVehicle": true,
       "speedKph": 0,
       "perf": {
-        "fps": 2.8552591912980176,
-        "frameMs": 662.2722065383061,
-        "drawCalls": 56,
-        "triangles": 114237,
-        "geometries": 59,
+        "fps": 7.285226063423176,
+        "frameMs": 770.0676232916023,
+        "drawCalls": 63,
+        "triangles": 116669,
+        "geometries": 66,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 36.93
+      "usedHeapMb": 38.28
     },
     {
       "elapsedSec": 105,
       "regionId": "esenler-namik-kemal",
       "inVehicle": true,
-      "speedKph": 56,
+      "speedKph": 50,
       "perf": {
-        "fps": 5.763114033780727,
-        "frameMs": 811.8240198195673,
-        "drawCalls": 49,
-        "triangles": 82907,
-        "geometries": 60,
+        "fps": 6.689365918450417,
+        "frameMs": 752.1451446040983,
+        "drawCalls": 50,
+        "triangles": 70101,
+        "geometries": 66,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 37.44
+      "usedHeapMb": 38.29
     },
     {
       "elapsedSec": 120,
@@ -150,17 +150,17 @@
       "inVehicle": true,
       "speedKph": 0,
       "perf": {
-        "fps": 7.801972149664079,
-        "frameMs": 662.3447765163614,
-        "drawCalls": 48,
-        "triangles": 81769,
-        "geometries": 60,
+        "fps": 12.098012491822313,
+        "frameMs": 742.3100818886651,
+        "drawCalls": 53,
+        "triangles": 84081,
+        "geometries": 67,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 37.38
+      "usedHeapMb": 38.34
     },
     {
       "elapsedSec": 135,
@@ -168,17 +168,17 @@
       "inVehicle": true,
       "speedKph": 0,
       "perf": {
-        "fps": 3.095699137409487,
-        "frameMs": 657.4269322068103,
-        "drawCalls": 48,
-        "triangles": 81769,
-        "geometries": 60,
+        "fps": 4.730216468154505,
+        "frameMs": 657.5827195410805,
+        "drawCalls": 53,
+        "triangles": 84081,
+        "geometries": 67,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 37.28
+      "usedHeapMb": 38.76
     },
     {
       "elapsedSec": 150,
@@ -186,17 +186,17 @@
       "inVehicle": true,
       "speedKph": 0,
       "perf": {
-        "fps": 12.07732985926064,
-        "frameMs": 529.3894427356314,
-        "drawCalls": 49,
-        "triangles": 80783,
-        "geometries": 60,
+        "fps": 5.275703131253249,
+        "frameMs": 615.9592759305123,
+        "drawCalls": 55,
+        "triangles": 80326,
+        "geometries": 67,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 37.08
+      "usedHeapMb": 38.74
     },
     {
       "elapsedSec": 165,
@@ -204,35 +204,35 @@
       "inVehicle": true,
       "speedKph": 0,
       "perf": {
-        "fps": 8.633191631946728,
-        "frameMs": 626.9035740937186,
-        "drawCalls": 57,
-        "triangles": 128444,
-        "geometries": 63,
+        "fps": 8.970312016832132,
+        "frameMs": 638.9025061824692,
+        "drawCalls": 61,
+        "triangles": 116629,
+        "geometries": 67,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 37.2
+      "usedHeapMb": 38.84
     },
     {
       "elapsedSec": 180,
       "regionId": "esenler-namik-kemal",
       "inVehicle": true,
-      "speedKph": 0,
+      "speedKph": 60,
       "perf": {
-        "fps": 3.6402232229769225,
-        "frameMs": 757.5786716315979,
-        "drawCalls": 57,
-        "triangles": 128444,
-        "geometries": 63,
+        "fps": 6.40107252592068,
+        "frameMs": 769.1608980846247,
+        "drawCalls": 53,
+        "triangles": 84081,
+        "geometries": 67,
         "textures": 13,
         "pixelRatio": 1,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "usedHeapMb": 37.33
+      "usedHeapMb": 38.92
     }
   ]
 }
