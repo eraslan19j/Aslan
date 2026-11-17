@@ -9,6 +9,8 @@ import {
 } from './core/diagnostics';
 import { FixedStepClock } from './core/gameLoop';
 import { clamp, distance2D } from './core/math';
+import { TaxiMissionManager } from './core/missions';
+import { PedestrianSimulator } from './core/pedestrians';
 import { ensureRapierReady } from './core/physics';
 import { suggestQualityTier, type QualityTier } from './core/quality';
 import { findSanctuaryZone } from './core/sanctuary';
@@ -21,6 +23,7 @@ import {
   stepPlayerVehicle,
   type PlayerVehicleState,
 } from './core/vehicle';
+import { WantedSystem } from './core/wanted';
 import {
   getRegionEntry,
   resolveRegionId,
@@ -35,16 +38,22 @@ import type {
   TerrainGrid,
 } from './core/world/types';
 import { getStrings } from './i18n/strings';
-import { RegionWorldScene, type QaCameraMode } from './render/RegionWorldScene';
+import {
+  RegionWorldScene,
+  type PlayerCameraView,
+  type QaCameraMode,
+} from './render/RegionWorldScene';
 import { installGlobalErrorBoundary } from './runtime/errorBoundary';
 import {
   HybridStorage,
   registerBackButtonHandler,
   triggerLightHaptic,
 } from './runtime/nativeBridge';
+import { ProceduralSoundEngine } from './runtime/soundEngine';
 import { HudOverlay } from './ui/HudOverlay';
+import { MinimapRenderer } from './ui/MinimapRenderer';
 
-const APP_VERSION = '0.2.1';
+const APP_VERSION = '0.3.0';
 const WALK_SPEED = 7.2;
 const SPRINT_SPEED = 14.5;
 const PLAYER_RADIUS = 0.7;
@@ -53,8 +62,11 @@ interface ActiveRegionRuntime {
   meta: RegionRegistryEntry;
   manifest: RegionManifest;
   terrain: TerrainGrid;
+  roadGraph: RoadGraph;
   scene: RegionWorldScene;
   traffic: RoadTrafficSimulator;
+  pedestrians: PedestrianSimulator;
+  missions: TaxiMissionManager;
 }
 
 interface GameDebugHandle {
@@ -64,11 +76,17 @@ interface GameDebugHandle {
   paused: boolean;
   qualityTier: QualityTier;
   timeOfDay: TimeOfDay;
+  cameraView: PlayerCameraView;
+  audioMuted: boolean;
   locale: 'tr' | 'en';
   physicsReady: boolean;
   inVehicle: boolean;
   speedKph: number;
+  cash: number;
+  wantedStars: number;
   trafficCount: number;
+  pedestrianCount: number;
+  activeMissionPhase: 'pickup' | 'dropoff' | null;
   sanctuaryId: string | null;
   player: { x: number; y: number; z: number };
   vehicle: { x: number; y: number; z: number; heading: number; speed: number };
@@ -87,6 +105,10 @@ interface GameDebugHandle {
   setQuality: (tier: QualityTier) => void;
   toggleTimeOfDay: () => void;
   setTimeOfDay: (mode: TimeOfDay) => void;
+  cycleCameraView: () => PlayerCameraView;
+  toggleAudio: () => boolean;
+  triggerHorn: () => void;
+  callTaxi: () => void;
   setCameraMode: (mode: QaCameraMode) => void;
   toggleLocale: () => void;
   togglePause: () => void;
@@ -155,14 +177,14 @@ async function loadRegionBundle(
     qualityTier,
     timeOfDay,
   );
-  const trafficCount = qualityTier === 'lite' ? 10 : 18;
-  const traffic = new RoadTrafficSimulator(
-    roadGraph,
-    trafficCount,
-    regionId === 'esenler-namik-kemal' ? 34034 : 34001,
-  );
+  const trafficCount = qualityTier === 'lite' ? 12 : 18;
+  const pedCount = qualityTier === 'lite' ? 16 : 32;
+  const seed = regionId === 'esenler-namik-kemal' ? 34034 : 34001;
+  const traffic = new RoadTrafficSimulator(roadGraph, trafficCount, seed);
+  const pedestrians = new PedestrianSimulator(roadGraph, pedCount, seed + 17);
+  const missions = new TaxiMissionManager(manifest.landmarks, roadGraph.nodes, seed + 99);
 
-  return { meta, manifest, terrain, scene, traffic };
+  return { meta, manifest, terrain, roadGraph, scene, traffic, pedestrians, missions };
 }
 
 async function bootstrap(): Promise<void> {
@@ -193,6 +215,9 @@ async function bootstrap(): Promise<void> {
   let activeRegionId: RegionId = resolveRegionId(params.get('region') ?? save.activeRegionId);
   let paused = false;
 
+  const sound = new ProceduralSoundEngine();
+  const wanted = new WantedSystem(3);
+
   installGlobalErrorBoundary({
     crashLog,
     appVersion: APP_VERSION,
@@ -202,8 +227,16 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  // Mount initial region (default: Esenler / Namık Kemal)
+  // Unlock procedural audio seamlessly on first pointer or keyboard interaction
+  const unlockOnce = (): void => {
+    sound.unlock();
+  };
+  window.addEventListener('pointerdown', unlockOnce, { passive: true });
+  window.addEventListener('keydown', unlockOnce, { passive: true });
+
+  // Mount initial region (default: Tepe Mahallesi)
   let runtime = await loadRegionBundle(container, activeRegionId, save.qualityTier, timeOfDay);
+  const minimap = new MinimapRenderer(runtime.roadGraph);
   const clock = new FixedStepClock(60, 0.1, 6);
 
   let playerX = runtime.manifest.spawn.x;
@@ -213,26 +246,38 @@ async function bootstrap(): Promise<void> {
   let velZ = 0;
   let inVehicle = false;
   let speedKph = 0;
+  let gear: 'R' | 'N' | 'D' = 'N';
   let physicsReady = false;
+  let elapsedSec = 0;
 
-  const placeVehicleAtSpawn = (rt: ActiveRegionRuntime): PlayerVehicleState => {
-    const h = rt.manifest.spawn.heading;
-    // Park drivable Sarı Taksi 4.2m ahead/beside spawn along the street
-    const vx = clamp(
-      rt.manifest.spawn.x + Math.sin(h) * 3.8 + Math.cos(h) * 1.4,
+  const placeVehicleNear = (
+    rt: ActiveRegionRuntime,
+    px: number,
+    pz: number,
+    heading: number,
+  ): PlayerVehicleState => {
+    const rawX = clamp(
+      px + Math.sin(heading) * 3.8 + Math.cos(heading) * 1.4,
       rt.terrain.minX + 12,
       rt.terrain.maxX - 12,
     );
-    const vz = clamp(
-      rt.manifest.spawn.z + Math.cos(h) * 3.8 - Math.sin(h) * 1.4,
+    const rawZ = clamp(
+      pz + Math.cos(heading) * 3.8 - Math.sin(heading) * 1.4,
       rt.terrain.minZ + 12,
       rt.terrain.maxZ - 12,
     );
-    const vy = sampleTerrainElevation(rt.terrain, vx, vz);
-    return createVehicleState('player-taxi', 'taxi', vx, vy, vz, h);
+    const clear = rt.scene.spatialGrid.resolveCircle(rawX, rawZ, 1.35);
+    const vy = sampleTerrainElevation(rt.terrain, clear.x, clear.z);
+    return createVehicleState('player-taxi', 'taxi', clear.x, vy, clear.z, heading);
   };
 
-  let playerVehicle = placeVehicleAtSpawn(runtime);
+  let playerVehicle = placeVehicleNear(
+    runtime,
+    runtime.manifest.spawn.x,
+    runtime.manifest.spawn.z,
+    runtime.manifest.spawn.heading,
+  );
+  runtime.missions.ensureMission(playerX, playerZ);
 
   void ensureRapierReady()
     .then(() => {
@@ -298,6 +343,7 @@ async function bootstrap(): Promise<void> {
   const applySave = (): void => {
     save.activeRegionId = activeRegionId;
     save.playerPos = { x: playerX, y: playerY, z: playerZ };
+    save.wantedStars = wanted.getStars();
     saveStore.save(save);
   };
 
@@ -326,6 +372,8 @@ async function bootstrap(): Promise<void> {
     playerX = playerVehicle.x;
     playerY = playerVehicle.y;
     playerZ = playerVehicle.z;
+    hud.resetTouchInputs();
+    sound.playDoorClick();
     void triggerLightHaptic();
     syncDebugHandle();
   };
@@ -334,6 +382,7 @@ async function bootstrap(): Promise<void> {
     if (!inVehicle) return;
     inVehicle = false;
     playerVehicle.speed = 0;
+    playerVehicle.drifting = false;
     const exit = computeSafeExitPosition(playerVehicle, runtime.scene.spatialGrid, (x, z) =>
       sampleTerrainElevation(runtime.terrain, x, z),
     );
@@ -341,6 +390,9 @@ async function bootstrap(): Promise<void> {
     playerY = exit.y;
     playerZ = exit.z;
     speedKph = 0;
+    gear = 'N';
+    hud.resetTouchInputs();
+    sound.playDoorClick();
     void triggerLightHaptic();
     syncDebugHandle();
   };
@@ -356,6 +408,64 @@ async function bootstrap(): Promise<void> {
     }
   };
 
+  const callTaxi = (): void => {
+    const heading = runtime.scene.getCameraYaw() + Math.PI;
+    playerVehicle = placeVehicleNear(runtime, playerX, playerZ, heading);
+    sound.playHorn();
+    void triggerLightHaptic();
+    hud.showToast(getStrings(save.locale).taxiCalledToast);
+    syncDebugHandle();
+  };
+
+  const triggerHorn = (): void => {
+    sound.playHorn();
+    runtime.traffic.notifyHorn(playerX, playerZ, 28);
+    runtime.pedestrians.notifyHorn(playerX, playerZ, runtime.manifest.sanctuaryZones, 22);
+    void triggerLightHaptic();
+  };
+
+  const cycleCameraView = (): PlayerCameraView => {
+    const next = runtime.scene.cyclePlayerCameraView();
+    const t = getStrings(save.locale);
+    const label =
+      next === 'wide'
+        ? t.cameraWide
+        : next === 'hood'
+          ? t.cameraHood
+          : next === 'topdown'
+            ? t.cameraTopdown
+            : t.cameraChase;
+    hud.setState(
+      save.locale,
+      save.qualityTier,
+      timeOfDay,
+      activeRegionId,
+      next,
+      sound.isMuted(),
+    );
+    hud.showToast(`📷 ${label}`);
+    sound.playUiTap();
+    void triggerLightHaptic();
+    syncDebugHandle();
+    return next;
+  };
+
+  const toggleAudio = (): boolean => {
+    const muted = sound.toggleMute();
+    hud.setState(
+      save.locale,
+      save.qualityTier,
+      timeOfDay,
+      activeRegionId,
+      runtime.scene.getPlayerCameraView(),
+      muted,
+    );
+    if (!muted) sound.playUiTap();
+    void triggerLightHaptic();
+    syncDebugHandle();
+    return muted;
+  };
+
   let switchingRegion = false;
   const switchRegion = async (nextId: RegionId): Promise<void> => {
     if (switchingRegion || nextId === activeRegionId) return;
@@ -365,16 +475,32 @@ async function bootstrap(): Promise<void> {
       runtime.scene.dispose();
       runtime = nextRuntime;
       activeRegionId = nextId;
+      wanted.clearWanted();
       inVehicle = false;
       speedKph = 0;
+      gear = 'N';
       playerX = runtime.manifest.spawn.x;
       playerZ = runtime.manifest.spawn.z;
       playerY = sampleTerrainElevation(runtime.terrain, playerX, playerZ);
-      playerVehicle = placeVehicleAtSpawn(runtime);
+      playerVehicle = placeVehicleNear(
+        runtime,
+        runtime.manifest.spawn.x,
+        runtime.manifest.spawn.z,
+        runtime.manifest.spawn.heading,
+      );
+      runtime.missions.ensureMission(playerX, playerZ);
+      minimap.setRoadGraph(runtime.roadGraph);
       runtime.scene.updateStreaming(playerX, playerZ);
       attachCanvasDrag(runtime.scene.renderer.domElement);
       hud.setLandmarks(runtime.manifest.landmarks);
-      hud.setState(save.locale, save.qualityTier, timeOfDay, activeRegionId);
+      hud.setState(
+        save.locale,
+        save.qualityTier,
+        timeOfDay,
+        activeRegionId,
+        runtime.scene.getPlayerCameraView(),
+        sound.isMuted(),
+      );
       applySave();
       syncDebugHandle();
     } finally {
@@ -385,32 +511,56 @@ async function bootstrap(): Promise<void> {
   const setQuality = (tier: QualityTier): void => {
     save.qualityTier = tier;
     runtime.scene.applyQuality(save.qualityTier);
-    hud.setState(save.locale, save.qualityTier, timeOfDay, activeRegionId);
+    hud.setState(
+      save.locale,
+      save.qualityTier,
+      timeOfDay,
+      activeRegionId,
+      runtime.scene.getPlayerCameraView(),
+      sound.isMuted(),
+    );
     applySave();
     syncDebugHandle();
   };
 
   const toggleQuality = (): void => {
     setQuality(save.qualityTier === 'normal' ? 'lite' : 'normal');
+    sound.playUiTap();
     void triggerLightHaptic();
   };
 
   const setTimeOfDay = (mode: TimeOfDay): void => {
     timeOfDay = mode;
     runtime.scene.setTimeOfDay(timeOfDay);
-    hud.setState(save.locale, save.qualityTier, timeOfDay, activeRegionId);
+    hud.setState(
+      save.locale,
+      save.qualityTier,
+      timeOfDay,
+      activeRegionId,
+      runtime.scene.getPlayerCameraView(),
+      sound.isMuted(),
+    );
     syncDebugHandle();
   };
 
   const toggleTimeOfDay = (): void => {
     setTimeOfDay(timeOfDay === 'day' ? 'night' : 'day');
+    sound.playUiTap();
     void triggerLightHaptic();
   };
 
   const toggleLocale = (): void => {
     save.locale = save.locale === 'tr' ? 'en' : 'tr';
-    hud.setState(save.locale, save.qualityTier, timeOfDay, activeRegionId);
+    hud.setState(
+      save.locale,
+      save.qualityTier,
+      timeOfDay,
+      activeRegionId,
+      runtime.scene.getPlayerCameraView(),
+      sound.isMuted(),
+    );
     applySave();
+    sound.playUiTap();
     void triggerLightHaptic();
     syncDebugHandle();
   };
@@ -419,7 +569,24 @@ async function bootstrap(): Promise<void> {
     paused = !paused;
     hud.openModal(paused ? 'pause' : 'none');
     if (paused) applySave();
+    sound.playUiTap();
     void triggerLightHaptic();
+    syncDebugHandle();
+  };
+
+  const dismissBusted = (): void => {
+    paused = false;
+    wanted.clearWanted();
+    exitVehicle();
+    teleportTo(runtime.manifest.spawn.x, runtime.manifest.spawn.z);
+    playerVehicle = placeVehicleNear(
+      runtime,
+      runtime.manifest.spawn.x,
+      runtime.manifest.spawn.z,
+      runtime.manifest.spawn.heading,
+    );
+    hud.openModal('none');
+    applySave();
     syncDebugHandle();
   };
 
@@ -474,11 +641,26 @@ async function bootstrap(): Promise<void> {
       onToggleLocale: toggleLocale,
       onTogglePause: togglePause,
       onResetPosition: () => {
+        wanted.clearWanted();
         exitVehicle();
         teleportTo(runtime.manifest.spawn.x, runtime.manifest.spawn.z);
-        playerVehicle = placeVehicleAtSpawn(runtime);
+        playerVehicle = placeVehicleNear(
+          runtime,
+          runtime.manifest.spawn.x,
+          runtime.manifest.spawn.z,
+          runtime.manifest.spawn.heading,
+        );
       },
       onToggleVehicle: toggleVehicle,
+      onCallTaxi: callTaxi,
+      onHorn: triggerHorn,
+      onCycleCamera: () => {
+        cycleCameraView();
+      },
+      onToggleAudio: () => {
+        toggleAudio();
+      },
+      onDismissBusted: dismissBusted,
       onSwitchRegion: (rid) => {
         void switchRegion(rid);
       },
@@ -489,6 +671,7 @@ async function bootstrap(): Promise<void> {
       getDiagnostics: buildDiagnosticsSnapshot,
     },
   );
+  hud.mountMinimap(minimap.element);
   hud.setLandmarks(runtime.manifest.landmarks);
 
   if (loaded.recoveredFromCorruption) {
@@ -534,6 +717,10 @@ async function bootstrap(): Promise<void> {
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape' && !e.repeat) {
+      if (hud.getActiveModal() === 'busted') {
+        dismissBusted();
+        return;
+      }
       if (hud.getActiveModal() !== 'none' && hud.getActiveModal() !== 'pause') {
         hud.openModal(paused ? 'pause' : 'none');
       } else {
@@ -541,8 +728,25 @@ async function bootstrap(): Promise<void> {
       }
       return;
     }
-    if (e.code === 'KeyF' && !e.repeat && !paused) {
+    if (paused) return;
+    if (e.code === 'KeyF' && !e.repeat) {
       toggleVehicle();
+      return;
+    }
+    if (e.code === 'KeyC' && !e.repeat) {
+      cycleCameraView();
+      return;
+    }
+    if (e.code === 'KeyM' && !e.repeat) {
+      toggleAudio();
+      return;
+    }
+    if (e.code === 'KeyH' && !e.repeat) {
+      triggerHorn();
+      return;
+    }
+    if (e.code === 'KeyR' && !e.repeat && !inVehicle) {
+      callTaxi();
       return;
     }
     setKey(e.code, true);
@@ -557,9 +761,14 @@ async function bootstrap(): Promise<void> {
     handbrake = false;
     turnLeft = false;
     turnRight = false;
+    hud.resetTouchInputs();
   });
 
   registerBackButtonHandler(() => {
+    if (hud.getActiveModal() === 'busted') {
+      dismissBusted();
+      return;
+    }
     if (hud.getActiveModal() !== 'none' && hud.getActiveModal() !== 'pause') {
       hud.openModal(paused ? 'pause' : 'none');
       return;
@@ -593,11 +802,17 @@ async function bootstrap(): Promise<void> {
     paused: false,
     qualityTier: save.qualityTier,
     timeOfDay,
+    cameraView: runtime.scene.getPlayerCameraView(),
+    audioMuted: sound.isMuted(),
     locale: save.locale,
     physicsReady: false,
     inVehicle: false,
     speedKph: 0,
+    cash: save.cash,
+    wantedStars: 0,
     trafficCount: runtime.traffic.getAgents().length,
+    pedestrianCount: runtime.pedestrians.getAgents().length,
+    activeMissionPhase: runtime.missions.getActive()?.phase ?? null,
     sanctuaryId: null,
     player: { x: playerX, y: playerY, z: playerZ },
     vehicle: {
@@ -622,6 +837,10 @@ async function bootstrap(): Promise<void> {
     setQuality,
     toggleTimeOfDay,
     setTimeOfDay,
+    cycleCameraView,
+    toggleAudio,
+    triggerHorn,
+    callTaxi,
     setCameraMode: (mode: QaCameraMode) => runtime.scene.setQaCameraMode(mode),
     toggleLocale,
     togglePause,
@@ -648,11 +867,17 @@ async function bootstrap(): Promise<void> {
     debugHandle.regionId = activeRegionId;
     debugHandle.qualityTier = save.qualityTier;
     debugHandle.timeOfDay = timeOfDay;
+    debugHandle.cameraView = runtime.scene.getPlayerCameraView();
+    debugHandle.audioMuted = sound.isMuted();
     debugHandle.locale = save.locale;
     debugHandle.physicsReady = physicsReady;
     debugHandle.inVehicle = inVehicle;
     debugHandle.speedKph = speedKph;
+    debugHandle.cash = save.cash;
+    debugHandle.wantedStars = wanted.getStars();
     debugHandle.trafficCount = runtime.traffic.getAgents().length;
+    debugHandle.pedestrianCount = runtime.pedestrians.getAgents().length;
+    debugHandle.activeMissionPhase = runtime.missions.getActive()?.phase ?? null;
     debugHandle.sanctuaryId = activeSanctuary?.id ?? null;
     debugHandle.player = { x: playerX, y: playerY, z: playerZ };
     debugHandle.vehicle = {
@@ -678,15 +903,19 @@ async function bootstrap(): Promise<void> {
 
   let lastTimeMs = performance.now();
   let lastHudUpdateMs = 0;
+  let lastMinimapUpdateMs = 0;
   let lastStreamCheckMs = 0;
 
   const tick = (nowMs: number): void => {
     const rawDt = Math.max(0.0001, (nowMs - lastTimeMs) / 1000);
     lastTimeMs = nowMs;
+    elapsedSec += Math.min(rawDt, 0.05);
 
     const frameMs = rawDt * 1000;
     frameMsSmoothed = frameMsSmoothed * 0.9 + frameMs * 0.1;
     fpsSmoothed = fpsSmoothed * 0.9 + Math.min(240, 1 / rawDt) * 0.1;
+
+    let throttleActive = false;
 
     if (!paused && !switchingRegion) {
       const intent = mergeControlIntent(kb, hud.getTouchInput());
@@ -700,17 +929,21 @@ async function bootstrap(): Promise<void> {
 
         const sampleElev = (x: number, z: number): number =>
           sampleTerrainElevation(runtime.terrain, x, z);
+        const inSanctuary =
+          findSanctuaryZone(playerX, playerZ, runtime.manifest.sanctuaryZones) !== null;
 
         if (inVehicle) {
-          const throttle = (kb.forward || driveTouch.gas) ? 1 : 0;
-          const brake = (kb.backward || driveTouch.brake) ? 1 : 0;
+          const throttle = kb.forward || driveTouch.gas ? 1 : 0;
+          const brake = kb.backward || driveTouch.brake ? 1 : 0;
           const steer =
-            ((kb.left || driveTouch.steerLeft) ? 1 : 0) -
-            ((kb.right || driveTouch.steerRight) ? 1 : 0);
+            (kb.left || driveTouch.steerLeft ? 1 : 0) -
+            (kb.right || driveTouch.steerRight ? 1 : 0);
+          const hb = handbrake || driveTouch.handbrake;
+          throttleActive = throttle > 0;
 
           const res = stepPlayerVehicle(
             playerVehicle,
-            { throttle, brake, steer, handbrake },
+            { throttle, brake, steer, handbrake: hb },
             dt,
             {
               minX: runtime.terrain.minX,
@@ -721,7 +954,36 @@ async function bootstrap(): Promise<void> {
             sampleElev,
             runtime.scene.spatialGrid,
           );
-          speedKph = res.speedKph;
+          if (res.impactSpeed > 4.2) {
+            sound.playImpact(res.impactSpeed);
+            void triggerLightHaptic();
+          }
+
+          // Solid collision against AI traffic (fixes ghost pass-through bug!)
+          const carVx = Math.sin(playerVehicle.heading) * playerVehicle.speed;
+          const carVz = Math.cos(playerVehicle.heading) * playerVehicle.speed;
+          const trafficHit = runtime.traffic.resolvePlayerVehicleCollision(
+            playerVehicle.x,
+            playerVehicle.z,
+            carVx,
+            carVz,
+          );
+          if (trafficHit.collided) {
+            playerVehicle.x = trafficHit.x;
+            playerVehicle.z = trafficHit.z;
+            playerVehicle.y = sampleElev(playerVehicle.x, playerVehicle.z);
+            playerVehicle.speed *= trafficHit.impactSpeed > 6 ? 0.55 : 0.78;
+            if (trafficHit.impactSpeed > 2.6) {
+              sound.playImpact(trafficHit.impactSpeed * 1.15);
+              void triggerLightHaptic();
+            }
+            if (trafficHit.impactSpeed > 8.0) {
+              wanted.reportOffense(18, inSanctuary);
+            }
+          }
+
+          speedKph = Math.round(Math.abs(playerVehicle.speed) * 3.6);
+          gear = res.gear;
           playerX = playerVehicle.x;
           playerY = playerVehicle.y;
           playerZ = playerVehicle.z;
@@ -738,8 +1000,16 @@ async function bootstrap(): Promise<void> {
           velX = (rightX * intent.moveX + fwdX * intent.moveY) * speed;
           velZ = (rightZ * intent.moveX + fwdZ * intent.moveY) * speed;
 
-          let nextX = clamp(playerX + velX * dt, runtime.terrain.minX + 8, runtime.terrain.maxX - 8);
-          let nextZ = clamp(playerZ + velZ * dt, runtime.terrain.minZ + 8, runtime.terrain.maxZ - 8);
+          let nextX = clamp(
+            playerX + velX * dt,
+            runtime.terrain.minX + 8,
+            runtime.terrain.maxX - 8,
+          );
+          let nextZ = clamp(
+            playerZ + velZ * dt,
+            runtime.terrain.minZ + 8,
+            runtime.terrain.maxZ - 8,
+          );
 
           const resolved = runtime.scene.spatialGrid.resolveCircle(nextX, nextZ, PLAYER_RADIUS);
           nextX = resolved.x;
@@ -749,10 +1019,60 @@ async function bootstrap(): Promise<void> {
           playerZ = nextZ;
           playerY = sampleElev(playerX, playerZ);
           speedKph = 0;
+          gear = 'N';
         }
 
-        // Advance road-graph AI traffic across real neighborhood streets
+        // Advance road-graph AI traffic & sidewalk pedestrians around active player
         runtime.traffic.step(dt, playerX, playerZ, sampleElev);
+        const pedStep = runtime.pedestrians.step(
+          dt,
+          playerX,
+          playerZ,
+          playerVehicle.speed,
+          inVehicle,
+          runtime.manifest.sanctuaryZones,
+          sampleElev,
+        );
+        if (pedStep.closeCalls > 0) {
+          wanted.reportOffense(14 * pedStep.closeCalls, inSanctuary);
+        }
+
+        // Step Sarı Taksi passenger mission loop
+        const missionEv = runtime.missions.step(dt, playerX, playerZ, inVehicle, speedKph);
+        if (missionEv.type === 'picked_up') {
+          const t = getStrings(save.locale);
+          const dest = save.locale === 'tr' ? missionEv.targetNameTr : missionEv.targetNameEn;
+          hud.showToast(`🚕 ${t.missionPickedUpToast}: ${dest ?? ''}`);
+          sound.playMissionChime(false);
+          void triggerLightHaptic();
+        } else if (missionEv.type === 'completed') {
+          const reward = missionEv.rewardCash ?? 150;
+          save.cash += reward;
+          applySave();
+          const t = getStrings(save.locale);
+          hud.showToast(`💰 ${t.missionCompletedToast} +₺${reward}`);
+          sound.playMissionChime(true);
+          void triggerLightHaptic();
+        } else if (missionEv.type === 'expired') {
+          hud.showToast(getStrings(save.locale).missionExpiredToast);
+        }
+
+        // Step M3 Wanted 1–5★ & fictional Şehir Polisi patrol pursuit
+        const wantedRes = wanted.step(
+          dt,
+          playerX,
+          playerZ,
+          inVehicle ? playerVehicle.speed : Math.hypot(velX, velZ),
+          inSanctuary,
+          runtime.scene.spatialGrid,
+          sampleElev,
+        );
+        if (wantedRes.busted) {
+          save.cash = Math.max(0, save.cash - 50);
+          applySave();
+          paused = true;
+          hud.openModal('busted');
+        }
       });
 
       if (nowMs - lastStreamCheckMs >= 450) {
@@ -761,6 +1081,9 @@ async function bootstrap(): Promise<void> {
       }
 
       runtime.scene.updateTraffic(runtime.traffic.getAgents());
+      runtime.scene.updatePedestrians(runtime.pedestrians.getAgents());
+      runtime.scene.updatePolice(wanted.getUnits());
+      runtime.scene.updateMissionBeacon(runtime.missions.getActive());
       runtime.scene.updateVisuals(
         playerX,
         playerY,
@@ -773,7 +1096,35 @@ async function bootstrap(): Promise<void> {
       );
     }
 
+    sound.updateContinuous(
+      paused,
+      inVehicle,
+      speedKph,
+      throttleActive,
+      playerVehicle.drifting,
+      wanted.getStars(),
+      elapsedSec,
+    );
+
     runtime.scene.render();
+
+    // Update crisp rotating 2D Minimap radar at ~15 Hz (ultra-low CPU overhead)
+    if (nowMs - lastMinimapUpdateMs >= 66) {
+      lastMinimapUpdateMs = nowMs;
+      minimap.render({
+        playerX,
+        playerZ,
+        cameraYaw: runtime.scene.getCameraYaw(),
+        inVehicle,
+        vehicleX: playerVehicle.x,
+        vehicleZ: playerVehicle.z,
+        traffic: runtime.traffic.getAgents(),
+        police: wanted.getUnits(),
+        sanctuaries: runtime.manifest.sanctuaryZones,
+        mission: runtime.missions.getActive(),
+        timeSec: elapsedSec,
+      });
+    }
 
     const tel = runtime.scene.getTelemetry();
     const activeSanctuary = findSanctuaryZone(playerX, playerZ, runtime.manifest.sanctuaryZones);
@@ -785,11 +1136,17 @@ async function bootstrap(): Promise<void> {
     debugHandle.regionId = activeRegionId;
     debugHandle.qualityTier = save.qualityTier;
     debugHandle.timeOfDay = timeOfDay;
+    debugHandle.cameraView = runtime.scene.getPlayerCameraView();
+    debugHandle.audioMuted = sound.isMuted();
     debugHandle.locale = save.locale;
     debugHandle.physicsReady = physicsReady;
     debugHandle.inVehicle = inVehicle;
     debugHandle.speedKph = speedKph;
+    debugHandle.cash = save.cash;
+    debugHandle.wantedStars = wanted.getStars();
     debugHandle.trafficCount = runtime.traffic.getAgents().length;
+    debugHandle.pedestrianCount = runtime.pedestrians.getAgents().length;
+    debugHandle.activeMissionPhase = runtime.missions.getActive()?.phase ?? null;
     debugHandle.sanctuaryId = activeSanctuary?.id ?? null;
     debugHandle.player = { x: playerX, y: playerY, z: playerZ };
     debugHandle.vehicle = {
@@ -813,6 +1170,22 @@ async function bootstrap(): Promise<void> {
 
     if (nowMs - lastHudUpdateMs >= 250) {
       lastHudUpdateMs = nowMs;
+      const t = getStrings(save.locale);
+      const activeMission = runtime.missions.getActive();
+      let missionLabel: string | null = null;
+      if (activeMission) {
+        const mDist = Math.round(
+          distance2D(playerX, playerZ, activeMission.targetX, activeMission.targetZ),
+        );
+        const mName =
+          save.locale === 'tr' ? activeMission.targetNameTr : activeMission.targetNameEn;
+        if (activeMission.phase === 'pickup') {
+          missionLabel = `🚕 ${t.missionPickupPrefix}: ${mName} · ${mDist} m`;
+        } else {
+          missionLabel = `🏁 ${t.missionDropoffPrefix}: ${mName} · ${mDist} m · ${Math.ceil(activeMission.timeRemainingSec)}s`;
+        }
+      }
+
       hud.updateTelemetry({
         fps: fpsSmoothed,
         drawCalls: tel.drawCalls,
@@ -821,8 +1194,7 @@ async function bootstrap(): Promise<void> {
         activeBuildings: tel.activeBuildings,
         physicsReady,
         qualityTier: save.qualityTier,
-        regionName:
-          save.locale === 'tr' ? runtime.meta.nameTr : runtime.meta.nameEn,
+        regionName: save.locale === 'tr' ? runtime.meta.nameTr : runtime.meta.nameEn,
         nearestLandmarkLabel: findNearestLandmarkLabel(),
         sanctuaryLabel: activeSanctuary
           ? save.locale === 'tr'
@@ -832,6 +1204,12 @@ async function bootstrap(): Promise<void> {
         inVehicle,
         nearVehicle,
         speedKph,
+        gear,
+        drifting: playerVehicle.drifting,
+        cash: save.cash,
+        wantedStars: wanted.getStars(),
+        missionLabel,
+        missionPhase: activeMission?.phase ?? null,
       });
     }
 

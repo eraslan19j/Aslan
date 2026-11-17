@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import type { TimeOfDay } from '../core/diagnostics';
 import { damp } from '../core/math';
+import type { ActiveTaxiMission } from '../core/missions';
+import type { PedestrianAgent } from '../core/pedestrians';
 import { getQualityPreset, type QualityTier } from '../core/quality';
 import type { TrafficAgent } from '../core/traffic';
 import type { PlayerVehicleState } from '../core/vehicle';
+import type { PoliceUnit } from '../core/wanted';
 import { BuildingSpatialGrid } from '../core/world/collision';
 import type { RegionRegistryEntry } from '../core/world/regions';
 import { sampleTerrainElevation } from '../core/world/terrain';
@@ -36,6 +39,27 @@ import {
 } from './vehicleMesh';
 
 export type QaCameraMode = 'follow' | 'street' | 'overview';
+export type PlayerCameraView = 'chase' | 'wide' | 'hood' | 'topdown';
+
+const CAMERA_VIEW_ORDER: readonly PlayerCameraView[] = ['chase', 'wide', 'hood', 'topdown'];
+
+const PED_SHIRT_COLORS = [
+  new THREE.Color(0x2563eb),
+  new THREE.Color(0xdc2626),
+  new THREE.Color(0x16a34a),
+  new THREE.Color(0xeab308),
+  new THREE.Color(0xf1f5f9),
+  new THREE.Color(0x9333ea),
+  new THREE.Color(0xea580c),
+  new THREE.Color(0x334155),
+];
+
+const PED_PANTS_COLORS = [
+  new THREE.Color(0x1e293b),
+  new THREE.Color(0x334155),
+  new THREE.Color(0x27272a),
+  new THREE.Color(0x3f3f46),
+];
 
 export interface WorldTelemetry {
   drawCalls: number;
@@ -87,6 +111,24 @@ export class RegionWorldScene {
   private readonly trafficRoofInst: THREE.InstancedMesh;
   private readonly trafficUnderInst: THREE.InstancedMesh;
   private readonly maxTrafficInstances = 24;
+
+  // Instanced sidewalk pedestrians (only 3 draw calls for up to 36 people!)
+  private readonly pedLegsInst: THREE.InstancedMesh;
+  private readonly pedTorsoInst: THREE.InstancedMesh;
+  private readonly pedHeadInst: THREE.InstancedMesh;
+  private readonly maxPedInstances = 36;
+
+  // Fictional Şehir Polisi instanced patrol cruisers (2 draw calls, 0 when stars === 0!)
+  private readonly policeBodyInst: THREE.InstancedMesh;
+  private readonly policeBeaconInst: THREE.InstancedMesh;
+  private readonly policeBeaconMat: THREE.MeshBasicMaterial;
+  private readonly maxPoliceInstances = 4;
+
+  // Glowing 3D Taxi Mission pickup / drop-off beacon (2 draw calls)
+  private readonly missionGroup = new THREE.Group();
+  private readonly missionRingMat: THREE.MeshBasicMaterial;
+  private readonly missionPillarMat: THREE.MeshBasicMaterial;
+
   private readonly dummyObj = new THREE.Object3D();
 
   private readonly upperBuildingMat: THREE.MeshStandardMaterial;
@@ -103,6 +145,7 @@ export class RegionWorldScene {
   private qualityTier: QualityTier;
   private timeOfDay: TimeOfDay;
   private qaCameraMode: QaCameraMode = 'follow';
+  private playerCameraView: PlayerCameraView = 'chase';
   private avatarHeading = 0;
   private cameraYaw = 0;
   private elapsed = 0;
@@ -329,6 +372,88 @@ export class RegionWorldScene {
       inst.frustumCulled = false;
       this.scene.add(inst);
     }
+
+    // Instanced sidewalk pedestrians (3 draw calls total for 36 living city walkers!)
+    const pedLegsGeo = new THREE.BoxGeometry(0.32, 0.78, 0.22);
+    const pedTorsoGeo = new THREE.BoxGeometry(0.42, 0.56, 0.24);
+    const pedHeadGeo = new THREE.SphereGeometry(0.145, 8, 8);
+    const pedLegsMat = new THREE.MeshStandardMaterial({ roughness: 0.84 });
+    const pedTorsoMat = new THREE.MeshStandardMaterial({ roughness: 0.72 });
+    const pedHeadMat = new THREE.MeshStandardMaterial({ color: 0xe2ae88, roughness: 0.76 });
+    this.disposableGeometries.push(pedLegsGeo, pedTorsoGeo, pedHeadGeo);
+    this.disposableMaterials.push(pedLegsMat, pedTorsoMat, pedHeadMat);
+
+    this.pedLegsInst = new THREE.InstancedMesh(pedLegsGeo, pedLegsMat, this.maxPedInstances);
+    this.pedTorsoInst = new THREE.InstancedMesh(pedTorsoGeo, pedTorsoMat, this.maxPedInstances);
+    this.pedHeadInst = new THREE.InstancedMesh(pedHeadGeo, pedHeadMat, this.maxPedInstances);
+    for (const inst of [this.pedLegsInst, this.pedTorsoInst, this.pedHeadInst]) {
+      inst.count = 0;
+      inst.frustumCulled = false;
+      this.scene.add(inst);
+    }
+
+    // Fictional Şehir Polisi patrol cars (merged navy-white cruiser + flashing roof lightbar)
+    const policeBodyGeo = mergeColoredParts([
+      { geometry: new THREE.BoxGeometry(1.94, 0.32, 3.4), color: 0x151921, position: [0, 0.24, 0] },
+      { geometry: new THREE.BoxGeometry(1.88, 0.56, 4.35), color: 0x0f274a, position: [0, 0.58, 0] },
+      { geometry: new THREE.BoxGeometry(1.91, 0.22, 2.2), color: 0xf8fafc, position: [0, 0.64, -0.05] },
+      { geometry: new THREE.BoxGeometry(1.56, 0.46, 2.1), color: 0x1e334d, position: [0, 1.05, -0.15] },
+      { geometry: new THREE.BoxGeometry(1.58, 0.1, 1.85), color: 0xf8fafc, position: [0, 1.32, -0.15] },
+    ]);
+    const policeBeaconGeo = new THREE.BoxGeometry(0.95, 0.16, 0.26);
+    const policeBodyMat = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.32,
+      metalness: 0.34,
+    });
+    this.policeBeaconMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6 });
+    this.disposableGeometries.push(policeBodyGeo, policeBeaconGeo);
+    this.disposableMaterials.push(policeBodyMat, this.policeBeaconMat);
+
+    this.policeBodyInst = new THREE.InstancedMesh(
+      policeBodyGeo,
+      policeBodyMat,
+      this.maxPoliceInstances,
+    );
+    this.policeBeaconInst = new THREE.InstancedMesh(
+      policeBeaconGeo,
+      this.policeBeaconMat,
+      this.maxPoliceInstances,
+    );
+    this.policeBodyInst.count = 0;
+    this.policeBeaconInst.count = 0;
+    this.policeBodyInst.frustumCulled = false;
+    this.policeBeaconInst.frustumCulled = false;
+    this.scene.add(this.policeBodyInst, this.policeBeaconInst);
+
+    // Glowing 3D Taxi Mission pickup / drop-off ring & vertical sky beacon
+    const mRingGeo = new THREE.RingGeometry(2.6, 3.55, 28);
+    mRingGeo.rotateX(-Math.PI / 2);
+    const mPillarGeo = new THREE.CylinderGeometry(0.65, 1.85, 28, 12, 1, true);
+    this.missionRingMat = new THREE.MeshBasicMaterial({
+      color: 0x22c55e,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.missionPillarMat = new THREE.MeshBasicMaterial({
+      color: 0x22c55e,
+      transparent: true,
+      opacity: 0.16,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.disposableGeometries.push(mRingGeo, mPillarGeo);
+    this.disposableMaterials.push(this.missionRingMat, this.missionPillarMat);
+
+    const mRing = new THREE.Mesh(mRingGeo, this.missionRingMat);
+    mRing.position.y = 0.55;
+    const mPillar = new THREE.Mesh(mPillarGeo, this.missionPillarMat);
+    mPillar.position.y = 14.5;
+    this.missionGroup.add(mRing, mPillar);
+    this.missionGroup.visible = false;
+    this.scene.add(this.missionGroup);
 
     this.applyLighting();
     this.applyQuality(initialQuality);
@@ -657,6 +782,20 @@ export class RegionWorldScene {
     this.qaCameraMode = mode;
   }
 
+  getPlayerCameraView(): PlayerCameraView {
+    return this.playerCameraView;
+  }
+
+  cyclePlayerCameraView(): PlayerCameraView {
+    const idx = CAMERA_VIEW_ORDER.indexOf(this.playerCameraView);
+    this.playerCameraView = CAMERA_VIEW_ORDER[(idx + 1) % CAMERA_VIEW_ORDER.length]!;
+    return this.playerCameraView;
+  }
+
+  setPlayerCameraView(view: PlayerCameraView): void {
+    this.playerCameraView = view;
+  }
+
   setTimeOfDay(mode: TimeOfDay): void {
     this.timeOfDay = mode;
     this.applyLighting();
@@ -732,9 +871,10 @@ export class RegionWorldScene {
             ? TRAFFIC_COLORS[1]!
             : TRAFFIC_COLORS[2 + (a.colorIndex % 3)]!;
 
-      // Undercarriage / wheel shadow block
+      // Undercarriage / wheel shadow block (slope-aligned to hills!)
+      this.dummyObj.rotation.order = 'YXZ';
       this.dummyObj.position.set(a.x, baseRoadY + 0.24, a.z);
-      this.dummyObj.rotation.set(0, a.heading, 0);
+      this.dummyObj.rotation.set(-a.pitch, a.heading, 0);
       this.dummyObj.scale.set(1, 1, scaleZ);
       this.dummyObj.updateMatrix();
       this.trafficUnderInst.setMatrixAt(i, this.dummyObj.matrix);
@@ -770,6 +910,84 @@ export class RegionWorldScene {
     if (this.trafficRoofInst.instanceColor) {
       this.trafficRoofInst.instanceColor.needsUpdate = true;
     }
+  }
+
+  updatePedestrians(agents: readonly PedestrianAgent[]): void {
+    const count = Math.min(agents.length, this.maxPedInstances);
+    this.pedLegsInst.count = count;
+    this.pedTorsoInst.count = count;
+    this.pedHeadInst.count = count;
+
+    for (let i = 0; i < count; i += 1) {
+      const p = agents[i]!;
+      const bob = Math.abs(Math.sin(p.stridePhase)) * 0.055;
+      const baseY = p.y + 0.34;
+
+      this.dummyObj.rotation.set(0, p.heading, 0);
+      this.dummyObj.scale.set(1, 1, 1);
+
+      this.dummyObj.position.set(p.x, baseY + 0.39 + bob * 0.4, p.z);
+      this.dummyObj.updateMatrix();
+      this.pedLegsInst.setMatrixAt(i, this.dummyObj.matrix);
+      this.pedLegsInst.setColorAt(i, PED_PANTS_COLORS[p.pantsColorIndex % PED_PANTS_COLORS.length]!);
+
+      this.dummyObj.position.set(p.x, baseY + 1.05 + bob, p.z);
+      this.dummyObj.updateMatrix();
+      this.pedTorsoInst.setMatrixAt(i, this.dummyObj.matrix);
+      this.pedTorsoInst.setColorAt(i, PED_SHIRT_COLORS[p.shirtColorIndex % PED_SHIRT_COLORS.length]!);
+
+      this.dummyObj.position.set(p.x, baseY + 1.52 + bob, p.z);
+      this.dummyObj.updateMatrix();
+      this.pedHeadInst.setMatrixAt(i, this.dummyObj.matrix);
+    }
+
+    this.pedLegsInst.instanceMatrix.needsUpdate = true;
+    this.pedTorsoInst.instanceMatrix.needsUpdate = true;
+    this.pedHeadInst.instanceMatrix.needsUpdate = true;
+    if (this.pedLegsInst.instanceColor) this.pedLegsInst.instanceColor.needsUpdate = true;
+    if (this.pedTorsoInst.instanceColor) this.pedTorsoInst.instanceColor.needsUpdate = true;
+  }
+
+  updatePolice(units: readonly PoliceUnit[]): void {
+    let activeCount = 0;
+    for (const u of units) {
+      if (!u.active || activeCount >= this.maxPoliceInstances) continue;
+      const baseY = u.y + 0.35;
+      this.dummyObj.rotation.set(0, u.heading, 0);
+      this.dummyObj.scale.set(1, 1, 1);
+      this.dummyObj.position.set(u.x, baseY, u.z);
+      this.dummyObj.updateMatrix();
+      this.policeBodyInst.setMatrixAt(activeCount, this.dummyObj.matrix);
+
+      this.dummyObj.position.set(u.x, baseY + 1.44, u.z);
+      this.dummyObj.updateMatrix();
+      this.policeBeaconInst.setMatrixAt(activeCount, this.dummyObj.matrix);
+      activeCount += 1;
+    }
+
+    this.policeBodyInst.count = activeCount;
+    this.policeBeaconInst.count = activeCount;
+    if (activeCount > 0) {
+      this.policeBodyInst.instanceMatrix.needsUpdate = true;
+      this.policeBeaconInst.instanceMatrix.needsUpdate = true;
+      const flashBlue = Math.floor(this.elapsed * 7) % 2 === 0;
+      this.policeBeaconMat.color.setHex(flashBlue ? 0x3b82f6 : 0xef4444);
+    }
+  }
+
+  updateMissionBeacon(mission: ActiveTaxiMission | null): void {
+    if (!mission) {
+      this.missionGroup.visible = false;
+      return;
+    }
+    this.missionGroup.visible = true;
+    const baseY = sampleTerrainElevation(this.terrain, mission.targetX, mission.targetZ);
+    this.missionGroup.position.set(mission.targetX, baseY, mission.targetZ);
+    const pulse = 1 + Math.sin(this.elapsed * 4.5) * 0.1;
+    this.missionGroup.scale.set(pulse, 1, pulse);
+    const hex = mission.phase === 'pickup' ? 0x22c55e : 0xf5b800;
+    this.missionRingMat.color.setHex(hex);
+    this.missionPillarMat.color.setHex(hex);
   }
 
   updateVisuals(
@@ -863,8 +1081,26 @@ export class RegionWorldScene {
         focusY + 2.6,
         focusZ + Math.cos(lookYaw) * 14,
       );
+    } else if (this.playerCameraView === 'hood' && inVehicle) {
+      // First-person Hood / Windshield driving POV (favorite in mobile driving games!)
+      const hX = focusX + sinH * 0.55;
+      const hZ = focusZ + cosH * 0.55;
+      this.camera.position.set(hX, avgY + 1.95, hZ);
+      this.camera.lookAt(
+        focusX + sinH * 28,
+        avgY + 1.55 - Math.sin(slopePitch) * 14,
+        focusZ + cosH * 28,
+      );
+      this.cameraYaw = vehicle.heading + Math.PI;
+    } else if (this.playerCameraView === 'topdown') {
+      // Classic top-down GTA-style city camera
+      const tdHeight = inVehicle ? 36 : 26;
+      this.camera.position.x = damp(this.camera.position.x, focusX, 8, dt);
+      this.camera.position.y = damp(this.camera.position.y, focusY + tdHeight, 8, dt);
+      this.camera.position.z = damp(this.camera.position.z, focusZ + 11, 8, dt);
+      this.camera.lookAt(focusX, focusY + 1, focusZ);
     } else {
-      // Dynamic 3rd-person follow (smoothly tracks behind vehicle when driving)
+      // Dynamic 3rd-person follow (Chase or Wide Action Chase)
       if (inVehicle && Math.abs(vehicle.speed) > 0.9) {
         const desiredYaw = vehicle.heading + Math.PI;
         let diff = desiredYaw - this.cameraYaw;
@@ -873,8 +1109,9 @@ export class RegionWorldScene {
         this.cameraYaw += diff * Math.min(1, dt * 4.2);
       }
 
-      const camDist = inVehicle ? 9.6 : 7.4;
-      const camHeight = inVehicle ? 3.8 : 3.35;
+      const wide = this.playerCameraView === 'wide';
+      const camDist = inVehicle ? (wide ? 12.8 : 9.6) : wide ? 9.6 : 7.4;
+      const camHeight = inVehicle ? (wide ? 5.2 : 3.8) : wide ? 4.4 : 3.35;
       const desiredX = focusX + Math.sin(this.cameraYaw) * camDist;
       const desiredZ = focusZ + Math.cos(this.cameraYaw) * camDist;
       const camGroundY = sampleTerrainElevation(this.terrain, desiredX, desiredZ);

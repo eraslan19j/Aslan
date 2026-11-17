@@ -58,7 +58,23 @@ try {
   const initialRegion = await page.evaluate(() => window.__game.regionId);
   const initialHudText = await page.getByTestId('location-telemetry').innerText();
   const hudFreeOfDirectDistrictName = !/esenler|namık/i.test(initialHudText);
+  const hasMinimap = await page.getByTestId('minimap-radar').isVisible();
   const initialPos = await page.evaluate(() => ({ ...window.__game.player }));
+
+  // Check camera cycling (C) & audio mute toggle (M) + horn (H)
+  const camBefore = await page.evaluate(() => window.__game.cameraView);
+  await page.keyboard.press('KeyC');
+  await page.waitForTimeout(80);
+  const camAfter = await page.evaluate(() => window.__game.cameraView);
+  // Cycle back to chase for normal walk/drive test
+  await page.keyboard.press('KeyC');
+  await page.keyboard.press('KeyC');
+  await page.keyboard.press('KeyC');
+  await page.keyboard.press('KeyM');
+  await page.waitForTimeout(60);
+  const audioMutedAfterM = await page.evaluate(() => window.__game.audioMuted);
+  await page.keyboard.press('KeyM');
+  await page.keyboard.press('KeyH');
 
   // 1. On-foot walk in Esenler Namık Kemal
   await page.keyboard.down('ShiftLeft');
@@ -179,6 +195,8 @@ try {
       regionLoaded: window.__game?.regionLoaded ?? false,
       physicsReady: window.__game?.physicsReady ?? false,
       trafficCount: window.__game?.trafficCount ?? 0,
+      pedestrianCount: window.__game?.pedestrianCount ?? 0,
+      activeMissionPhase: window.__game?.activeMissionPhase ?? null,
       crashCount: window.__game?.getCrashCount() ?? -1,
       perf: window.__game?.perf ?? null,
     };
@@ -206,6 +224,9 @@ try {
     initialRegion,
     initialHudText,
     hudFreeOfDirectDistrictName,
+    hasMinimap,
+    cameraCycleOk: camBefore !== camAfter,
+    audioToggleOk: audioMutedAfterM === true,
     walkDist: Number(walkDist.toFixed(2)),
     driveDist: Number(driveDist.toFixed(2)),
     driveSpeedKph: driveState.speedKph,
@@ -231,6 +252,13 @@ try {
   if (!hudFreeOfDirectDistrictName) {
     fail(`HUD leaked direct district name: ${initialHudText}`);
   }
+  if (!hasMinimap) fail('Minimap radar canvas is not visible');
+  if (camBefore === camAfter) fail('Camera angle cycle (KeyC) did not change view');
+  if (!audioMutedAfterM) fail('Audio mute toggle (KeyM) did not mute sound');
+  if ((snapshot.pedestrianCount ?? 0) < 10) {
+    fail(`Too few sidewalk pedestrians: ${snapshot.pedestrianCount}`);
+  }
+  if (!snapshot.activeMissionPhase) fail('No active Sarı Taksi fare mission generated');
   if (!snapshot.hasCanvas || snapshot.canvasW === 0 || snapshot.canvasH === 0) {
     fail('Canvas missing or zero size');
   }

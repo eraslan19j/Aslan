@@ -10,12 +10,14 @@ import type { LocaleCode } from '../core/save';
 import { REGION_REGISTRY, type RegionId } from '../core/world/regions';
 import type { LandmarkPin } from '../core/world/types';
 import { getStrings } from '../i18n/strings';
+import type { PlayerCameraView } from '../render/RegionWorldScene';
 
 export interface TouchDrivingInput {
   gas: boolean;
   brake: boolean;
   steerLeft: boolean;
   steerRight: boolean;
+  handbrake: boolean;
 }
 
 export interface HudTelemetryView {
@@ -32,6 +34,12 @@ export interface HudTelemetryView {
   inVehicle: boolean;
   nearVehicle: boolean;
   speedKph: number;
+  gear: 'R' | 'N' | 'D';
+  drifting: boolean;
+  cash: number;
+  wantedStars: number;
+  missionLabel: string | null;
+  missionPhase: 'pickup' | 'dropoff' | null;
 }
 
 export interface HudCallbacks {
@@ -41,12 +49,17 @@ export interface HudCallbacks {
   onTogglePause: () => void;
   onResetPosition: () => void;
   onToggleVehicle: () => void;
+  onCallTaxi: () => void;
+  onHorn: () => void;
+  onCycleCamera: () => void;
+  onToggleAudio: () => void;
+  onDismissBusted: () => void;
   onSwitchRegion: (regionId: RegionId) => void;
   onTeleportLandmark: (landmark: LandmarkPin) => void;
   getDiagnostics: () => DiagnosticsSnapshot;
 }
 
-export type ActiveModal = 'none' | 'pause' | 'settings' | 'about' | 'crashlog';
+export type ActiveModal = 'none' | 'pause' | 'settings' | 'about' | 'crashlog' | 'busted';
 
 async function copyTextSafe(text: string): Promise<boolean> {
   try {
@@ -75,6 +88,11 @@ async function copyTextSafe(text: string): Promise<boolean> {
 
 export class HudOverlay {
   private readonly root: HTMLDivElement;
+  private readonly minimapWrap: HTMLDivElement;
+  private readonly speedCluster: HTMLDivElement;
+  private readonly speedValueEl: HTMLSpanElement;
+  private readonly speedUnitEl: HTMLSpanElement;
+  private readonly speedGearEl: HTMLSpanElement;
   private readonly touchLayer: HTMLDivElement;
   private readonly touchFootGroup: HTMLDivElement;
   private readonly touchDriveGroup: HTMLDivElement;
@@ -84,10 +102,14 @@ export class HudOverlay {
 
   private readonly titleEl: HTMLDivElement;
   private readonly subEl: HTMLDivElement;
+  private readonly cashEl: HTMLSpanElement;
+  private readonly wantedEl: HTMLSpanElement;
   private readonly perfRowEl: HTMLDivElement;
   private readonly locationRowEl: HTMLDivElement;
   private readonly hintEl: HTMLDivElement;
 
+  private readonly cameraBtn: HTMLButtonElement;
+  private readonly audioBtn: HTMLButtonElement;
   private readonly qualityBtn: HTMLButtonElement;
   private readonly settingsBtn: HTMLButtonElement;
   private readonly aboutBtn: HTMLButtonElement;
@@ -95,14 +117,21 @@ export class HudOverlay {
 
   private readonly sprintBtn: HTMLButtonElement;
   private readonly enterCarBtn: HTMLButtonElement;
+  private readonly callTaxiBtn: HTMLButtonElement;
   private readonly exitCarBtn: HTMLButtonElement;
   private readonly gasBtn: HTMLButtonElement;
   private readonly brakeBtn: HTMLButtonElement;
+  private readonly driftBtn: HTMLButtonElement;
+  private readonly hornBtn: HTMLButtonElement;
+  private readonly holdButtons: HTMLButtonElement[] = [];
+  private stickKnobEl: HTMLDivElement | null = null;
 
   private locale: LocaleCode;
   private qualityTier: QualityTier;
   private timeOfDay: TimeOfDay;
   private activeRegionId: RegionId;
+  private cameraView: PlayerCameraView = 'chase';
+  private audioMuted = false;
   private activeModal: ActiveModal = 'none';
   private inVehicle = false;
   private readonly touchEnabled: boolean;
@@ -112,10 +141,12 @@ export class HudOverlay {
     brake: false,
     steerLeft: false,
     steerRight: false,
+    handbrake: false,
   };
   private readonly callbacks: HudCallbacks;
   private readonly crashLog: CrashLogStore;
   private landmarks: LandmarkPin[] = [];
+  private toastTimerId: number | null = null;
 
   constructor(
     container: HTMLElement,
@@ -153,7 +184,16 @@ export class HudOverlay {
     this.subEl = document.createElement('div');
     this.subEl.className = 'brand-sub';
 
-    brandRow.append(this.titleEl, this.subEl);
+    this.cashEl = document.createElement('span');
+    this.cashEl.className = 'cash-pill';
+    this.cashEl.dataset.testid = 'hud-cash';
+    this.cashEl.textContent = '₺250';
+
+    this.wantedEl = document.createElement('span');
+    this.wantedEl.className = 'wanted-pill touch-hidden';
+    this.wantedEl.dataset.testid = 'hud-wanted';
+
+    brandRow.append(this.titleEl, this.cashEl, this.wantedEl, this.subEl);
 
     this.perfRowEl = document.createElement('div');
     this.perfRowEl.className = 'perf-row';
@@ -168,12 +208,21 @@ export class HudOverlay {
     const actions = document.createElement('div');
     actions.className = 'hud-actions';
 
+    this.cameraBtn = this.makeButton('btn-camera', () => this.callbacks.onCycleCamera());
+    this.audioBtn = this.makeButton('btn-audio', () => this.callbacks.onToggleAudio());
     this.qualityBtn = this.makeButton('btn-quality', () => this.callbacks.onToggleQuality());
     this.settingsBtn = this.makeButton('btn-settings', () => this.openModal('settings'));
     this.aboutBtn = this.makeButton('btn-about', () => this.openModal('about'));
     this.pauseBtn = this.makeButton('btn-pause', () => this.callbacks.onTogglePause());
 
-    actions.append(this.qualityBtn, this.settingsBtn, this.aboutBtn, this.pauseBtn);
+    actions.append(
+      this.cameraBtn,
+      this.audioBtn,
+      this.qualityBtn,
+      this.settingsBtn,
+      this.aboutBtn,
+      this.pauseBtn,
+    );
     topRow.append(brandCard, actions);
 
     const bottomRow = document.createElement('div');
@@ -184,6 +233,24 @@ export class HudOverlay {
     bottomRow.append(this.hintEl);
 
     this.root.append(topRow, bottomRow);
+
+    // Minimap container (bottom-left on desktop, left-middle below HUD on 20:9 mobile)
+    this.minimapWrap = document.createElement('div');
+    this.minimapWrap.className = touchEnabled ? 'minimap-wrap touch-pos' : 'minimap-wrap';
+
+    // Sleek digital speedometer + gear gauge (visible when driving)
+    this.speedCluster = document.createElement('div');
+    this.speedCluster.className = 'speed-cluster';
+    this.speedCluster.dataset.testid = 'speedometer';
+    this.speedValueEl = document.createElement('span');
+    this.speedValueEl.className = 'speed-value';
+    this.speedValueEl.textContent = '0';
+    this.speedUnitEl = document.createElement('span');
+    this.speedUnitEl.className = 'speed-unit';
+    this.speedGearEl = document.createElement('span');
+    this.speedGearEl.className = 'speed-gear';
+    this.speedGearEl.textContent = 'N';
+    this.speedCluster.append(this.speedValueEl, this.speedUnitEl, this.speedGearEl);
 
     // Touch controls layer (on-foot group + driving group)
     this.touchLayer = document.createElement('div');
@@ -199,10 +266,17 @@ export class HudOverlay {
     const stickKnob = document.createElement('div');
     stickKnob.className = 'stick-knob';
     stickZone.append(stickKnob);
+    this.stickKnobEl = stickKnob;
     this.wireStick(stickZone, stickKnob);
 
     const footRight = document.createElement('div');
     footRight.className = 'touch-right-pad';
+
+    this.callTaxiBtn = document.createElement('button');
+    this.callTaxiBtn.type = 'button';
+    this.callTaxiBtn.className = 'touch-pad-btn touch-btn-small';
+    this.callTaxiBtn.dataset.testid = 'touch-call-taxi';
+    this.callTaxiBtn.addEventListener('click', () => this.callbacks.onCallTaxi());
 
     this.enterCarBtn = document.createElement('button');
     this.enterCarBtn.type = 'button';
@@ -218,12 +292,22 @@ export class HudOverlay {
       this.touchState.sprint = v;
     });
 
-    footRight.append(this.enterCarBtn, this.sprintBtn);
+    footRight.append(this.callTaxiBtn, this.enterCarBtn, this.sprintBtn);
     this.touchFootGroup.append(stickZone, footRight);
 
-    // Driving group
+    // Driving group (left steering + horn above; right exit/brake/gas + drift above!)
     this.touchDriveGroup = document.createElement('div');
     this.touchDriveGroup.className = 'touch-drive-group touch-hidden';
+
+    const auxLeft = document.createElement('div');
+    auxLeft.className = 'touch-aux-left';
+    this.hornBtn = document.createElement('button');
+    this.hornBtn.type = 'button';
+    this.hornBtn.className = 'touch-pad-btn touch-btn-small';
+    this.hornBtn.dataset.testid = 'touch-horn';
+    this.hornBtn.textContent = '🔔';
+    this.hornBtn.addEventListener('click', () => this.callbacks.onHorn());
+    auxLeft.append(this.hornBtn);
 
     const steerPad = document.createElement('div');
     steerPad.className = 'touch-left-steer';
@@ -245,6 +329,17 @@ export class HudOverlay {
       this.driveTouch.steerRight = v;
     });
     steerPad.append(steerLeftBtn, steerRightBtn);
+
+    const auxRight = document.createElement('div');
+    auxRight.className = 'touch-aux-right';
+    this.driftBtn = document.createElement('button');
+    this.driftBtn.type = 'button';
+    this.driftBtn.className = 'touch-pad-btn touch-btn-small';
+    this.driftBtn.dataset.testid = 'touch-drift';
+    this.wireHoldButton(this.driftBtn, (v) => {
+      this.driveTouch.handbrake = v;
+    });
+    auxRight.append(this.driftBtn);
 
     const driveRight = document.createElement('div');
     driveRight.className = 'touch-right-pad';
@@ -272,7 +367,7 @@ export class HudOverlay {
     });
 
     driveRight.append(this.exitCarBtn, this.brakeBtn, this.gasBtn);
-    this.touchDriveGroup.append(steerPad, driveRight);
+    this.touchDriveGroup.append(auxLeft, steerPad, auxRight, driveRight);
 
     this.touchLayer.append(this.touchFootGroup, this.touchDriveGroup);
 
@@ -285,12 +380,42 @@ export class HudOverlay {
     this.toastEl = document.createElement('div');
     this.toastEl.className = 'toast-banner';
 
-    container.append(this.root, this.touchLayer, this.modalBackdrop, this.toastEl);
+    container.append(
+      this.root,
+      this.minimapWrap,
+      this.speedCluster,
+      this.touchLayer,
+      this.modalBackdrop,
+      this.toastEl,
+    );
     this.applyLabels();
+  }
+
+  mountMinimap(canvas: HTMLCanvasElement): void {
+    this.minimapWrap.innerHTML = '';
+    this.minimapWrap.append(canvas);
   }
 
   setLandmarks(landmarks: LandmarkPin[]): void {
     this.landmarks = landmarks;
+  }
+
+  /** Clears every active touch hold & stick offset (prevents stuck gas/steer on mode/modal change). */
+  resetTouchInputs(): void {
+    this.touchState.x = 0;
+    this.touchState.y = 0;
+    this.touchState.sprint = false;
+    this.driveTouch.gas = false;
+    this.driveTouch.brake = false;
+    this.driveTouch.steerLeft = false;
+    this.driveTouch.steerRight = false;
+    this.driveTouch.handbrake = false;
+    if (this.stickKnobEl) {
+      this.stickKnobEl.style.transform = 'translate(0px, 0px)';
+    }
+    for (const btn of this.holdButtons) {
+      btn.classList.remove('pressed');
+    }
   }
 
   private makeButton(testId: string, onClick: () => void): HTMLButtonElement {
@@ -303,6 +428,7 @@ export class HudOverlay {
   }
 
   private wireHoldButton(btn: HTMLButtonElement, onChange: (pressed: boolean) => void): void {
+    this.holdButtons.push(btn);
     const setPressed = (v: boolean): void => {
       onChange(v);
       btn.classList.toggle('pressed', v);
@@ -374,11 +500,15 @@ export class HudOverlay {
     qualityTier: QualityTier,
     timeOfDay: TimeOfDay,
     regionId: RegionId,
+    cameraView = this.cameraView,
+    audioMuted = this.audioMuted,
   ): void {
     this.locale = locale;
     this.qualityTier = qualityTier;
     this.timeOfDay = timeOfDay;
     this.activeRegionId = regionId;
+    this.cameraView = cameraView;
+    this.audioMuted = audioMuted;
     this.applyLabels();
     if (this.activeModal !== 'none') {
       this.renderModal();
@@ -389,6 +519,11 @@ export class HudOverlay {
     const t = getStrings(this.locale);
     this.titleEl.textContent = t.appTitle;
     this.subEl.textContent = t.milestoneTag;
+    this.cameraBtn.textContent = '📷';
+    this.cameraBtn.title = t.cameraButtonTitle;
+    this.audioBtn.textContent = this.audioMuted ? '🔇' : '🔊';
+    this.audioBtn.title = this.audioMuted ? t.soundOff : t.soundOn;
+    this.audioBtn.classList.toggle('active', this.audioMuted);
     this.qualityBtn.textContent =
       this.qualityTier === 'lite' ? t.qualityLite : t.qualityNormal;
     this.qualityBtn.classList.toggle('active', this.qualityTier === 'lite');
@@ -396,11 +531,16 @@ export class HudOverlay {
     this.aboutBtn.textContent = t.aboutButton;
     this.pauseBtn.textContent = t.pauseButton;
 
+    this.speedUnitEl.textContent = t.speedUnit;
     this.sprintBtn.textContent = t.sprintButton;
     this.enterCarBtn.textContent = t.enterCarButton;
+    this.callTaxiBtn.textContent = '🚕';
+    this.callTaxiBtn.title = t.callTaxiButton;
     this.exitCarBtn.textContent = t.exitCarButton;
     this.gasBtn.textContent = t.gasButton;
     this.brakeBtn.textContent = t.brakeButton;
+    this.driftBtn.textContent = t.driftButton;
+    this.hornBtn.title = t.hornButton;
     this.updateHintLabel();
   }
 
@@ -421,21 +561,34 @@ export class HudOverlay {
     const t = getStrings(this.locale);
     if (this.inVehicle !== view.inVehicle) {
       this.inVehicle = view.inVehicle;
+      this.resetTouchInputs();
       this.touchFootGroup.classList.toggle('touch-hidden', this.inVehicle);
       this.touchDriveGroup.classList.toggle('touch-hidden', !this.inVehicle);
+      this.speedCluster.classList.toggle('visible', this.inVehicle);
       this.updateHintLabel();
     }
     this.enterCarBtn.classList.toggle('touch-hidden', !view.nearVehicle);
+    this.callTaxiBtn.classList.toggle('touch-hidden', view.nearVehicle);
 
-    const speedHtml = view.inVehicle
-      ? `<span class="perf-pill speed" data-testid="speedometer">${view.speedKph} ${t.speedUnit}</span>`
-      : '';
+    this.cashEl.textContent = `₺${view.cash}`;
+    if (view.wantedStars > 0) {
+      this.wantedEl.classList.remove('touch-hidden');
+      this.wantedEl.textContent = `${'★'.repeat(view.wantedStars)}${'☆'.repeat(5 - view.wantedStars)}`;
+    } else {
+      this.wantedEl.classList.add('touch-hidden');
+    }
+
+    if (view.inVehicle) {
+      this.speedValueEl.textContent = String(view.speedKph);
+      this.speedGearEl.textContent = view.drifting ? t.driftButton : view.gear;
+      this.speedGearEl.classList.toggle('drift', view.drifting);
+    }
+
     this.perfRowEl.innerHTML =
       `<span class="perf-pill">${t.fpsLabel}: ${Math.round(view.fps)}</span>` +
       `<span class="perf-pill">${t.drawsLabel}: ${view.drawCalls}</span>` +
       `<span class="perf-pill">${t.tilesLabel}: ${view.loadedTiles}</span>` +
-      `<span class="perf-pill">${t.buildingsLabel}: ${view.activeBuildings}</span>` +
-      speedHtml;
+      `<span class="perf-pill">${t.buildingsLabel}: ${view.activeBuildings}</span>`;
 
     const sanctuaryHtml = view.sanctuaryLabel
       ? `<span class="sanctuary-pill" data-testid="sanctuary-banner">${t.sanctuaryBanner} · ${view.sanctuaryLabel}</span>`
@@ -444,15 +597,22 @@ export class HudOverlay {
       !view.inVehicle && view.nearVehicle
         ? `<span class="prompt-pill" data-testid="vehicle-prompt">${t.nearVehiclePrompt}</span>`
         : '';
+    const missionHtml = view.missionLabel
+      ? `<span class="mission-pill ${view.missionPhase === 'dropoff' ? 'dropoff' : ''}" data-testid="mission-banner">${view.missionLabel}</span>`
+      : '';
 
     this.locationRowEl.innerHTML =
       `<span class="location-pill">${view.regionName} · ${view.nearestLandmarkLabel}</span>` +
       sanctuaryHtml +
-      vehiclePromptHtml;
+      vehiclePromptHtml +
+      missionHtml;
   }
 
   openModal(modal: ActiveModal): void {
     this.activeModal = modal;
+    if (modal !== 'none') {
+      this.resetTouchInputs();
+    }
     this.modalBackdrop.classList.toggle('open', modal !== 'none');
     this.renderModal();
   }
@@ -464,15 +624,38 @@ export class HudOverlay {
   showToast(message: string): void {
     this.toastEl.textContent = message;
     this.toastEl.classList.add('visible');
-    window.setTimeout(() => {
+    if (this.toastTimerId !== null) window.clearTimeout(this.toastTimerId);
+    this.toastTimerId = window.setTimeout(() => {
       this.toastEl.classList.remove('visible');
-    }, 3600);
+      this.toastTimerId = null;
+    }, 3400);
   }
 
   private renderModal(): void {
     const t = getStrings(this.locale);
     this.modalPanel.innerHTML = '';
     if (this.activeModal === 'none') return;
+
+    if (this.activeModal === 'busted') {
+      const h2 = document.createElement('h2');
+      h2.style.color = '#f87171';
+      h2.textContent = t.bustedTitle;
+
+      const p = document.createElement('p');
+      p.textContent = t.bustedBody;
+
+      const actions = document.createElement('div');
+      actions.className = 'modal-actions';
+      const resumeBtn = this.makeButton('modal-busted-resume', () => {
+        this.callbacks.onDismissBusted();
+      });
+      resumeBtn.classList.add('active');
+      resumeBtn.textContent = t.bustedResumeButton;
+      actions.append(resumeBtn);
+
+      this.modalPanel.append(h2, p, actions);
+      return;
+    }
 
     if (this.activeModal === 'pause') {
       const h2 = document.createElement('h2');
@@ -503,7 +686,6 @@ export class HudOverlay {
       actions.append(resumeBtn, resetBtn, settingsBtn, aboutBtn, crashBtn);
       this.modalPanel.append(h2, actions);
 
-      // Multi-region switcher (Namık Kemal default + Fatih second region)
       const regTitle = document.createElement('div');
       regTitle.className = 'fast-travel-title';
       regTitle.textContent = t.regionSwitchHeading;
@@ -581,10 +763,25 @@ export class HudOverlay {
       timeBtn.textContent = this.timeOfDay === 'night' ? `${t.timeNight} 🌙` : `${t.timeDay} ☀`;
       if (this.timeOfDay === 'night') timeBtn.classList.add('active');
 
+      const soundBtn = this.makeButton('settings-audio', () => this.callbacks.onToggleAudio());
+      soundBtn.textContent = this.audioMuted ? `🔇 ${t.soundOff}` : `🔊 ${t.soundOn}`;
+      if (this.audioMuted) soundBtn.classList.add('active');
+
+      const camLabel =
+        this.cameraView === 'wide'
+          ? t.cameraWide
+          : this.cameraView === 'hood'
+            ? t.cameraHood
+            : this.cameraView === 'topdown'
+              ? t.cameraTopdown
+              : t.cameraChase;
+      const camBtn = this.makeButton('settings-camera', () => this.callbacks.onCycleCamera());
+      camBtn.textContent = `📷 ${camLabel}`;
+
       const langBtn = this.makeButton('settings-lang', () => this.callbacks.onToggleLocale());
       langBtn.textContent = t.langButton;
 
-      ctrlRow.append(qualBtn, timeBtn, langBtn);
+      ctrlRow.append(qualBtn, timeBtn, soundBtn, camBtn, langBtn);
 
       const diagTitle = document.createElement('div');
       diagTitle.className = 'fast-travel-title';

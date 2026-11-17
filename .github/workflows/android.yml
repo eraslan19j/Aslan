@@ -85,10 +85,12 @@ jobs:
             echo "- **Orientation:** \`sensorLandscape\` (\`${ORIENTATION}\`)"
             echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
             echo "- **Bölgeler:** Tepe Mahallesi (varsayılan) + Tarihî Yarımada (Duraklat menüsünden geçiş) — %100 çevrimdışı 300m karolar"
-            echo "- **v0.2.1 Düzeltme & Görsel Yenileme:**"
-            echo "  - Düz yoldaki görünmez duvar hatası giderildi (eksen-hizalı AABB yerine tam 2B bina poligonu çarpışması + çift-aks kapsül + pürüzsüz duvar kayması)"
-            echo "  - Eklemli yürüyen/koşan karakter, damalı Sarı Taksi (TAKSİ tabelası + dönen tekerlekler + süspansiyon)"
-            echo "  - Prosedürel İstanbul cepheleri (zemin kat dükkan/tente + balkonlar + çatılar), şeritli/kaldırımlı asfalt, sokak lambaları, ağaçlar ve 3B gökyüzü kubbesi"
+            echo "- **v0.3.0 Mobil Standartları & Yaşayan Şehir (M3):**"
+            echo "  - **Canlı Dönen 2B Minimap / GPS Radarı:** Gerçek sokaklar, park hâlindeki taksi, cami güvenli alanları, trafik, polis ve görev hedefi (dokunarak 135m ↔ 235m zoom)"
+            echo "  - **Prosedürel Web Audio Ses Motoru:** 0 KB ek boyutla dinamik 4 silindirli motor sesi, el freni drift lastik sesi, İstanbul taksi kornası (🔔/H), çarpışma, kapı, görev zil sesi ve polis sireni (🔊/🔇)"
+            echo "  - **Sarı Taksi Yolcu Görevleri (₺):** 3B parlayan alım/bırakım halkası, geri sayım, kombo bonusu ve kalıcı bakiye"
+            echo "  - **Yaşayan Trafik & Yayalar + M3 Aranma (1–5★):** Hayalet araç hatası giderildi (gerçek trafik çarpışması + oyuncu etrafında akan trafik + yokuş eğimi), kaldırımlarda yürüyen 32 yaya, çakarlı kurgusal Şehir Polisi ve İbadethane Güvenli Alan koruması"
+            echo "  - **Mobil Kontrol İyileştirmeleri:** 4 kamera açısı (Takip / Geniş / Kaput / Kuş Bakışı), mobilde DRİFT + Korna + Taksi Çağır (🚕) tuşları, dijital hız/vites göstergesi ve mod geçişinde takılı kalan tuş hatasının giderilmesi"
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo ""
             echo "### Kurulum (Yalnızca Android Telefon)"
@@ -139,9 +141,9 @@ jobs:
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.2.1' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.3.0' }}
           target_commitish: ${{ github.sha }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.2.1 (Visual Overhaul + Exact Polygon Driving Fix - API 36)' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.3.0 (Minimap + Audio + Pedestrians + Taxi Missions + Police - API 36)' }}
           body_path: release-notes.md
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |

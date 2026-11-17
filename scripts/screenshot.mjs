@@ -111,6 +111,19 @@ async function checkHudLayout(page) {
         issues.push(`Button "${btn.textContent}" clips outside viewport`);
       }
     }
+    const minimap = document.querySelector('.minimap-canvas');
+    if (minimap) {
+      const rm = minimap.getBoundingClientRect();
+      if (rm.right > vw + 1 || rm.bottom > vh + 1 || rm.left < -1 || rm.top < -1) {
+        issues.push('Minimap radar clips outside viewport');
+      }
+      if (card) {
+        const rc = card.getBoundingClientRect();
+        if (rm.right > rc.left && rm.bottom > rc.top && rc.right > rm.left && rc.bottom > rm.top) {
+          issues.push('Minimap overlaps HUD card');
+        }
+      }
+    }
     return issues;
   });
 }

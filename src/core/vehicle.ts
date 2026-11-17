@@ -87,6 +87,8 @@ export interface PlayerVehicleState {
   pitch: number;
   /** True when brakes/reverse lights are active. */
   braking: boolean;
+  /** True when handbrake drifting / high-slip cornering. */
+  drifting: boolean;
 }
 
 export interface DrivingInput {
@@ -129,6 +131,7 @@ export function createVehicleState(
     wheelSpin: 0,
     pitch: 0,
     braking: false,
+    drifting: false,
   };
 }
 
@@ -139,7 +142,7 @@ export function stepPlayerVehicle(
   bounds: WorldBounds2D,
   sampleElev: (x: number, z: number) => number,
   spatialGrid: BuildingSpatialGrid,
-): { collided: boolean; speedKph: number } {
+): { collided: boolean; speedKph: number; impactSpeed: number; gear: 'R' | 'N' | 'D' } {
   const spec = VEHICLE_SPECS[v.archetype];
   const throttle = clamp(input.throttle, 0, 1);
   const brake = clamp(input.brake, 0, 1);
@@ -188,6 +191,7 @@ export function stepPlayerVehicle(
 
   v.speed = clamp(v.speed, -spec.maxReverseSpeed, spec.maxForwardSpeed);
   v.braking = braking;
+  v.drifting = input.handbrake && Math.abs(v.speed) > 4.2 && Math.abs(steer) > 0.15;
   v.steerVisual += (steer - v.steerVisual) * Math.min(1, dt * 11);
 
   // Speed-sensitive steering (crisp in tight streets, composed at avenue speed)
@@ -224,6 +228,7 @@ export function stepPlayerVehicle(
   nextZ += rearPushZ;
 
   const collided = frontRes.collided || rearRes.collided;
+  let impactSpeed = 0;
   if (collided) {
     // Combine surface push normals for physically accurate tangent wall-sliding
     let nx = 0;
@@ -247,6 +252,7 @@ export function stepPlayerVehicle(
 
       // Only cancel velocity pointing INTO the wall; preserve smooth tangential sliding!
       if (vn < 0) {
+        impactSpeed = -vn;
         const slideVx = vx - vn * nx;
         const slideVz = vz - vn * nz;
         const slideSpeed = slideVx * nextFwdX + slideVz * nextFwdZ;
@@ -271,9 +277,12 @@ export function stepPlayerVehicle(
   v.y = sampleElev(v.x, v.z);
   v.wheelSpin += (v.speed * dt) / spec.wheelRadius;
 
+  const gear: 'R' | 'N' | 'D' = v.speed < -0.25 ? 'R' : v.speed > 0.25 ? 'D' : 'N';
   return {
     collided,
     speedKph: Math.round(Math.abs(v.speed) * 3.6),
+    impactSpeed,
+    gear,
   };
 }
 
