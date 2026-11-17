@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeColoredParts } from './meshMerge';
 
 export interface CharacterRig {
   root: THREE.Group;
@@ -22,9 +23,9 @@ export interface CharacterRig {
 /**
  * Creates a modern articulated multi-joint GTA-style Istanbul protagonist:
  * - Separate hip/knee/shin + shoulder/elbow/forearm pivots (Vice-inspired natural stride & bend!)
- * - Sculpted dark street bomber jacket over crisp white tee, tapered denim, red-accent sneakers
+ * - Sculpted dark street bomber jacket over crisp white tee, tapered denim, street sneakers
  * - Detailed sculpted head with modern hair taper & dark aviator sunglasses
- * - Smooth grounded contact shadow disc
+ * - Static sub-parts merged per articulated bone (only 10 draw calls total — ultra-fast on mobile!)
  */
 export function createCharacterRig(contactShadowTex: THREE.Texture): CharacterRig {
   const geometries: THREE.BufferGeometry[] = [];
@@ -58,41 +59,49 @@ export function createCharacterRig(contactShadowTex: THREE.Texture): CharacterRi
   shadowDisc.position.y = 0.03;
   root.add(shadowDisc);
 
-  // Modern street palette materials
-  const jacketMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.52, metalness: 0.14 }));
-  const accentTrimMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.45, metalness: 0.12 }));
-  const shirtMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.68 }));
-  const pantsMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x243044, roughness: 0.84 }));
-  const skinMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xdfb18c, roughness: 0.7 }));
-  const hairMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x161311, roughness: 0.86 }));
-  const shadeMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x090d14, roughness: 0.14, metalness: 0.7 }));
-  const shoeMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.55 }));
-  const soleMat = trackMat(new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.88 }));
+  // Single vertex-colored PBR material shared cleanly across all articulated bone meshes
+  const charMat = trackMat(
+    new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.62,
+      metalness: 0.14,
+    }),
+  );
 
-  // Pelvis / Belt
-  const pelvisGeo = trackGeo(new THREE.BoxGeometry(0.38, 0.14, 0.24));
-  const pelvisMesh = new THREE.Mesh(pelvisGeo, pantsMat);
-  pelvisMesh.position.set(0, 0.88, 0);
-  pelvisMesh.castShadow = true;
-  bodyPivot.add(pelvisMesh);
+  // 1. Merged Torso + Pelvis + Belt + Open Bomber Jacket + White Inner Tee + Racing Trim + Collar (1 draw call!)
+  const torsoGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.BoxGeometry(0.38, 0.14, 0.24), color: 0x243044, position: [0, 0.88, 0] },
+      { geometry: new THREE.BoxGeometry(0.4, 0.055, 0.255), color: 0x111827, position: [0, 0.94, 0] },
+      { geometry: new THREE.BoxGeometry(0.45, 0.54, 0.26), color: 0x1e293b, position: [0, 1.22, 0] },
+      { geometry: new THREE.BoxGeometry(0.465, 0.045, 0.268), color: 0xdc2626, position: [0, 1.38, 0] },
+      { geometry: new THREE.BoxGeometry(0.15, 0.51, 0.272), color: 0xf8fafc, position: [0, 1.21, 0.008] },
+      { geometry: new THREE.CylinderGeometry(0.135, 0.155, 0.075, 12), color: 0x1e293b, position: [0, 1.49, -0.01] },
+    ]),
+  );
+  const torsoMesh = new THREE.Mesh(torsoGeo, charMat);
+  torsoMesh.castShadow = true;
+  bodyPivot.add(torsoMesh);
 
-  const beltGeo = trackGeo(new THREE.BoxGeometry(0.4, 0.055, 0.255));
-  const beltMesh = new THREE.Mesh(beltGeo, soleMat);
-  beltMesh.position.set(0, 0.94, 0);
-  bodyPivot.add(beltMesh);
-
-  // Articulated Legs: Thigh -> Knee/Shin -> Street Sneaker
-  const thighGeo = trackGeo(new THREE.CylinderGeometry(0.088, 0.072, 0.42, 10));
-  const shinGeo = trackGeo(new THREE.CylinderGeometry(0.07, 0.058, 0.4, 10));
-  const shoeGeo = trackGeo(new THREE.BoxGeometry(0.125, 0.09, 0.25));
-  const soleGeo = trackGeo(new THREE.BoxGeometry(0.132, 0.032, 0.26));
+  // 2. Articulated Legs: Thigh -> Knee/Shin+Sneaker (merged per bone!)
+  const thighGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.CylinderGeometry(0.088, 0.072, 0.42, 10), color: 0x243044, position: [0, -0.21, 0] },
+    ]),
+  );
+  const shinFootGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.CylinderGeometry(0.07, 0.058, 0.4, 10), color: 0x243044, position: [0, -0.2, 0] },
+      { geometry: new THREE.BoxGeometry(0.125, 0.09, 0.25), color: 0xf1f5f9, position: [0, -0.395, 0.048] },
+      { geometry: new THREE.BoxGeometry(0.132, 0.032, 0.26), color: 0x111827, position: [0, -0.435, 0.048] },
+    ]),
+  );
 
   const buildLeg = (sideX: number): { hip: THREE.Group; shin: THREE.Group } => {
     const hip = new THREE.Group();
     hip.position.set(sideX, 0.86, 0);
 
-    const thigh = new THREE.Mesh(thighGeo, pantsMat);
-    thigh.position.y = -0.21;
+    const thigh = new THREE.Mesh(thighGeo, charMat);
     thigh.castShadow = true;
     hip.add(thigh);
 
@@ -100,19 +109,9 @@ export function createCharacterRig(contactShadowTex: THREE.Texture): CharacterRi
     shin.position.set(0, -0.42, 0);
     hip.add(shin);
 
-    const calf = new THREE.Mesh(shinGeo, pantsMat);
-    calf.position.y = -0.2;
-    calf.castShadow = true;
-    shin.add(calf);
-
-    const shoe = new THREE.Mesh(shoeGeo, shoeMat);
-    shoe.position.set(0, -0.395, 0.048);
-    shoe.castShadow = true;
-    shin.add(shoe);
-
-    const sole = new THREE.Mesh(soleGeo, soleMat);
-    sole.position.set(0, -0.435, 0.048);
-    shin.add(sole);
+    const calfFoot = new THREE.Mesh(shinFootGeo, charMat);
+    calfFoot.castShadow = true;
+    shin.add(calfFoot);
 
     return { hip, shin };
   };
@@ -125,42 +124,24 @@ export function createCharacterRig(contactShadowTex: THREE.Texture): CharacterRi
   const rightShinPivot = rightLeg.shin;
   bodyPivot.add(leftLegPivot, rightLegPivot);
 
-  // Sculpted Torso (open dark street bomber jacket + white inner tee + red racing stripe trim)
-  const chestGeo = trackGeo(new THREE.BoxGeometry(0.45, 0.54, 0.26));
-  const chestMesh = new THREE.Mesh(chestGeo, jacketMat);
-  chestMesh.position.set(0, 1.22, 0);
-  chestMesh.castShadow = true;
-  bodyPivot.add(chestMesh);
-
-  // Subtle jacket lapel / shoulder accents
-  const stripeGeo = trackGeo(new THREE.BoxGeometry(0.465, 0.045, 0.268));
-  const stripeMesh = new THREE.Mesh(stripeGeo, accentTrimMat);
-  stripeMesh.position.set(0, 1.38, 0);
-  bodyPivot.add(stripeMesh);
-
-  // Inner white tee front stripe
-  const teeGeo = trackGeo(new THREE.BoxGeometry(0.15, 0.51, 0.272));
-  const teeMesh = new THREE.Mesh(teeGeo, shirtMat);
-  teeMesh.position.set(0, 1.21, 0.008);
-  bodyPivot.add(teeMesh);
-
-  // Jacket collar
-  const collarGeo = trackGeo(new THREE.CylinderGeometry(0.135, 0.155, 0.075, 12));
-  const collarMesh = new THREE.Mesh(collarGeo, jacketMat);
-  collarMesh.position.set(0, 1.49, -0.01);
-  bodyPivot.add(collarMesh);
-
-  // Articulated Arms: Shoulder -> Upper Arm -> Elbow -> Forearm + Hand
-  const upperArmGeo = trackGeo(new THREE.CylinderGeometry(0.068, 0.056, 0.31, 10));
-  const forearmGeo = trackGeo(new THREE.CylinderGeometry(0.055, 0.046, 0.28, 10));
-  const handGeo = trackGeo(new THREE.SphereGeometry(0.052, 8, 8));
+  // 3. Articulated Arms: Shoulder -> Upper Arm -> Elbow -> Forearm+Hand (merged per bone!)
+  const upperArmGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.CylinderGeometry(0.068, 0.056, 0.31, 10), color: 0x1e293b, position: [0, -0.155, 0] },
+    ]),
+  );
+  const forearmHandGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.CylinderGeometry(0.055, 0.046, 0.28, 10), color: 0x1e293b, position: [0, -0.14, 0] },
+      { geometry: new THREE.SphereGeometry(0.052, 8, 8), color: 0xdfb18c, position: [0, -0.295, 0] },
+    ]),
+  );
 
   const buildArm = (sideX: number): { shoulder: THREE.Group; forearm: THREE.Group } => {
     const shoulder = new THREE.Group();
     shoulder.position.set(sideX, 1.42, 0);
 
-    const upper = new THREE.Mesh(upperArmGeo, jacketMat);
-    upper.position.y = -0.155;
+    const upper = new THREE.Mesh(upperArmGeo, charMat);
     upper.castShadow = true;
     shoulder.add(upper);
 
@@ -168,14 +149,9 @@ export function createCharacterRig(contactShadowTex: THREE.Texture): CharacterRi
     forearm.position.set(0, -0.31, 0);
     shoulder.add(forearm);
 
-    const lower = new THREE.Mesh(forearmGeo, jacketMat);
-    lower.position.y = -0.14;
+    const lower = new THREE.Mesh(forearmHandGeo, charMat);
     lower.castShadow = true;
     forearm.add(lower);
-
-    const hand = new THREE.Mesh(handGeo, skinMat);
-    hand.position.y = -0.295;
-    forearm.add(hand);
 
     return { shoulder, forearm };
   };
@@ -188,40 +164,33 @@ export function createCharacterRig(contactShadowTex: THREE.Texture): CharacterRi
   const rightForearmPivot = rightArm.forearm;
   bodyPivot.add(leftArmPivot, rightArmPivot);
 
-  // Head + Neck + Modern Hair Taper + Aviator Sunglasses
+  // 4. Merged Head + Neck + Modern Hair Taper + Aviator Sunglasses (1 draw call!)
   const headGroup = new THREE.Group();
   headGroup.position.set(0, 1.54, 0);
   bodyPivot.add(headGroup);
 
-  const neckGeo = trackGeo(new THREE.CylinderGeometry(0.065, 0.074, 0.1, 10));
-  const neckMesh = new THREE.Mesh(neckGeo, skinMat);
-  neckMesh.position.y = 0.03;
-  headGroup.add(neckMesh);
-
-  const skullGeo = trackGeo(new THREE.SphereGeometry(0.142, 14, 12));
-  const skullMesh = new THREE.Mesh(skullGeo, skinMat);
-  skullMesh.scale.set(0.92, 1.06, 0.96);
-  skullMesh.position.y = 0.175;
-  skullMesh.castShadow = true;
-  headGroup.add(skullMesh);
-
-  // Modern sculpted hair crown + back fade
-  const hairTopGeo = trackGeo(new THREE.SphereGeometry(0.148, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.56));
-  const hairTopMesh = new THREE.Mesh(hairTopGeo, hairMat);
-  hairTopMesh.scale.set(0.95, 1.04, 1.02);
-  hairTopMesh.position.set(0, 0.195, -0.014);
-  headGroup.add(hairTopMesh);
-
-  const hairBackGeo = trackGeo(new THREE.BoxGeometry(0.22, 0.12, 0.12));
-  const hairBackMesh = new THREE.Mesh(hairBackGeo, hairMat);
-  hairBackMesh.position.set(0, 0.17, -0.085);
-  headGroup.add(hairBackMesh);
-
-  // Sleek dark aviator sunglasses (instant Vice/GTA style identity!)
-  const shadesGeo = trackGeo(new THREE.BoxGeometry(0.215, 0.052, 0.045));
-  const shadesMesh = new THREE.Mesh(shadesGeo, shadeMat);
-  shadesMesh.position.set(0, 0.19, 0.125);
-  headGroup.add(shadesMesh);
+  const headGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.CylinderGeometry(0.065, 0.074, 0.1, 10), color: 0xdfb18c, position: [0, 0.03, 0] },
+      {
+        geometry: new THREE.SphereGeometry(0.142, 14, 12),
+        color: 0xdfb18c,
+        position: [0, 0.175, 0],
+        scale: [0.92, 1.06, 0.96],
+      },
+      {
+        geometry: new THREE.SphereGeometry(0.148, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.56),
+        color: 0x161311,
+        position: [0, 0.195, -0.014],
+        scale: [0.95, 1.04, 1.02],
+      },
+      { geometry: new THREE.BoxGeometry(0.22, 0.12, 0.12), color: 0x161311, position: [0, 0.17, -0.085] },
+      { geometry: new THREE.BoxGeometry(0.215, 0.052, 0.045), color: 0x090d14, position: [0, 0.19, 0.125] },
+    ]),
+  );
+  const headMesh = new THREE.Mesh(headGeo, charMat);
+  headMesh.castShadow = true;
+  headGroup.add(headMesh);
 
   return {
     root,
@@ -266,13 +235,11 @@ export function animateCharacterRig(
     const armAmp = sprinting ? 0.96 : 0.52;
     const kneeAmp = sprinting ? 1.05 : 0.58;
 
-    // Hip swing + authentic knee flexion as each leg swings backward & lifts forward
     rig.leftLegPivot.rotation.set(swing * legAmp, 0, 0);
     rig.rightLegPivot.rotation.set(-swing * legAmp, 0, 0);
     rig.leftShinPivot.rotation.x = Math.max(0.05, (-swing * 0.55 + (1 - cosSwing) * 0.35) * kneeAmp);
     rig.rightShinPivot.rotation.x = Math.max(0.05, (swing * 0.55 + (1 + cosSwing) * 0.35) * kneeAmp);
 
-    // Opposite arm pump + crisp athletic elbow bend
     rig.leftArmPivot.rotation.set(-swing * armAmp, 0, 0.08);
     rig.rightArmPivot.rotation.set(swing * armAmp, 0, -0.08);
     rig.leftForearmPivot.rotation.x = sprinting ? -0.95 - Math.max(0, -swing) * 0.35 : -0.28 - Math.max(0, -swing) * 0.3;
@@ -316,7 +283,6 @@ export function poseCharacterSeated(rig: CharacterRig, steerVisual: number): voi
   rig.rightLegPivot.rotation.set(-1.38, 0, -0.06);
   rig.leftShinPivot.rotation.set(1.18, 0, 0);
   rig.rightShinPivot.rotation.set(1.18, 0, 0);
-  // Two-handed articulated grip on steering wheel shifting smoothly with steering input!
   rig.leftArmPivot.rotation.set(-0.98 + steerVisual * 0.18, 0.06, -0.18);
   rig.rightArmPivot.rotation.set(-0.98 - steerVisual * 0.18, -0.06, 0.18);
   rig.leftForearmPivot.rotation.set(-0.36, 0, 0.1);

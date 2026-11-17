@@ -173,11 +173,9 @@ export class RegionWorldScene {
   private readonly wheelLocalDummy = new THREE.Object3D();
   private readonly maxTrafficInstances = 36;
 
-  // Articulated striding instanced sidewalk pedestrians (6 draw calls for up to 56 walkers!)
-  private readonly pedLeftLegInst: THREE.InstancedMesh;
-  private readonly pedRightLegInst: THREE.InstancedMesh;
-  private readonly pedLeftArmInst: THREE.InstancedMesh;
-  private readonly pedRightArmInst: THREE.InstancedMesh;
+  // Articulated striding instanced sidewalk pedestrians (ONLY 4 draw calls for 56 walkers!)
+  private readonly pedLegsInst: THREE.InstancedMesh;
+  private readonly pedArmsInst: THREE.InstancedMesh;
   private readonly pedTorsoInst: THREE.InstancedMesh;
   private readonly pedHeadInst: THREE.InstancedMesh;
   private readonly maxPedInstances = 56;
@@ -547,17 +545,13 @@ export class RegionWorldScene {
     this.disposableGeometries.push(pedSingleLegGeo, pedSingleArmGeo, pedTorsoGeo, pedHeadGeo);
     this.disposableMaterials.push(pedLegsMat, pedTorsoMat, pedHeadMat);
 
-    this.pedLeftLegInst = new THREE.InstancedMesh(pedSingleLegGeo, pedLegsMat, this.maxPedInstances);
-    this.pedRightLegInst = new THREE.InstancedMesh(pedSingleLegGeo, pedLegsMat, this.maxPedInstances);
-    this.pedLeftArmInst = new THREE.InstancedMesh(pedSingleArmGeo, pedTorsoMat, this.maxPedInstances);
-    this.pedRightArmInst = new THREE.InstancedMesh(pedSingleArmGeo, pedTorsoMat, this.maxPedInstances);
+    this.pedLegsInst = new THREE.InstancedMesh(pedSingleLegGeo, pedLegsMat, this.maxPedInstances * 2);
+    this.pedArmsInst = new THREE.InstancedMesh(pedSingleArmGeo, pedTorsoMat, this.maxPedInstances * 2);
     this.pedTorsoInst = new THREE.InstancedMesh(pedTorsoGeo, pedTorsoMat, this.maxPedInstances);
     this.pedHeadInst = new THREE.InstancedMesh(pedHeadGeo, pedHeadMat, this.maxPedInstances);
     for (const inst of [
-      this.pedLeftLegInst,
-      this.pedRightLegInst,
-      this.pedLeftArmInst,
-      this.pedRightArmInst,
+      this.pedLegsInst,
+      this.pedArmsInst,
       this.pedTorsoInst,
       this.pedHeadInst,
     ]) {
@@ -1267,10 +1261,8 @@ export class RegionWorldScene {
     const count = Math.min(agents.length, this.maxPedInstances);
     const colorsDirty = count !== this.lastPedCount;
     this.lastPedCount = count;
-    this.pedLeftLegInst.count = count;
-    this.pedRightLegInst.count = count;
-    this.pedLeftArmInst.count = count;
-    this.pedRightArmInst.count = count;
+    this.pedLegsInst.count = count * 2;
+    this.pedArmsInst.count = count * 2;
     this.pedTorsoInst.count = count;
     this.pedHeadInst.count = count;
 
@@ -1289,23 +1281,23 @@ export class RegionWorldScene {
 
       const sinH = Math.sin(p.heading);
       const cosH = Math.cos(p.heading);
-      // Right lateral vector relative to pedestrian heading
       const rightX = cosH;
       const rightZ = -sinH;
+      const limbBase = i * 2;
 
       this.dummyObj.scale.set(1, 1, 1);
 
-      // Left & Right striding legs swinging smoothly from hip joint!
+      // Left & Right striding legs batched into ONE single GPU draw call!
       const hipY = baseY + 0.78 + bob * 0.45;
       this.dummyObj.position.set(p.x - rightX * 0.095, hipY, p.z - rightZ * 0.095);
       this.dummyObj.rotation.set(legSwing, p.heading, 0);
       this.dummyObj.updateMatrix();
-      this.pedLeftLegInst.setMatrixAt(i, this.dummyObj.matrix);
+      this.pedLegsInst.setMatrixAt(limbBase, this.dummyObj.matrix);
 
       this.dummyObj.position.set(p.x + rightX * 0.095, hipY, p.z + rightZ * 0.095);
       this.dummyObj.rotation.set(-legSwing, p.heading, 0);
       this.dummyObj.updateMatrix();
-      this.pedRightLegInst.setMatrixAt(i, this.dummyObj.matrix);
+      this.pedLegsInst.setMatrixAt(limbBase + 1, this.dummyObj.matrix);
 
       // Torso with subtle counter-twist & sprint lean
       this.dummyObj.position.set(p.x, baseY + 1.07 + bob, p.z);
@@ -1313,17 +1305,17 @@ export class RegionWorldScene {
       this.dummyObj.updateMatrix();
       this.pedTorsoInst.setMatrixAt(i, this.dummyObj.matrix);
 
-      // Opposite swinging arms from shoulder sockets!
+      // Opposite swinging arms batched into ONE single GPU draw call!
       const shoulderY = baseY + 1.3 + bob;
       this.dummyObj.position.set(p.x - rightX * 0.24, shoulderY, p.z - rightZ * 0.24);
       this.dummyObj.rotation.set(-armSwing, p.heading, 0.06);
       this.dummyObj.updateMatrix();
-      this.pedLeftArmInst.setMatrixAt(i, this.dummyObj.matrix);
+      this.pedArmsInst.setMatrixAt(limbBase, this.dummyObj.matrix);
 
       this.dummyObj.position.set(p.x + rightX * 0.24, shoulderY, p.z + rightZ * 0.24);
       this.dummyObj.rotation.set(armSwing, p.heading, -0.06);
       this.dummyObj.updateMatrix();
-      this.pedRightArmInst.setMatrixAt(i, this.dummyObj.matrix);
+      this.pedArmsInst.setMatrixAt(limbBase + 1, this.dummyObj.matrix);
 
       // Head looking naturally along street or glancing around
       this.dummyObj.position.set(p.x, baseY + 1.54 + bob, p.z);
@@ -1334,26 +1326,22 @@ export class RegionWorldScene {
       if (colorsDirty) {
         const pantsCol = PED_PANTS_COLORS[p.pantsColorIndex % PED_PANTS_COLORS.length]!;
         const shirtCol = PED_SHIRT_COLORS[p.shirtColorIndex % PED_SHIRT_COLORS.length]!;
-        this.pedLeftLegInst.setColorAt(i, pantsCol);
-        this.pedRightLegInst.setColorAt(i, pantsCol);
+        this.pedLegsInst.setColorAt(limbBase, pantsCol);
+        this.pedLegsInst.setColorAt(limbBase + 1, pantsCol);
         this.pedTorsoInst.setColorAt(i, shirtCol);
-        this.pedLeftArmInst.setColorAt(i, shirtCol);
-        this.pedRightArmInst.setColorAt(i, shirtCol);
+        this.pedArmsInst.setColorAt(limbBase, shirtCol);
+        this.pedArmsInst.setColorAt(limbBase + 1, shirtCol);
       }
     }
 
-    this.pedLeftLegInst.instanceMatrix.needsUpdate = true;
-    this.pedRightLegInst.instanceMatrix.needsUpdate = true;
-    this.pedLeftArmInst.instanceMatrix.needsUpdate = true;
-    this.pedRightArmInst.instanceMatrix.needsUpdate = true;
+    this.pedLegsInst.instanceMatrix.needsUpdate = true;
+    this.pedArmsInst.instanceMatrix.needsUpdate = true;
     this.pedTorsoInst.instanceMatrix.needsUpdate = true;
     this.pedHeadInst.instanceMatrix.needsUpdate = true;
     if (colorsDirty) {
-      if (this.pedLeftLegInst.instanceColor) this.pedLeftLegInst.instanceColor.needsUpdate = true;
-      if (this.pedRightLegInst.instanceColor) this.pedRightLegInst.instanceColor.needsUpdate = true;
+      if (this.pedLegsInst.instanceColor) this.pedLegsInst.instanceColor.needsUpdate = true;
+      if (this.pedArmsInst.instanceColor) this.pedArmsInst.instanceColor.needsUpdate = true;
       if (this.pedTorsoInst.instanceColor) this.pedTorsoInst.instanceColor.needsUpdate = true;
-      if (this.pedLeftArmInst.instanceColor) this.pedLeftArmInst.instanceColor.needsUpdate = true;
-      if (this.pedRightArmInst.instanceColor) this.pedRightArmInst.instanceColor.needsUpdate = true;
     }
   }
 
