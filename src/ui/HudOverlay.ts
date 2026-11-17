@@ -162,6 +162,8 @@ export class HudOverlay {
   private readonly shiftUpBtn: HTMLButtonElement;
   private readonly holdButtons: HTMLButtonElement[] = [];
   private stickKnobEl: HTMLDivElement | null = null;
+  private lastPerfHtml = '';
+  private lastLocationHtml = '';
 
   private locale: LocaleCode;
   private qualityTier: QualityTier;
@@ -849,11 +851,15 @@ export class HudOverlay {
       }
     }
 
-    this.perfRowEl.innerHTML =
+    const perfHtml =
       `<span class="perf-pill">${t.fpsLabel}: ${Math.round(view.fps)}</span>` +
       `<span class="perf-pill">${t.drawsLabel}: ${view.drawCalls}</span>` +
       `<span class="perf-pill">${t.tilesLabel}: ${view.loadedTiles}</span>` +
       `<span class="perf-pill">${t.buildingsLabel}: ${view.activeBuildings}</span>`;
+    if (perfHtml !== this.lastPerfHtml) {
+      this.lastPerfHtml = perfHtml;
+      this.perfRowEl.innerHTML = perfHtml;
+    }
 
     const sanctuaryHtml = view.sanctuaryLabel
       ? `<span class="sanctuary-pill" data-testid="sanctuary-banner">${t.sanctuaryBanner} · ${view.sanctuaryLabel}</span>`
@@ -863,10 +869,14 @@ export class HudOverlay {
         ? `<span class="prompt-pill" data-testid="vehicle-prompt">${t.nearVehiclePrompt}</span>`
         : '';
 
-    this.locationRowEl.innerHTML =
+    const locationHtml =
       `<span class="location-pill">${view.regionName} · ${view.nearestLandmarkLabel}</span>` +
       sanctuaryHtml +
       vehiclePromptHtml;
+    if (locationHtml !== this.lastLocationHtml) {
+      this.lastLocationHtml = locationHtml;
+      this.locationRowEl.innerHTML = locationHtml;
+    }
   }
 
   openModal(modal: ActiveModal): void {

@@ -2,13 +2,11 @@ package com.istanbulstreets.game;
 
 import android.app.GameManager;
 import android.app.GameState;
-import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.view.Display;
 import android.view.View;
 import android.view.Window;
@@ -39,16 +37,6 @@ public class MainActivity extends BridgeActivity {
         window.setBackgroundDrawable(new ColorDrawable(DARK_BG));
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
-
-        // Enable Android Sustained Performance Mode where supported for rock-solid frame pacing
-        try {
-            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-            if (pm != null && pm.isSustainedPerformanceModeSupported()) {
-                window.setSustainedPerformanceMode(true);
-            }
-        } catch (Throwable ignored) {
-            // Non-fatal
-        }
 
         // Notify Android 13+ GameManager to unlock full CPU/GPU gaming performance clocks
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -86,7 +74,8 @@ public class MainActivity extends BridgeActivity {
         }
         WebView webView = this.bridge.getWebView();
         webView.setBackgroundColor(DARK_BG);
-        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        // Keep default LAYER_TYPE_NONE with Activity android:hardwareAccelerated="true" so
+        // Chromium composites WebGL2 directly to the hardware surface without extra FBO copies.
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

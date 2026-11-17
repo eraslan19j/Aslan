@@ -254,76 +254,85 @@ export class ProceduralSoundEngine {
     if (!this.ctx || !this.engineGain || !this.engineOsc || !this.engineSubOsc || !this.engineFilter) {
       return;
     }
-    const now = this.ctx.currentTime;
-    if (v.paused || this.muted || !v.inVehicle) {
-      this.engineGain.gain.setTargetAtTime(0, now, 0.06);
-      this.workletGain?.gain.setTargetAtTime(0, now, 0.06);
-      this.turboGain?.gain.setTargetAtTime(0, now, 0.06);
-      this.skidGain?.gain.setTargetAtTime(0, now, 0.05);
-      this.windGain?.gain.setTargetAtTime(0, now, 0.08);
-      return;
-    }
+    try {
+      const now = this.ctx.currentTime;
+      if (!Number.isFinite(now)) return;
+      if (v.paused || this.muted || !v.inVehicle) {
+        this.engineGain.gain.setTargetAtTime(0, now, 0.06);
+        this.workletGain?.gain.setTargetAtTime(0, now, 0.06);
+        this.turboGain?.gain.setTargetAtTime(0, now, 0.06);
+        this.skidGain?.gain.setTargetAtTime(0, now, 0.05);
+        this.windGain?.gain.setTargetAtTime(0, now, 0.08);
+        return;
+      }
 
-    const rpmFrac = Math.max(0, Math.min(1, (v.rpm - 800) / Math.max(1000, v.redlineRpm - 800)));
-    const cyl = v.cylinders ?? 6;
+      const safeRpm = Number.isFinite(v.rpm) ? Math.max(500, Math.min(9500, v.rpm)) : 950;
+      const safeRedline = Number.isFinite(v.redlineRpm) ? Math.max(2000, v.redlineRpm) : 8200;
+      const safeThrottle = Number.isFinite(v.throttle) ? Math.max(0, Math.min(1, v.throttle)) : 0;
+      const safeBackfire = Number.isFinite(v.backfirePulse) ? Math.max(0, Math.min(1, v.backfirePulse)) : 0;
+      const rpmFrac = Math.max(0, Math.min(1, (safeRpm - 800) / Math.max(1000, safeRedline - 800)));
+      const cyl = v.cylinders ?? 6;
 
-    // Engine synth: prefer physical waveguide AudioWorklet if loaded, else rich multi-harmonic fallback
-    if (this.workletNode && this.workletGain) {
-      const pRpm = this.workletNode.parameters.get('rpm');
-      const pThr = this.workletNode.parameters.get('throttle');
-      const pCyl = this.workletNode.parameters.get('cylinders');
-      const pBf = this.workletNode.parameters.get('backfire');
-      pRpm?.setTargetAtTime(v.rpm, now, 0.025);
-      pThr?.setTargetAtTime(v.throttle, now, 0.03);
-      pCyl?.setTargetAtTime(cyl, now, 0.1);
-      pBf?.setTargetAtTime(v.backfirePulse, now, 0.015);
-      const wgTarget = 0.24 + rpmFrac * 0.18 + v.throttle * 0.14;
-      this.workletGain.gain.setTargetAtTime(wgTarget, now, 0.04);
-      // Keep fallback muted once AudioWorklet is active
-      this.engineGain.gain.setTargetAtTime(0, now, 0.06);
-    } else {
-      const firingHz = (v.rpm / 60) * (cyl * 0.5);
-      this.engineOsc.frequency.setTargetAtTime(Math.max(35, firingHz), now, 0.035);
-      this.engineHarmOsc?.frequency.setTargetAtTime(Math.max(70, firingHz * 2.0), now, 0.035);
-      this.engineSubOsc.frequency.setTargetAtTime(Math.max(20, firingHz * 0.5), now, 0.035);
-      this.engineFilter.frequency.setTargetAtTime(
-        210 + rpmFrac * 1350 + v.throttle * 680,
-        now,
-        0.04,
-      );
-      const targetGain = 0.11 + rpmFrac * 0.1 + v.throttle * 0.07;
-      this.engineGain.gain.setTargetAtTime(targetGain, now, 0.05);
-    }
+      // Engine synth: prefer physical waveguide AudioWorklet if loaded, else rich multi-harmonic fallback
+      if (this.workletNode && this.workletGain) {
+        const pRpm = this.workletNode.parameters.get('rpm');
+        const pThr = this.workletNode.parameters.get('throttle');
+        const pCyl = this.workletNode.parameters.get('cylinders');
+        const pBf = this.workletNode.parameters.get('backfire');
+        pRpm?.setTargetAtTime(safeRpm, now, 0.025);
+        pThr?.setTargetAtTime(safeThrottle, now, 0.03);
+        pCyl?.setTargetAtTime(cyl, now, 0.1);
+        pBf?.setTargetAtTime(safeBackfire, now, 0.015);
+        const wgTarget = 0.24 + rpmFrac * 0.18 + safeThrottle * 0.14;
+        this.workletGain.gain.setTargetAtTime(wgTarget, now, 0.04);
+        // Keep fallback muted once AudioWorklet is active
+        this.engineGain.gain.setTargetAtTime(0, now, 0.06);
+      } else {
+        const firingHz = (safeRpm / 60) * (cyl * 0.5);
+        this.engineOsc.frequency.setTargetAtTime(Math.max(35, firingHz), now, 0.035);
+        this.engineHarmOsc?.frequency.setTargetAtTime(Math.max(70, firingHz * 2.0), now, 0.035);
+        this.engineSubOsc.frequency.setTargetAtTime(Math.max(20, firingHz * 0.5), now, 0.035);
+        this.engineFilter.frequency.setTargetAtTime(
+          210 + rpmFrac * 1350 + safeThrottle * 680,
+          now,
+          0.04,
+        );
+        const targetGain = 0.11 + rpmFrac * 0.1 + safeThrottle * 0.07;
+        this.engineGain.gain.setTargetAtTime(targetGain, now, 0.05);
+      }
 
-    // Turbo spool whine (subtle high-tech turbine whistle under boost)
-    if (this.turboOsc && this.turboGain) {
-      const boostNorm = Math.max(0, Math.min(1, v.turboBoost / 1.3));
-      this.turboOsc.frequency.setTargetAtTime(1750 + boostNorm * 2700, now, 0.06);
-      this.turboGain.gain.setTargetAtTime(boostNorm > 0.12 ? boostNorm * 0.036 : 0, now, 0.06);
-    }
+      // Turbo spool whine (subtle high-tech turbine whistle under boost)
+      if (this.turboOsc && this.turboGain) {
+        const boostNorm = Math.max(0, Math.min(1, (v.turboBoost || 0) / 1.3));
+        this.turboOsc.frequency.setTargetAtTime(1750 + boostNorm * 2700, now, 0.06);
+        this.turboGain.gain.setTargetAtTime(boostNorm > 0.12 ? boostNorm * 0.036 : 0, now, 0.06);
+      }
 
-    // Proportional 4-wheel Pacejka tire screech
-    if (this.skidGain && this.skidBand1 && this.skidBand2) {
-      const skid = Math.max(0, Math.min(1, v.skidIntensity));
-      const targetSkidGain = skid > 0.2 ? (skid - 0.2) * 0.24 : 0;
-      this.skidGain.gain.setTargetAtTime(targetSkidGain, now, 0.035);
-      this.skidBand1.frequency.setTargetAtTime(980 + skid * 460 + Math.min(240, v.speedKph * 2.1), now, 0.04);
-      this.skidBand2.frequency.setTargetAtTime(1950 + skid * 720, now, 0.04);
-    }
+      // Proportional 4-wheel Pacejka tire screech
+      if (this.skidGain && this.skidBand1 && this.skidBand2) {
+        const skid = Math.max(0, Math.min(1, v.skidIntensity || 0));
+        const targetSkidGain = skid > 0.2 ? (skid - 0.2) * 0.24 : 0;
+        this.skidGain.gain.setTargetAtTime(targetSkidGain, now, 0.035);
+        this.skidBand1.frequency.setTargetAtTime(980 + skid * 460 + Math.min(240, v.speedKph * 2.1), now, 0.04);
+        this.skidBand2.frequency.setTargetAtTime(1950 + skid * 720, now, 0.04);
+      }
 
-    // High-speed aerodynamic wind rush
-    if (this.windGain && this.windFilter) {
-      const windNorm = Math.max(0, Math.min(1, (v.speedKph - 45) / 140));
-      this.windGain.gain.setTargetAtTime(windNorm * windNorm * 0.14, now, 0.08);
-      this.windFilter.frequency.setTargetAtTime(320 + windNorm * 780, now, 0.08);
-    }
+      // High-speed aerodynamic wind rush
+      if (this.windGain && this.windFilter) {
+        const windNorm = Math.max(0, Math.min(1, (v.speedKph - 45) / 140));
+        this.windGain.gain.setTargetAtTime(windNorm * windNorm * 0.14, now, 0.08);
+        this.windFilter.frequency.setTargetAtTime(320 + windNorm * 780, now, 0.08);
+      }
 
-    // One-shot crisp exhaust backfire pop & turbo blow-off valve sound!
-    if (v.backfirePulse > 0.72) {
-      this.playExhaustPop(v.backfirePulse);
-    }
-    if (v.blowOffPulse > 0.45) {
-      this.playTurboBlowOff(v.blowOffPulse);
+      // One-shot crisp exhaust backfire pop & turbo blow-off valve sound!
+      if (safeBackfire > 0.72) {
+        this.playExhaustPop(safeBackfire);
+      }
+      if (v.blowOffPulse > 0.45) {
+        this.playTurboBlowOff(v.blowOffPulse);
+      }
+    } catch {
+      // Never allow audio driver quirks to interrupt the main render loop
     }
   }
 

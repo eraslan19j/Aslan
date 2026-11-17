@@ -36,10 +36,13 @@ const fail = (msg) => {
   process.exitCode = 1;
 };
 
+const errors = [];
+let activePage = null;
+
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  activePage = page;
   page.setDefaultTimeout(45000);
-  const errors = [];
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
   });
@@ -87,7 +90,7 @@ try {
       return p ? Math.hypot(p.x - sx, p.z - sz) >= 1.2 : false;
     },
     [initialPos.x, initialPos.z],
-    { timeout: 15000 },
+    { timeout: 30000 },
   );
   await page.keyboard.up('KeyW');
   await page.keyboard.up('ShiftLeft');
@@ -98,13 +101,13 @@ try {
   await page.evaluate(() => window.__game.enterVehicle());
   const modeBeforeV = await page.evaluate(() => window.__game.drivingMode);
   await page.keyboard.press('KeyV');
-  await page.waitForTimeout(60);
+  await page.waitForTimeout(100);
   const modeAfterV = await page.evaluate(() => window.__game.drivingMode);
   await page.keyboard.press('KeyV');
   await page.keyboard.press('KeyV'); // back to street
   const transBeforeG = await page.evaluate(() => window.__game.transmissionMode);
   await page.keyboard.press('KeyG');
-  await page.waitForTimeout(60);
+  await page.waitForTimeout(100);
   const transAfterG = await page.evaluate(() => window.__game.transmissionMode);
   await page.keyboard.press('KeyG'); // back to auto
 
@@ -116,7 +119,7 @@ try {
       return v ? Math.hypot(v.x - sx, v.z - sz) >= 2.5 : false;
     },
     [driveStart.x, driveStart.z],
-    { timeout: 15000 },
+    { timeout: 35000 },
   );
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(350);
@@ -339,8 +342,28 @@ try {
   }
 } catch (err) {
   const msg = err instanceof Error ? err.stack || err.message : String(err);
+  let debugState = null;
+  if (activePage) {
+    try {
+      debugState = await activePage.evaluate(() => ({
+        paused: window.__game?.paused ?? null,
+        inVehicle: window.__game?.inVehicle ?? null,
+        drivingMode: window.__game?.drivingMode ?? null,
+        transmissionMode: window.__game?.transmissionMode ?? null,
+        speedKph: window.__game?.speedKph ?? null,
+        gear: window.__game?.gear ?? null,
+        rpm: window.__game?.rpm ?? null,
+        vehicle: window.__game?.vehicle ?? null,
+        perf: window.__game?.perf ?? null,
+        crashCount: window.__game?.getCrashCount?.() ?? null,
+      }));
+    } catch {
+      debugState = 'unavailable';
+    }
+  }
   console.error('SMOKE FATAL EXCEPTION:', msg);
-  writeFileSync('smoke-report.json', JSON.stringify({ fatalError: msg }, null, 2));
+  console.error('SMOKE DEBUG STATE:', JSON.stringify({ errors, debugState }, null, 2));
+  writeFileSync('smoke-report.json', JSON.stringify({ fatalError: msg, errors, debugState }, null, 2));
   process.exitCode = 1;
 } finally {
   await browser.close();

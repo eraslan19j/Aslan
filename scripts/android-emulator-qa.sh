@@ -77,6 +77,12 @@ const checkImg = (file) => {
   const p = PNG.sync.read(fs.readFileSync(file));
   const colors = new Set();
   let bright = 0;
+  let centerBright = 0;
+  let centerTotal = 0;
+  const x0 = Math.floor(p.width * 0.3);
+  const x1 = Math.floor(p.width * 0.7);
+  const y0 = Math.floor(p.height * 0.25);
+  const y1 = Math.floor(p.height * 0.75);
   const stride = 4 * 11;
   for (let i = 0; i < p.data.length; i += stride) {
     const r = p.data[i];
@@ -84,6 +90,13 @@ const checkImg = (file) => {
     const b = p.data[i + 2];
     colors.add(`${r >> 3},${g >> 3},${b >> 3}`);
     if (r + g + b > 300) bright += 1;
+    const pxIdx = i / 4;
+    const x = pxIdx % p.width;
+    const y = Math.floor(pxIdx / p.width);
+    if (x >= x0 && x <= x1 && y >= y0 && y <= y1) {
+      centerTotal += 1;
+      if (r + g + b > 180) centerBright += 1;
+    }
   }
   return {
     file,
@@ -92,6 +105,7 @@ const checkImg = (file) => {
     isLandscape: p.width > p.height,
     uniqueColors: colors.size,
     brightFrac: Number((bright / Math.max(1, Math.floor(p.data.length / stride))).toFixed(4)),
+    centerBrightFrac: Number((centerBright / Math.max(1, centerTotal)).toFixed(4)),
   };
 };
 
@@ -128,6 +142,10 @@ if (anrs.length > 0) {
 }
 if (!shots[0].isLandscape) {
   console.error('FAIL: App did not lock to landscape orientation!', shots[0]);
+  process.exit(1);
+}
+if (shots[0].centerBrightFrac < 0.05) {
+  console.error('FAIL: Center WebGL 3D canvas looks blank/black on Android WebView!', shots[0]);
   process.exit(1);
 }
 if (!report.appAliveAfterBack) {
