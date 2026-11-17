@@ -35,6 +35,10 @@ export interface DiagnosticsSnapshot {
   pixelRatio: number;
   touchUi: boolean;
   crashCount: number;
+  drivingMode?: string;
+  transmissionMode?: string;
+  audioBackend?: string;
+  nativePerfProfile?: string;
 }
 
 export function parseUserAgentInfo(userAgent: string, platform = ''): DeviceDiagnosticsInfo {

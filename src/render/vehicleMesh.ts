@@ -21,13 +21,18 @@ export interface PlayerTaxiRig {
   chassisGroup: THREE.Group;
   driverSeatMount: THREE.Group;
   steeringWheel: THREE.Mesh;
+  /** Independent suspension & steering hubs in exact physics order: [FL, FR, RL, RR] */
+  wheelHubGroups: THREE.Group[];
   frontSteerPivots: THREE.Group[];
   wheelSpinMeshes: THREE.Group[];
   bodyPaintMat: THREE.MeshStandardMaterial;
   spoilerMesh: THREE.Mesh;
   suvRoofMesh: THREE.Mesh;
+  backfireMesh: THREE.Mesh;
+  backfireMat: THREE.MeshBasicMaterial;
   headlightMat: THREE.MeshBasicMaterial;
   brakeLightMat: THREE.MeshBasicMaterial;
+  reverseLightMat: THREE.MeshBasicMaterial;
   leftSignalMat: THREE.MeshBasicMaterial;
   rightSignalMat: THREE.MeshBasicMaterial;
   vehicleHeadLight: THREE.PointLight;
@@ -610,6 +615,40 @@ export function createPlayerTaxiRig(
   );
   chassisGroup.add(new THREE.Mesh(brakeLightsGeo, brakeLightMat));
 
+  // 5b. Crisp White Reverse Lights (illuminates when reversing)
+  const reverseLightMat = trackMat(new THREE.MeshBasicMaterial({ color: 0x3b4252 }));
+  const reverseLightsGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.BoxGeometry(0.16, 0.08, 0.08), color: 0xffffff, position: [-0.32, 0.65, -2.165] },
+      { geometry: new THREE.BoxGeometry(0.16, 0.08, 0.08), color: 0xffffff, position: [0.32, 0.65, -2.165] },
+    ]),
+  );
+  chassisGroup.add(new THREE.Mesh(reverseLightsGeo, reverseLightMat));
+
+  // 5c. Twin Exhaust Backfire Flame Cones (flashes vividly on high-RPM downshifts & overrun!)
+  const backfireMat = trackMat(
+    new THREE.MeshBasicMaterial({
+      color: 0xff8c1a,
+      transparent: true,
+      opacity: 0.92,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  const leftFlame = new THREE.ConeGeometry(0.085, 0.56, 8);
+  leftFlame.rotateX(-Math.PI / 2);
+  const rightFlame = new THREE.ConeGeometry(0.085, 0.56, 8);
+  rightFlame.rotateX(-Math.PI / 2);
+  const backfireGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: leftFlame, color: 0xffaa2b, position: [-0.54, 0.34, -2.56] },
+      { geometry: rightFlame, color: 0xffaa2b, position: [0.54, 0.34, -2.56] },
+    ]),
+  );
+  const backfireMesh = new THREE.Mesh(backfireGeo, backfireMat);
+  backfireMesh.visible = false;
+  chassisGroup.add(backfireMesh);
+
   // 6. Fictional Istanbul License Plate (rear)
   const plateGeo = trackGeo(new THREE.PlaneGeometry(0.56, 0.14));
   const rearPlate = new THREE.Mesh(plateGeo, plateMat);
@@ -622,7 +661,7 @@ export function createPlayerTaxiRig(
   vehicleHeadLight.position.set(0, 1.15, 4.4);
   chassisGroup.add(vehicleHeadLight);
 
-  // 7–10. 4 Steerable & Rolling 5-Spoke Alloy Wheels
+  // 7–10. 4 Independent Suspension, Steerable & Rolling 5-Spoke Alloy Wheels with Red Calipers
   const tirePart = new THREE.CylinderGeometry(0.35, 0.35, 0.27, 14);
   tirePart.rotateZ(Math.PI / 2);
   const rimPart = new THREE.CylinderGeometry(0.23, 0.23, 0.285, 12);
@@ -641,22 +680,33 @@ export function createPlayerTaxiRig(
     ]),
   );
 
+  // Red Brembo-style brake caliper mounted on non-spinning wheel hub
+  const caliperGeo = trackGeo(new THREE.BoxGeometry(0.11, 0.14, 0.12));
+  const caliperMat = trackMat(new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.35, metalness: 0.45 }));
+
+  const wheelHubGroups: THREE.Group[] = [];
   const frontSteerPivots: THREE.Group[] = [];
   const wheelSpinMeshes: THREE.Group[] = [];
+  // Exact match with dyn.wheels order: 0=FL (+X,+Z), 1=FR (-X,+Z), 2=RL (+X,-Z), 3=RR (-X,-Z)
   const wheelPlacements: [number, number, boolean][] = [
-    [-0.93, 1.34, true],
     [0.93, 1.34, true],
-    [-0.93, -1.32, false],
+    [-0.93, 1.34, true],
     [0.93, -1.32, false],
+    [-0.93, -1.32, false],
   ];
 
   for (const [wx, wz, isFront] of wheelPlacements) {
     const steerPivot = new THREE.Group();
     steerPivot.position.set(wx, 0.35, wz);
+    const caliper = new THREE.Mesh(caliperGeo, caliperMat);
+    caliper.position.set(wx > 0 ? -0.05 : 0.05, 0.04, -0.11);
+    steerPivot.add(caliper);
+
     const spinGroup = new THREE.Group();
     spinGroup.add(new THREE.Mesh(singleWheelGeo, wheelMat));
     steerPivot.add(spinGroup);
     root.add(steerPivot);
+    wheelHubGroups.push(steerPivot);
     if (isFront) frontSteerPivots.push(steerPivot);
     wheelSpinMeshes.push(spinGroup);
   }
@@ -666,13 +716,17 @@ export function createPlayerTaxiRig(
     chassisGroup,
     driverSeatMount,
     steeringWheel,
+    wheelHubGroups,
     frontSteerPivots,
     wheelSpinMeshes,
     bodyPaintMat,
     spoilerMesh,
     suvRoofMesh,
+    backfireMesh,
+    backfireMat,
     headlightMat,
     brakeLightMat,
+    reverseLightMat,
     leftSignalMat,
     rightSignalMat,
     vehicleHeadLight,
@@ -686,19 +740,45 @@ export function createPlayerTaxiRig(
 }
 
 /**
- * Updates front wheel steering angle, rolling wheel spin, steering wheel, turn signals,
- * brake light glow, and spring-damped suspension pitch/roll/heave.
+ * Updates 4 independent wheel suspension hubs, Ackerman steering angles, individual wheel spin,
+ * sporty drift camber, exhaust backfire flames, brake/reverse lights, turn signals,
+ * and 2nd-order spring-damped suspension chassis pitch/roll/heave.
  */
 export function updatePlayerTaxiRig(rig: PlayerTaxiRig, vehicle: PlayerVehicleState): void {
-  const steerAngle = vehicle.steerVisual * 0.42;
-  for (const pivot of rig.frontSteerPivots) {
-    pivot.rotation.y = steerAngle;
+  const dyn = vehicle.dyn;
+  const driftCamber = dyn.drivingMode === 'drift' ? 0.06 : 0.02;
+
+  for (let i = 0; i < 4; i += 1) {
+    const w = dyn.wheels[i]!;
+    const hub = rig.wheelHubGroups[i];
+    const spinGroup = rig.wheelSpinMeshes[i];
+    if (hub) {
+      hub.position.y = 0.35 + w.hubOffsetY;
+      hub.rotation.y = w.isFront ? w.steerAngle : 0;
+      // Subtle negative camber on front wheels (more aggressive in CarX Drift mode!)
+      const sign = w.localLeft > 0 ? -1 : 1;
+      hub.rotation.z = w.isFront ? sign * driftCamber : sign * driftCamber * 0.45;
+    }
+    if (spinGroup) {
+      spinGroup.rotation.x = w.spin;
+    }
   }
-  for (const wheel of rig.wheelSpinMeshes) {
-    wheel.rotation.x = vehicle.wheelSpin;
-  }
-  rig.steeringWheel.rotation.z = -vehicle.steerVisual * 1.6;
+
+  rig.steeringWheel.rotation.z = -vehicle.steerVisual * 1.9;
   rig.brakeLightMat.color.setHex(vehicle.braking ? 0xff2626 : 0x991b1b);
+  rig.reverseLightMat.color.setHex(vehicle.reversing ? 0xf8fafc : 0x3b4252);
+
+  // Exhaust backfire pops & flames on downshifts & overrun
+  const bf = dyn.backfirePulse;
+  if (bf > 0.15) {
+    rig.backfireMesh.visible = true;
+    const s = 0.6 + bf * 0.9;
+    rig.backfireMesh.scale.set(0.8 + bf * 0.3, 0.8 + bf * 0.3, s);
+    rig.backfireMat.opacity = Math.min(0.95, bf * 1.15);
+    rig.backfireMat.color.setHex(bf > 0.7 ? 0x60a5fa : 0xff7b00);
+  } else {
+    rig.backfireMesh.visible = false;
+  }
 
   // Blinking amber turn signals when steering into a turn
   const blinkOn = Math.floor(vehicle.signalTimer * 3.6) % 2 === 0;

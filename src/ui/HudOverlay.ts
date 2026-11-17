@@ -5,8 +5,16 @@ import {
   type DiagnosticsSnapshot,
   type TimeOfDay,
 } from '../core/diagnostics';
+import { clamp } from '../core/math';
 import type { QualityTier } from '../core/quality';
 import type { LocaleCode } from '../core/save';
+import type {
+  DrivingMode,
+  DrivetrainType,
+  GearDisplay,
+  SteeringControlMode,
+  TransmissionMode,
+} from '../core/vehiclePhysics';
 import { REGION_REGISTRY, type RegionId } from '../core/world/regions';
 import type { LandmarkPin } from '../core/world/types';
 import { getStrings } from '../i18n/strings';
@@ -17,6 +25,10 @@ export interface TouchDrivingInput {
   brake: boolean;
   steerLeft: boolean;
   steerRight: boolean;
+  /** Proportional -1 (right) .. +1 (left) from CarX slider or Gyro sensor. */
+  steerAnalog: number;
+  /** True when CarX slider or gyro is actively driving analog steering. */
+  useAnalogSteer: boolean;
   handbrake: boolean;
 }
 
@@ -34,12 +46,16 @@ export interface HudTelemetryView {
   inVehicle: boolean;
   nearVehicle: boolean;
   speedKph: number;
-  gear: 'R' | 'N' | 'D';
+  gear: GearDisplay;
+  rpm: number;
+  rpmNorm: number;
+  turboBoost: number;
+  drivetrain: DrivetrainType;
+  drivingMode: DrivingMode;
+  transmissionMode: TransmissionMode;
   drifting: boolean;
-  cash: number;
-  wantedStars: number;
-  missionLabel: string | null;
-  missionPhase: 'pickup' | 'dropoff' | null;
+  driftAngleDeg: number;
+  driftScore: number;
 }
 
 export interface HudCallbacks {
@@ -53,13 +69,17 @@ export interface HudCallbacks {
   onHorn: () => void;
   onCycleCamera: () => void;
   onToggleAudio: () => void;
-  onDismissBusted: () => void;
+  onCycleDrivingMode: () => void;
+  onToggleTransmission: () => void;
+  onCycleSteeringMode: () => void;
+  onShiftUp: () => void;
+  onShiftDown: () => void;
   onSwitchRegion: (regionId: RegionId) => void;
   onTeleportLandmark: (landmark: LandmarkPin) => void;
   getDiagnostics: () => DiagnosticsSnapshot;
 }
 
-export type ActiveModal = 'none' | 'pause' | 'settings' | 'about' | 'crashlog' | 'busted';
+export type ActiveModal = 'none' | 'pause' | 'settings' | 'about' | 'crashlog';
 
 async function copyTextSafe(text: string): Promise<boolean> {
   try {
@@ -89,21 +109,35 @@ async function copyTextSafe(text: string): Promise<boolean> {
 export class HudOverlay {
   private readonly root: HTMLDivElement;
   private readonly minimapWrap: HTMLDivElement;
+
+  // CarX Cockpit Speed / RPM / Gear / Turbo / Mode cluster
   private readonly speedCluster: HTMLDivElement;
+  private readonly rpmFillEl: HTMLDivElement;
   private readonly speedValueEl: HTMLSpanElement;
   private readonly speedUnitEl: HTMLSpanElement;
   private readonly speedGearEl: HTMLSpanElement;
+  private readonly drivetrainEl: HTMLSpanElement;
+  private readonly boostEl: HTMLSpanElement;
+  private readonly modeChipBtn: HTMLButtonElement;
+  private readonly transChipBtn: HTMLButtonElement;
+  private readonly driftBannerEl: HTMLDivElement;
+
   private readonly touchLayer: HTMLDivElement;
   private readonly touchFootGroup: HTMLDivElement;
   private readonly touchDriveGroup: HTMLDivElement;
+  private readonly steerButtonsWrap: HTMLDivElement;
+  private readonly steerSliderWrap: HTMLDivElement;
+  private readonly steerSliderThumb: HTMLDivElement;
+  private readonly steerSliderLabel: HTMLSpanElement;
+  private readonly steerGyroPill: HTMLDivElement;
+  private readonly manualShiftGroup: HTMLDivElement;
+
   private readonly modalBackdrop: HTMLDivElement;
   private readonly modalPanel: HTMLDivElement;
   private readonly toastEl: HTMLDivElement;
 
   private readonly titleEl: HTMLDivElement;
   private readonly subEl: HTMLDivElement;
-  private readonly cashEl: HTMLSpanElement;
-  private readonly wantedEl: HTMLSpanElement;
   private readonly perfRowEl: HTMLDivElement;
   private readonly locationRowEl: HTMLDivElement;
   private readonly hintEl: HTMLDivElement;
@@ -123,6 +157,9 @@ export class HudOverlay {
   private readonly brakeBtn: HTMLButtonElement;
   private readonly driftBtn: HTMLButtonElement;
   private readonly hornBtn: HTMLButtonElement;
+  private readonly steerModeQuickBtn: HTMLButtonElement;
+  private readonly shiftDownBtn: HTMLButtonElement;
+  private readonly shiftUpBtn: HTMLButtonElement;
   private readonly holdButtons: HTMLButtonElement[] = [];
   private stickKnobEl: HTMLDivElement | null = null;
 
@@ -132,6 +169,9 @@ export class HudOverlay {
   private activeRegionId: RegionId;
   private cameraView: PlayerCameraView = 'chase';
   private audioMuted = false;
+  private drivingMode: DrivingMode = 'street';
+  private transmissionMode: TransmissionMode = 'auto';
+  private steeringMode: SteeringControlMode = 'buttons';
   private activeModal: ActiveModal = 'none';
   private inVehicle = false;
   private readonly touchEnabled: boolean;
@@ -141,8 +181,11 @@ export class HudOverlay {
     brake: false,
     steerLeft: false,
     steerRight: false,
+    steerAnalog: 0,
+    useAnalogSteer: false,
     handbrake: false,
   };
+  private gyroSteerSmoothed = 0;
   private readonly callbacks: HudCallbacks;
   private readonly crashLog: CrashLogStore;
   private landmarks: LandmarkPin[] = [];
@@ -184,16 +227,7 @@ export class HudOverlay {
     this.subEl = document.createElement('div');
     this.subEl.className = 'brand-sub';
 
-    this.cashEl = document.createElement('span');
-    this.cashEl.className = 'cash-pill';
-    this.cashEl.dataset.testid = 'hud-cash';
-    this.cashEl.textContent = '₺250';
-
-    this.wantedEl = document.createElement('span');
-    this.wantedEl.className = 'wanted-pill touch-hidden';
-    this.wantedEl.dataset.testid = 'hud-wanted';
-
-    brandRow.append(this.titleEl, this.cashEl, this.wantedEl, this.subEl);
+    brandRow.append(this.titleEl, this.subEl);
 
     this.perfRowEl = document.createElement('div');
     this.perfRowEl.className = 'perf-row';
@@ -234,23 +268,68 @@ export class HudOverlay {
 
     this.root.append(topRow, bottomRow);
 
-    // Minimap container (bottom-left on desktop, left-middle below HUD on 20:9 mobile)
+    // Minimap container
     this.minimapWrap = document.createElement('div');
     this.minimapWrap.className = touchEnabled ? 'minimap-wrap touch-pos' : 'minimap-wrap';
 
-    // Sleek digital speedometer + gear gauge (visible when driving)
+    // CarX Street Cockpit Gauge Cluster (RPM bar + Speed + Gear + Boost + Mode/Trans chips)
     this.speedCluster = document.createElement('div');
     this.speedCluster.className = 'speed-cluster';
     this.speedCluster.dataset.testid = 'speedometer';
+
+    const rpmTrack = document.createElement('div');
+    rpmTrack.className = 'rpm-bar-track';
+    this.rpmFillEl = document.createElement('div');
+    this.rpmFillEl.className = 'rpm-bar-fill';
+    rpmTrack.append(this.rpmFillEl);
+
+    const speedMainRow = document.createElement('div');
+    speedMainRow.className = 'speed-main-row';
+
     this.speedValueEl = document.createElement('span');
     this.speedValueEl.className = 'speed-value';
     this.speedValueEl.textContent = '0';
+
     this.speedUnitEl = document.createElement('span');
     this.speedUnitEl.className = 'speed-unit';
+
     this.speedGearEl = document.createElement('span');
     this.speedGearEl.className = 'speed-gear';
+    this.speedGearEl.dataset.testid = 'hud-gear';
     this.speedGearEl.textContent = 'N';
-    this.speedCluster.append(this.speedValueEl, this.speedUnitEl, this.speedGearEl);
+
+    speedMainRow.append(this.speedValueEl, this.speedUnitEl, this.speedGearEl);
+
+    const speedMetaRow = document.createElement('div');
+    speedMetaRow.className = 'speed-meta-row';
+
+    this.drivetrainEl = document.createElement('span');
+    this.drivetrainEl.className = 'drive-badge';
+    this.drivetrainEl.textContent = 'RWD';
+
+    this.boostEl = document.createElement('span');
+    this.boostEl.className = 'boost-badge';
+    this.boostEl.textContent = '0.0 BAR';
+
+    this.modeChipBtn = document.createElement('button');
+    this.modeChipBtn.type = 'button';
+    this.modeChipBtn.className = 'cockpit-chip';
+    this.modeChipBtn.dataset.testid = 'btn-driving-mode';
+    this.modeChipBtn.addEventListener('click', () => this.callbacks.onCycleDrivingMode());
+
+    this.transChipBtn = document.createElement('button');
+    this.transChipBtn.type = 'button';
+    this.transChipBtn.className = 'cockpit-chip';
+    this.transChipBtn.dataset.testid = 'btn-transmission';
+    this.transChipBtn.addEventListener('click', () => this.callbacks.onToggleTransmission());
+
+    speedMetaRow.append(this.drivetrainEl, this.boostEl, this.modeChipBtn, this.transChipBtn);
+    this.speedCluster.append(rpmTrack, speedMainRow, speedMetaRow);
+
+    // Floating Drift Angle + Combo Score Banner (top-center)
+    this.driftBannerEl = document.createElement('div');
+    this.driftBannerEl.className = 'drift-banner';
+    this.driftBannerEl.dataset.testid = 'drift-banner';
 
     // Touch controls layer (on-foot group + driving group)
     this.touchLayer = document.createElement('div');
@@ -295,7 +374,7 @@ export class HudOverlay {
     footRight.append(this.callTaxiBtn, this.enterCarBtn, this.sprintBtn);
     this.touchFootGroup.append(stickZone, footRight);
 
-    // Driving group (left steering + horn above; right exit/brake/gas + drift above!)
+    // Driving group
     this.touchDriveGroup = document.createElement('div');
     this.touchDriveGroup.className = 'touch-drive-group touch-hidden';
 
@@ -307,10 +386,19 @@ export class HudOverlay {
     this.hornBtn.dataset.testid = 'touch-horn';
     this.hornBtn.textContent = '🔔';
     this.hornBtn.addEventListener('click', () => this.callbacks.onHorn());
-    auxLeft.append(this.hornBtn);
 
-    const steerPad = document.createElement('div');
-    steerPad.className = 'touch-left-steer';
+    this.steerModeQuickBtn = document.createElement('button');
+    this.steerModeQuickBtn.type = 'button';
+    this.steerModeQuickBtn.className = 'touch-pad-btn touch-btn-small';
+    this.steerModeQuickBtn.dataset.testid = 'touch-steer-mode';
+    this.steerModeQuickBtn.textContent = '🎛';
+    this.steerModeQuickBtn.addEventListener('click', () => this.callbacks.onCycleSteeringMode());
+
+    auxLeft.append(this.hornBtn, this.steerModeQuickBtn);
+
+    // Steering Mode 1: Crisp Left / Right Buttons
+    this.steerButtonsWrap = document.createElement('div');
+    this.steerButtonsWrap.className = 'touch-left-steer';
     const steerLeftBtn = document.createElement('button');
     steerLeftBtn.type = 'button';
     steerLeftBtn.className = 'touch-pad-btn';
@@ -328,10 +416,45 @@ export class HudOverlay {
     this.wireHoldButton(steerRightBtn, (v) => {
       this.driveTouch.steerRight = v;
     });
-    steerPad.append(steerLeftBtn, steerRightBtn);
+    this.steerButtonsWrap.append(steerLeftBtn, steerRightBtn);
 
+    // Steering Mode 2: CarX Street Precision Analog Touch Slider
+    this.steerSliderWrap = document.createElement('div');
+    this.steerSliderWrap.className = 'touch-steer-slider touch-hidden';
+    this.steerSliderWrap.dataset.testid = 'touch-steer-slider';
+    this.steerSliderLabel = document.createElement('span');
+    this.steerSliderLabel.className = 'steer-slider-label';
+    this.steerSliderThumb = document.createElement('div');
+    this.steerSliderThumb.className = 'steer-slider-thumb';
+    this.steerSliderWrap.append(this.steerSliderLabel, this.steerSliderThumb);
+    this.wireSteerSlider(this.steerSliderWrap, this.steerSliderThumb);
+
+    // Steering Mode 3: Gyro / Tilt Steering indicator
+    this.steerGyroPill = document.createElement('div');
+    this.steerGyroPill.className = 'touch-gyro-pill touch-hidden';
+    this.steerGyroPill.dataset.testid = 'touch-steer-gyro';
+
+    // Aux Right: Manual Shift V- / V+ (shown only in manual mode) + Handbrake
     const auxRight = document.createElement('div');
     auxRight.className = 'touch-aux-right';
+
+    this.manualShiftGroup = document.createElement('div');
+    this.manualShiftGroup.className = 'manual-shift-group touch-hidden';
+
+    this.shiftDownBtn = document.createElement('button');
+    this.shiftDownBtn.type = 'button';
+    this.shiftDownBtn.className = 'touch-pad-btn touch-btn-small';
+    this.shiftDownBtn.dataset.testid = 'touch-shift-down';
+    this.shiftDownBtn.addEventListener('click', () => this.callbacks.onShiftDown());
+
+    this.shiftUpBtn = document.createElement('button');
+    this.shiftUpBtn.type = 'button';
+    this.shiftUpBtn.className = 'touch-pad-btn touch-btn-small primary';
+    this.shiftUpBtn.dataset.testid = 'touch-shift-up';
+    this.shiftUpBtn.addEventListener('click', () => this.callbacks.onShiftUp());
+
+    this.manualShiftGroup.append(this.shiftDownBtn, this.shiftUpBtn);
+
     this.driftBtn = document.createElement('button');
     this.driftBtn.type = 'button';
     this.driftBtn.className = 'touch-pad-btn touch-btn-small';
@@ -339,7 +462,7 @@ export class HudOverlay {
     this.wireHoldButton(this.driftBtn, (v) => {
       this.driveTouch.handbrake = v;
     });
-    auxRight.append(this.driftBtn);
+    auxRight.append(this.manualShiftGroup, this.driftBtn);
 
     const driveRight = document.createElement('div');
     driveRight.className = 'touch-right-pad';
@@ -367,7 +490,14 @@ export class HudOverlay {
     });
 
     driveRight.append(this.exitCarBtn, this.brakeBtn, this.gasBtn);
-    this.touchDriveGroup.append(auxLeft, steerPad, auxRight, driveRight);
+    this.touchDriveGroup.append(
+      auxLeft,
+      this.steerButtonsWrap,
+      this.steerSliderWrap,
+      this.steerGyroPill,
+      auxRight,
+      driveRight,
+    );
 
     this.touchLayer.append(this.touchFootGroup, this.touchDriveGroup);
 
@@ -384,11 +514,89 @@ export class HudOverlay {
       this.root,
       this.minimapWrap,
       this.speedCluster,
+      this.driftBannerEl,
       this.touchLayer,
       this.modalBackdrop,
       this.toastEl,
     );
+
+    this.installGyroListener();
     this.applyLabels();
+    this.applySteeringVisibility();
+  }
+
+  private installGyroListener(): void {
+    if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) return;
+    window.addEventListener(
+      'deviceorientation',
+      (ev: DeviceOrientationEvent) => {
+        if (this.steeringMode !== 'gyro' || !this.inVehicle) return;
+        const beta = ev.beta;
+        if (beta === null || !Number.isFinite(beta)) return;
+        // Landscape sensor orientation: left-side-up (90°) vs right-side-up (270°/-90°)
+        const screenAngle =
+          (window.screen?.orientation?.angle ?? (window as Window & { orientation?: number }).orientation ?? 90);
+        const sign = screenAngle === 270 || screenAngle === -90 ? -1 : 1;
+        // Tilt phone left -> negative beta in landscape 90° -> steer left (+1)
+        const rawTilt = clamp((-beta * sign) / 32, -1, 1);
+        const deadzoned = Math.abs(rawTilt) < 0.08 ? 0 : (rawTilt - Math.sign(rawTilt) * 0.08) / 0.92;
+        this.gyroSteerSmoothed = this.gyroSteerSmoothed * 0.72 + deadzoned * 0.28;
+        this.driveTouch.steerAnalog = clamp(this.gyroSteerSmoothed, -1, 1);
+        this.driveTouch.useAnalogSteer = true;
+      },
+      { passive: true },
+    );
+  }
+
+  private wireSteerSlider(track: HTMLDivElement, thumb: HTMLDivElement): void {
+    let activePointerId: number | null = null;
+    const updateFromClientX = (clientX: number): void => {
+      const rect = track.getBoundingClientRect();
+      const half = Math.max(24, rect.width * 0.5 - 24);
+      const cx = rect.left + rect.width * 0.5;
+      const dx = clamp(clientX - cx, -half, half);
+      const norm = dx / half; // -1 left .. +1 right
+      thumb.style.transform = `translateX(${dx}px)`;
+      // Engine convention: +1 = left, -1 = right
+      this.driveTouch.steerAnalog = -norm;
+      this.driveTouch.useAnalogSteer = true;
+    };
+    const reset = (): void => {
+      activePointerId = null;
+      thumb.style.transform = 'translateX(0px)';
+      this.driveTouch.steerAnalog = 0;
+      this.driveTouch.useAnalogSteer = false;
+    };
+    track.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      activePointerId = e.pointerId;
+      track.setPointerCapture(e.pointerId);
+      updateFromClientX(e.clientX);
+    });
+    track.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== activePointerId) return;
+      updateFromClientX(e.clientX);
+    });
+    track.addEventListener('pointerup', (e) => {
+      if (e.pointerId === activePointerId) reset();
+    });
+    track.addEventListener('pointercancel', (e) => {
+      if (e.pointerId === activePointerId) reset();
+    });
+  }
+
+  private applySteeringVisibility(): void {
+    this.steerButtonsWrap.classList.toggle('touch-hidden', this.steeringMode !== 'buttons');
+    this.steerSliderWrap.classList.toggle('touch-hidden', this.steeringMode !== 'slider');
+    this.steerGyroPill.classList.toggle('touch-hidden', this.steeringMode !== 'gyro');
+    this.manualShiftGroup.classList.toggle('touch-hidden', this.transmissionMode !== 'manual');
+    if (this.steeringMode !== 'gyro') {
+      this.gyroSteerSmoothed = 0;
+      if (this.steeringMode === 'buttons') {
+        this.driveTouch.steerAnalog = 0;
+        this.driveTouch.useAnalogSteer = false;
+      }
+    }
   }
 
   mountMinimap(canvas: HTMLCanvasElement): void {
@@ -409,7 +617,10 @@ export class HudOverlay {
     this.driveTouch.brake = false;
     this.driveTouch.steerLeft = false;
     this.driveTouch.steerRight = false;
+    this.driveTouch.steerAnalog = 0;
+    this.driveTouch.useAnalogSteer = false;
     this.driveTouch.handbrake = false;
+    this.steerSliderThumb.style.transform = 'translateX(0px)';
     if (this.stickKnobEl) {
       this.stickKnobEl.style.transform = 'translate(0px, 0px)';
     }
@@ -502,6 +713,9 @@ export class HudOverlay {
     regionId: RegionId,
     cameraView = this.cameraView,
     audioMuted = this.audioMuted,
+    drivingMode = this.drivingMode,
+    transmissionMode = this.transmissionMode,
+    steeringMode = this.steeringMode,
   ): void {
     this.locale = locale;
     this.qualityTier = qualityTier;
@@ -509,7 +723,11 @@ export class HudOverlay {
     this.activeRegionId = regionId;
     this.cameraView = cameraView;
     this.audioMuted = audioMuted;
+    this.drivingMode = drivingMode;
+    this.transmissionMode = transmissionMode;
+    this.steeringMode = steeringMode;
     this.applyLabels();
+    this.applySteeringVisibility();
     if (this.activeModal !== 'none') {
       this.renderModal();
     }
@@ -528,6 +746,18 @@ export class HudOverlay {
     return `${t.timeDay} ☀`;
   }
 
+  private getDrivingModeLabel(t: ReturnType<typeof getStrings>): string {
+    if (this.drivingMode === 'drift') return t.modeDrift;
+    if (this.drivingMode === 'sim') return t.modeSim;
+    return t.modeStreet;
+  }
+
+  private getSteeringLabel(t: ReturnType<typeof getStrings>): string {
+    if (this.steeringMode === 'slider') return t.steerSlider;
+    if (this.steeringMode === 'gyro') return t.steerGyro;
+    return t.steerButtons;
+  }
+
   private applyLabels(): void {
     const t = getStrings(this.locale);
     this.titleEl.textContent = t.appTitle;
@@ -544,6 +774,11 @@ export class HudOverlay {
     this.pauseBtn.textContent = t.pauseButton;
 
     this.speedUnitEl.textContent = t.speedUnit;
+    this.modeChipBtn.textContent = this.getDrivingModeLabel(t);
+    this.modeChipBtn.className = `cockpit-chip mode-${this.drivingMode}`;
+    this.transChipBtn.textContent = this.transmissionMode === 'manual' ? t.transManual : t.transAuto;
+    this.transChipBtn.className = `cockpit-chip ${this.transmissionMode === 'manual' ? 'mode-drift' : ''}`;
+
     this.sprintBtn.textContent = t.sprintButton;
     this.enterCarBtn.textContent = t.enterCarButton;
     this.callTaxiBtn.textContent = '🚗';
@@ -553,6 +788,11 @@ export class HudOverlay {
     this.brakeBtn.textContent = t.brakeButton;
     this.driftBtn.textContent = t.driftButton;
     this.hornBtn.title = t.hornButton;
+    this.steerModeQuickBtn.title = `${t.steeringModeToastPrefix}: ${this.getSteeringLabel(t)}`;
+    this.steerSliderLabel.textContent = t.steerSliderHint;
+    this.steerGyroPill.textContent = t.gyroHint;
+    this.shiftUpBtn.textContent = t.shiftUpButton;
+    this.shiftDownBtn.textContent = t.shiftDownButton;
     this.updateHintLabel();
   }
 
@@ -577,24 +817,36 @@ export class HudOverlay {
       this.touchFootGroup.classList.toggle('touch-hidden', this.inVehicle);
       this.touchDriveGroup.classList.toggle('touch-hidden', !this.inVehicle);
       this.speedCluster.classList.toggle('visible', this.inVehicle);
+      if (!this.inVehicle) {
+        this.driftBannerEl.classList.remove('visible');
+      }
       this.updateHintLabel();
     }
     this.enterCarBtn.classList.toggle('touch-hidden', !view.nearVehicle);
     this.callTaxiBtn.classList.toggle('touch-hidden', view.nearVehicle);
 
-    // Pure GTA Free-Roam HUD: hide forced taxi fare cash badge
-    this.cashEl.classList.add('touch-hidden');
-    if (view.wantedStars > 0) {
-      this.wantedEl.classList.remove('touch-hidden');
-      this.wantedEl.textContent = `${'★'.repeat(view.wantedStars)}${'☆'.repeat(5 - view.wantedStars)}`;
-    } else {
-      this.wantedEl.classList.add('touch-hidden');
-    }
-
     if (view.inVehicle) {
       this.speedValueEl.textContent = String(view.speedKph);
-      this.speedGearEl.textContent = view.drifting ? t.driftButton : view.gear;
-      this.speedGearEl.classList.toggle('drift', view.drifting);
+      this.speedGearEl.textContent = view.gear;
+      const redline = view.rpmNorm >= 0.89;
+      this.speedGearEl.classList.toggle('redline', redline);
+      this.speedGearEl.classList.toggle('drift', view.drifting && !redline);
+
+      const rpmPct = Math.round(clamp(view.rpmNorm, 0.04, 1) * 100);
+      this.rpmFillEl.style.width = `${rpmPct}%`;
+      this.rpmFillEl.classList.toggle('redline', redline);
+
+      this.drivetrainEl.textContent = view.drivetrain;
+      const boostBar = Math.max(0, view.turboBoost * 1.6);
+      this.boostEl.textContent = `${boostBar.toFixed(1)} ${t.turboLabel}`;
+      this.boostEl.classList.toggle('active', boostBar > 0.25);
+
+      if (view.drifting || view.driftScore >= 40) {
+        this.driftBannerEl.classList.add('visible');
+        this.driftBannerEl.textContent = `${t.driftScoreLabel} · ${view.driftAngleDeg}° · ${Math.round(view.driftScore).toLocaleString()}`;
+      } else {
+        this.driftBannerEl.classList.remove('visible');
+      }
     }
 
     this.perfRowEl.innerHTML =
@@ -610,15 +862,11 @@ export class HudOverlay {
       !view.inVehicle && view.nearVehicle && !this.touchEnabled
         ? `<span class="prompt-pill" data-testid="vehicle-prompt">${t.nearVehiclePrompt}</span>`
         : '';
-    const missionHtml = view.missionLabel
-      ? `<span class="mission-pill ${view.missionPhase === 'dropoff' ? 'dropoff' : ''}" data-testid="mission-banner">${view.missionLabel}</span>`
-      : '';
 
     this.locationRowEl.innerHTML =
       `<span class="location-pill">${view.regionName} · ${view.nearestLandmarkLabel}</span>` +
       sanctuaryHtml +
-      vehiclePromptHtml +
-      missionHtml;
+      vehiclePromptHtml;
   }
 
   openModal(modal: ActiveModal): void {
@@ -641,34 +889,13 @@ export class HudOverlay {
     this.toastTimerId = window.setTimeout(() => {
       this.toastEl.classList.remove('visible');
       this.toastTimerId = null;
-    }, 3400);
+    }, 3000);
   }
 
   private renderModal(): void {
     const t = getStrings(this.locale);
     this.modalPanel.innerHTML = '';
     if (this.activeModal === 'none') return;
-
-    if (this.activeModal === 'busted') {
-      const h2 = document.createElement('h2');
-      h2.style.color = '#f87171';
-      h2.textContent = t.bustedTitle;
-
-      const p = document.createElement('p');
-      p.textContent = t.bustedBody;
-
-      const actions = document.createElement('div');
-      actions.className = 'modal-actions';
-      const resumeBtn = this.makeButton('modal-busted-resume', () => {
-        this.callbacks.onDismissBusted();
-      });
-      resumeBtn.classList.add('active');
-      resumeBtn.textContent = t.bustedResumeButton;
-      actions.append(resumeBtn);
-
-      this.modalPanel.append(h2, p, actions);
-      return;
-    }
 
     if (this.activeModal === 'pause') {
       const h2 = document.createElement('h2');
@@ -767,6 +994,23 @@ export class HudOverlay {
       const ctrlRow = document.createElement('div');
       ctrlRow.className = 'modal-actions modal-actions-tight';
 
+      const driveModeBtn = this.makeButton('settings-driving-mode', () =>
+        this.callbacks.onCycleDrivingMode(),
+      );
+      driveModeBtn.textContent = `🏎 ${this.getDrivingModeLabel(t)}`;
+      driveModeBtn.classList.add('active');
+
+      const transBtn = this.makeButton('settings-transmission', () =>
+        this.callbacks.onToggleTransmission(),
+      );
+      transBtn.textContent = `⚙ ${this.transmissionMode === 'manual' ? t.transManual : t.transAuto}`;
+      if (this.transmissionMode === 'manual') transBtn.classList.add('active');
+
+      const steerBtn = this.makeButton('settings-steering', () =>
+        this.callbacks.onCycleSteeringMode(),
+      );
+      steerBtn.textContent = `🎛 ${this.getSteeringLabel(t)}`;
+
       const qualBtn = this.makeButton('settings-quality', () => this.callbacks.onToggleQuality());
       qualBtn.textContent = `${this.getQualityLabel(t)} ✓`;
       qualBtn.classList.add('active');
@@ -784,16 +1028,27 @@ export class HudOverlay {
           ? t.cameraWide
           : this.cameraView === 'hood'
             ? t.cameraHood
-            : this.cameraView === 'topdown'
-              ? t.cameraTopdown
-              : t.cameraChase;
+            : this.cameraView === 'bumper'
+              ? t.cameraBumper
+              : this.cameraView === 'topdown'
+                ? t.cameraTopdown
+                : t.cameraChase;
       const camBtn = this.makeButton('settings-camera', () => this.callbacks.onCycleCamera());
       camBtn.textContent = `📷 ${camLabel}`;
 
       const langBtn = this.makeButton('settings-lang', () => this.callbacks.onToggleLocale());
       langBtn.textContent = t.langButton;
 
-      ctrlRow.append(qualBtn, timeBtn, soundBtn, camBtn, langBtn);
+      ctrlRow.append(
+        driveModeBtn,
+        transBtn,
+        steerBtn,
+        qualBtn,
+        timeBtn,
+        soundBtn,
+        camBtn,
+        langBtn,
+      );
 
       const diagTitle = document.createElement('div');
       diagTitle.className = 'fast-travel-title';
@@ -821,8 +1076,8 @@ export class HudOverlay {
             : 'N/A',
         ],
         ['GPU / Renderer', snap.gpuRenderer],
-        ['WebView', snap.webViewVersion],
-        ['Device', snap.deviceModel],
+        ['Audio / Native', `${snap.audioBackend ?? 'WebAudio'} · ${snap.nativePerfProfile ?? 'Web'}`],
+        ['Driving / Gear', `${snap.drivingMode ?? 'street'} · ${snap.transmissionMode ?? 'auto'}`],
         ['Mode / Quality', `${snap.qualityTier} · ${snap.timeOfDay} · ${regionLabel}`],
       ];
       for (const [k, v] of entries) {
@@ -866,7 +1121,7 @@ export class HudOverlay {
         'Türetilmiş veri klasörü: public/derived-data/ (LICENSE-ODbL.md)',
         'Copernicus DEM GLO-30 — © DLR e.V. & Airbus Defence and Space GmbH (EU / ESA) — arazi yüksekliği',
         'Kaynak: İBB Açık Veri Portalı (İBB Açık Veri Lisansı)',
-        'Engine: Three.js (MIT) · Rapier3D (Apache-2.0) · Capacitor 8 (MIT)',
+        'Engine: Three.js (MIT) · Rapier3D (Apache-2.0) · meshoptimizer (MIT) · 240 Hz Pacejka Physics · AudioWorklet DSP · Capacitor 8 Android Native',
       ];
       for (const text of items) {
         const li = document.createElement('li');

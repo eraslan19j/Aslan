@@ -1,13 +1,20 @@
 package com.istanbulstreets.game;
 
+import android.app.GameManager;
+import android.app.GameState;
+import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.view.Display;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
@@ -19,16 +26,43 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Register native Android Game Mode, Hardware Telemetry & Driving Haptics plugin
+        registerPlugin(NativeGameBoostPlugin.class);
         super.onCreate(savedInstanceState);
 
+        // Route hardware volume keys directly to game audio immediately
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+
         Window window = getWindow();
-        // Keep the screen awake during active play
+        // Keep the screen awake during active driving
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         window.setBackgroundDrawable(new ColorDrawable(DARK_BG));
         window.setStatusBarColor(Color.TRANSPARENT);
         window.setNavigationBarColor(Color.TRANSPARENT);
 
-        // Extend edge-to-edge into display cutout areas in landscape immersive mode (no white cutout bar)
+        // Enable Android Sustained Performance Mode where supported for rock-solid frame pacing
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null && pm.isSustainedPerformanceModeSupported()) {
+                window.setSustainedPerformanceMode(true);
+            }
+        } catch (Throwable ignored) {
+            // Non-fatal
+        }
+
+        // Notify Android 13+ GameManager to unlock full CPU/GPU gaming performance clocks
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            try {
+                GameManager gm = getSystemService(GameManager.class);
+                if (gm != null) {
+                    gm.setGameState(new GameState(false, GameState.MODE_GAMEPLAY_UNINTERRUPTIBLE));
+                }
+            } catch (Throwable ignored) {
+                // Non-fatal
+            }
+        }
+
+        // Extend edge-to-edge into display cutout areas in landscape immersive mode
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowManager.LayoutParams lp = window.getAttributes();
             lp.layoutInDisplayCutoutMode =
@@ -41,12 +75,38 @@ public class MainActivity extends BridgeActivity {
             window.setAttributes(lp);
         }
 
-        if (this.bridge != null && this.bridge.getWebView() != null) {
-            this.bridge.getWebView().setBackgroundColor(DARK_BG);
-        }
-
+        configureHighPerfWebView();
         requestHighRefreshRate(window);
         applyImmersiveFullscreen(window);
+    }
+
+    private void configureHighPerfWebView() {
+        if (this.bridge == null || this.bridge.getWebView() == null) {
+            return;
+        }
+        WebView webView = this.bridge.getWebView();
+        webView.setBackgroundColor(DARK_BG);
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                // Prevent Android from lowering WebGL renderer process priority during active driving
+                webView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
+            } catch (Throwable ignored) {
+                // Non-fatal
+            }
+        }
+
+        WebSettings settings = webView.getSettings();
+        if (settings != null) {
+            // Enable immediate low-latency AudioWorklet & WebAudio playback
+            settings.setMediaPlaybackRequiresUserGesture(false);
+            settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+            settings.setDomStorageEnabled(true);
+            //noinspection deprecation
+            settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+        }
     }
 
     @Override

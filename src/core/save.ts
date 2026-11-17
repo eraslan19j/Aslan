@@ -1,4 +1,5 @@
 import { normalizeQualityTier, type QualityTier } from './quality';
+import type { DrivingMode, SteeringControlMode, TransmissionMode } from './vehiclePhysics';
 
 export type LocaleCode = 'tr' | 'en';
 
@@ -23,6 +24,9 @@ export interface SaveData {
   wantedStars: number;
   completedMissions: string[];
   collectiblesFound: string[];
+  drivingMode?: DrivingMode;
+  transmissionMode?: TransmissionMode;
+  steeringMode?: SteeringControlMode;
 }
 
 export interface SaveLoadResult {
@@ -43,6 +47,9 @@ export function createDefaultSave(nowIso = new Date().toISOString()): SaveData {
     wantedStars: 0,
     completedMissions: [],
     collectiblesFound: [],
+    drivingMode: 'street',
+    transmissionMode: 'auto',
+    steeringMode: 'buttons',
   };
 }
 
@@ -78,6 +85,12 @@ export function parseSaveJson(raw: string | null): SaveData | null {
     ) {
       return null;
     }
+    const drivingMode: DrivingMode =
+      obj.drivingMode === 'drift' || obj.drivingMode === 'sim' ? obj.drivingMode : 'street';
+    const transmissionMode: TransmissionMode =
+      obj.transmissionMode === 'manual' ? 'manual' : 'auto';
+    const steeringMode: SteeringControlMode =
+      obj.steeringMode === 'slider' || obj.steeringMode === 'gyro' ? obj.steeringMode : 'buttons';
     return {
       schemaVersion: SAVE_SCHEMA_VERSION,
       updatedAtIso:
@@ -90,6 +103,9 @@ export function parseSaveJson(raw: string | null): SaveData | null {
       wantedStars: Math.floor(obj.wantedStars),
       completedMissions: [...obj.completedMissions],
       collectiblesFound: [...obj.collectiblesFound],
+      drivingMode,
+      transmissionMode,
+      steeringMode,
     };
   } catch {
     return null;

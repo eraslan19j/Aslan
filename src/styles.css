@@ -161,24 +161,55 @@ canvas {
   position: fixed;
   right: calc(12px + var(--safe-right));
   top: calc(50px + var(--safe-top));
-  background: var(--bg-glass);
-  border: 1px solid var(--border-glass);
-  border-radius: 10px;
-  padding: 5px 10px;
+  background: rgba(10, 15, 28, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 6px 10px 7px;
   display: none;
-  align-items: baseline;
-  gap: 7px;
-  backdrop-filter: blur(8px);
-  z-index: 11;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 158px;
+  backdrop-filter: blur(10px);
+  z-index: 13;
+  pointer-events: auto;
   font-variant-numeric: tabular-nums;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
 }
 
 .speed-cluster.visible {
   display: flex;
 }
 
+.rpm-bar-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.rpm-bar-fill {
+  height: 100%;
+  width: 12%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e 0%, #facc15 65%, #ef4444 100%);
+  transition: width 60ms linear;
+}
+
+.rpm-bar-fill.redline {
+  background: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
+}
+
+.speed-main-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 7px;
+}
+
 .speed-value {
-  font-size: clamp(18px, 2.6vw, 24px);
+  font-size: clamp(20px, 2.8vw, 28px);
   font-weight: 900;
   color: var(--accent);
   line-height: 1;
@@ -188,15 +219,18 @@ canvas {
   font-size: 10px;
   color: var(--text-muted);
   font-weight: 700;
+  margin-right: auto;
 }
 
 .speed-gear {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.15);
   color: #ffffff;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 6px;
+  min-width: 28px;
+  text-align: center;
 }
 
 .speed-gear.drift {
@@ -204,10 +238,151 @@ canvas {
   color: #111827;
 }
 
+.speed-gear.redline {
+  background: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.85);
+}
+
+.speed-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.drive-badge,
+.boost-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.boost-badge.active {
+  background: rgba(56, 189, 248, 0.25);
+  color: #7dd3fc;
+}
+
+.cockpit-chip {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.cockpit-chip.mode-street {
+  background: rgba(34, 197, 94, 0.24);
+  border-color: rgba(74, 222, 128, 0.55);
+  color: #bbf7d0;
+}
+
+.cockpit-chip.mode-drift {
+  background: rgba(245, 158, 11, 0.3);
+  border-color: rgba(251, 191, 36, 0.72);
+  color: #fef08a;
+}
+
+.cockpit-chip.mode-sim {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: rgba(248, 113, 113, 0.72);
+  color: #fecaca;
+}
+
+.drift-banner {
+  position: fixed;
+  top: calc(56px + var(--safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.92), rgba(234, 88, 12, 0.92));
+  color: #111827;
+  border: 1px solid #fef08a;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  z-index: 14;
+  pointer-events: none;
+  display: none;
+  box-shadow: 0 6px 20px rgba(234, 88, 12, 0.45);
+}
+
+.drift-banner.visible {
+  display: block;
+}
+
 .touch-btn-small {
   width: 46px !important;
   height: 46px !important;
-  font-size: 11px !important;
+  font-size: 10.5px !important;
+}
+
+.manual-shift-group {
+  display: flex;
+  gap: 6px;
+}
+
+.touch-steer-slider {
+  position: absolute;
+  left: calc(18px + var(--safe-left));
+  bottom: calc(18px + var(--safe-bottom));
+  width: 176px;
+  height: 60px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.steer-slider-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(226, 232, 240, 0.65);
+  pointer-events: none;
+}
+
+.steer-slider-thumb {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(245, 184, 0, 0.9);
+  border: 2px solid #fff7d6;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.touch-gyro-pill {
+  position: absolute;
+  left: calc(18px + var(--safe-left));
+  bottom: calc(24px + var(--safe-bottom));
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(245, 184, 0, 0.55);
+  color: #fde68a;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  pointer-events: none;
 }
 
 .touch-aux-left {
@@ -617,7 +792,22 @@ canvas {
   }
   .speed-cluster {
     top: calc(40px + var(--safe-top));
-    padding: 3px 8px;
+    padding: 4px 8px;
+    min-width: 142px;
+    gap: 3px;
+  }
+  .drift-banner {
+    top: calc(40px + var(--safe-top));
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+  .touch-steer-slider {
+    width: 152px;
+    height: 52px;
+  }
+  .steer-slider-thumb {
+    width: 40px;
+    height: 40px;
   }
   .touch-aux-left,
   .touch-aux-right {

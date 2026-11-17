@@ -78,18 +78,20 @@ jobs:
           echo "Detected orientation line: ${ORIENTATION}"
           echo "$ORIENTATION" | grep -qE "0x0*6|sensorLandscape|=6([^0-9]|$)"
           {
-            echo "## Istanbul Streets — v0.6.0 Debug APK (GTA Free-Roam + Sculpted Wheeled NPC Vehicles + Enter Any Street Car — API 36)"
+            echo "## Istanbul Streets — v0.7.0 Debug APK (Apex 240 Hz CarX/GTA Driving Physics + Native Android Boost — API 36)"
             echo ""
             echo "- **Package:** \`com.istanbulstreets.game\`"
             echo "- **Target SDK:** \`36\` (Android 16) · **Min SDK:** \`24\` (Android 7.0+)"
             echo "- **Orientation:** \`sensorLandscape\` (\`${ORIENTATION}\`)"
             echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
             echo "- **Bölgeler:** Tepe Mahallesi (varsayılan) + Tarihî Yarımada (Duraklat menüsünden geçiş) — %100 çevrimdışı 300m karolar"
-            echo "- **v0.6.0 GTA Serbest Dünya & Detaylı NPC Araç Güncellemesi:**"
-            echo "  - **Saf GTA Serbest Dolaşım (Zorunlu Taksi Modu Kaldırıldı):** Otomatik taksi yolcu görevi, 3B görev sütunu, taksi tavan tabelası ve para sayacı kaldırıldı; başlangıç aracı parlak metalik kırmızı **GT Spor Coupe** olarak yenilendi."
-            echo "  - **Sokaktaki Herhangi Bir Araca Binme:** Trafikte giden veya kaldırım kenarında park hâlindeki **herhangi bir NPC aracına** yaklaşıp \`F / BİN\` ile binilebilir; önceki aracın bıraktığın yerde park hâlinde kalır."
-            echo "  - **Detaylı 3 Sınıflı NPC Trafik Araçları:** Kutu şeklindeki eski trafik araçları tamamen kaldırıldı; yerine gerçek 3B silindir lastikli, jantlı, eğimli camlı, ızgaralı, aynalı, egzozlu ve ışıklı **Spor Coupe / Sedan / SUV-Van** modelleri ve detaylı polis araçları geldi."
-            echo "  - **Heykelsi Yaya Silueti & Vice City Atmosfer:** Yayalar çift bacak/kol/saç oranlarına yükseltildi; Gündüz / Altın Gün Batımı / Islak Asfaltlı Gece döngüsü ve 4 kademeli Android kalite sistemi (\`Düşük / Orta / Yüksek / Ultra\`) korundu."
+            echo "- **v0.7.0 Apex Sürüş Fiziği & Android Native Optimizasyon Güncellemesi:**"
+            echo "  - **240 Hz 4-Teker Pacejka Fizik Motoru:** Gerçek ağırlık transferi (fren dalışı, hızlanma çökmesi, viraj yatması), RWD/FWD/AWD çekiş karakteri, Ackerman ön direksiyon geometrisi ve 4 bağımsız süspansiyon yüksekliği."
+            echo "  - **Tek Tuşla 3 Sürüş Modu:** Anında değiştirilebilir **CADDE** (dengeli GTA/CarX), **DRİFT** (48° geniş direksiyon kilidi + akıllı kontra-direksiyon asisti + canlı drift açısı/kombo puanı) ve **SİM** (asistsiz saf Pacejka)."
+            echo "  - **6 İleri Otomatik & Manuel Şanzıman:** Varsayılan akıcı 6 ileri otomatik vites + tek dokunuşla **MAN** (\`V+\`/\`V-\`, masaüstünde \`E\`/\`Q\`), turbo basınç göstergesi, blow-off valfı ve egzoz patlatma alevi."
+            echo "  - **3 Mobil Direksiyon Kontrolü:** Klasik \`◀/▶\` Butonlar, hassas **CarX Analog Slider** ve eğerek sürüş **Jiroskop** modu."
+            echo "  - **3B Sürüş Efektleri & AudioWorklet Motor Sesi:** Asfalt lastik izleri, hacimsel drift dumanı, çarpışma kıvılcımları, hız duyarlı FOV + drift vektörü takip kamerası + Tampon kamerası ve gerçek zamanlı AudioWorklet motor DSP sesi."
+            echo "  - **Native Android APK Gücü & Temizleme:** \`NativeGameBoostPlugin\` (Android 13+ \`GameManager\` performans modu, \`SustainedPerformanceMode\`, \`RENDERER_PRIORITY_IMPORTANT\`, \`isGame=true\`, \`largeHeap=true\`, donanım profili ve vites/çarpışma/drift dokunsal titreşim profilleri). Gereksiz aranma/polis sistemi geçici olarak kaldırıldı."
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo ""
             echo "### Kurulum (Yalnızca Android Telefon)"
@@ -140,9 +142,9 @@ jobs:
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.6.0' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.7.0' }}
           target_commitish: ${{ github.sha }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.6.0 (GTA Free-Roam + Sculpted Wheeled NPC Cars + Enter Any Car - API 36)' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.7.0 (Apex 240Hz CarX/GTA Physics + Native Android Boost - API 36)' }}
           body_path: release-notes.md
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |

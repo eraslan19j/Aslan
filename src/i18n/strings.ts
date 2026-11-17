@@ -26,6 +26,7 @@ export interface UiStrings {
   cameraChase: string;
   cameraWide: string;
   cameraHood: string;
+  cameraBumper: string;
   cameraTopdown: string;
   soundOn: string;
   soundOff: string;
@@ -37,6 +38,20 @@ export interface UiStrings {
   brakeButton: string;
   driftButton: string;
   hornButton: string;
+  modeStreet: string;
+  modeDrift: string;
+  modeSim: string;
+  transAuto: string;
+  transManual: string;
+  steerButtons: string;
+  steerSlider: string;
+  steerGyro: string;
+  steerSliderHint: string;
+  gyroHint: string;
+  shiftUpButton: string;
+  shiftDownButton: string;
+  driftScoreLabel: string;
+  turboLabel: string;
   pausedTitle: string;
   resumeButton: string;
   resetPosButton: string;
@@ -66,22 +81,16 @@ export interface UiStrings {
   controlsHintDriveTouch: string;
   sanctuaryBanner: string;
   nearVehiclePrompt: string;
-  missionPickupPrefix: string;
-  missionDropoffPrefix: string;
-  missionPickedUpToast: string;
-  missionCompletedToast: string;
-  missionExpiredToast: string;
   taxiCalledToast: string;
-  wantedLabel: string;
-  bustedTitle: string;
-  bustedBody: string;
-  bustedResumeButton: string;
+  drivingModeToastPrefix: string;
+  transmissionToastPrefix: string;
+  steeringModeToastPrefix: string;
 }
 
 const STRINGS: Record<LocaleCode, UiStrings> = {
   tr: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.6.0 · Serbest Dünya',
+    milestoneTag: 'v0.7.0 · Apex Sürüş',
     fpsLabel: 'FPS',
     drawsLabel: 'Çizim',
     trisLabel: 'Üçgen',
@@ -105,6 +114,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     cameraChase: 'Takip',
     cameraWide: 'Geniş',
     cameraHood: 'Kaput',
+    cameraBumper: 'Tampon',
     cameraTopdown: 'Kuş Bakışı',
     soundOn: 'Ses Açık',
     soundOff: 'Sessiz',
@@ -114,8 +124,22 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     callTaxiButton: 'ARAÇ',
     gasButton: 'GAZ',
     brakeButton: 'FREN',
-    driftButton: 'DRİFT',
+    driftButton: 'EL FRENİ',
     hornButton: 'KORNA',
+    modeStreet: 'CADDE',
+    modeDrift: 'DRİFT',
+    modeSim: 'SİM',
+    transAuto: 'OTO',
+    transManual: 'MAN',
+    steerButtons: 'Butonlar',
+    steerSlider: 'CarX Slider',
+    steerGyro: 'Jiroskop',
+    steerSliderHint: '◀  KAYDIR  ▶',
+    gyroHint: '📱 EĞEREK SÜR',
+    shiftUpButton: 'V+',
+    shiftDownButton: 'V-',
+    driftScoreLabel: 'DRİFT',
+    turboLabel: 'BAR',
     pausedTitle: 'Duraklatıldı',
     resumeButton: 'Devam Et',
     resetPosButton: 'Başlangıca Dön',
@@ -123,13 +147,13 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     fastTravelHeading: 'Bölge Noktaları (Hızlı Keşif)',
     viewCrashLogButton: 'Kilitlenme Günlüğü',
     closeButton: 'Kapat',
-    settingsTitle: 'Ayarlar ve Tanılama Paneli',
+    settingsTitle: 'Ayarlar, Sürüş ve Tanılama',
     diagnosticsHeading: 'Cihaz & Performans Tanılama (JSON)',
     copyReportButton: 'RAPORU KOPYALA',
     reportCopied: 'Rapor panoya kopyalandı!',
     aboutTitle: 'Hakkında ve ODbL / Açık Veri Atıfları',
     aboutSubtitle:
-      'Istanbul Streets v0.6.0 — İstanbul açık harita verileriyle çevrimdışı çalışan %100 orijinal GTA tarzı serbest açık dünya oyunu.',
+      'Istanbul Streets v0.7.0 — 240 Hz 4-teker Pacejka fizik motoru ve gerçek İstanbul açık harita verileriyle çalışan çevrimdışı açık dünya sürüş oyunu.',
     aboutDataHeading: 'Harita ve Türetilmiş Veri Atıfları (public/derived-data/)',
     aboutOriginalityNote:
       'Tüm karakterler, araçlar, markalar ve kurumlar kurgusaldır; gerçek kişi, ev adresi veya işletme logosu yoktur. Tüm ibadethaneler otomatik şiddetsiz Güvenli Alandır.',
@@ -143,27 +167,21 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     crashLogEmpty: 'Henüz kayıtlı kilitlenme yok.',
     recoveredSaveToast: 'Kayıt yedeği başarıyla kurtarıldı.',
     controlsHintFootDesktop:
-      'WASD: Yürü · Shift: Koş · F: Araç (Herhangi bir araca bin) · R: Araç Çağır · C: Kamera · M: Ses · Esc: Menü',
+      'WASD: Yürü · Shift: Koş · F: Herhangi Bir Araca Bin · R: Araç Çağır · C: Kamera · M: Ses · Esc: Menü',
     controlsHintDriveDesktop:
-      'W/S: Gaz-Fren · A/D: Direksiyon · Space: Drift · H: Korna · C: Kamera · F: İn',
+      'W/S: Gaz-Fren · A/D: Direksiyon · Space: El Freni · V: Cadde/Drift/Sim · G: Oto/Man · E/Q: Vites +/- · C: Kamera · F: İn',
     controlsHintFootTouch: 'Sol kol: Yürü · Sağ kaydır: Kamera · BİN: Herhangi Bir Araç · Radar: Yakınlaştır',
-    controlsHintDriveTouch: '◀/▶: Yön · GAZ/FREN/DRİFT · 🔔: Korna · 📷: Kamera · İN: Çık',
+    controlsHintDriveTouch: 'Direksiyon / Slider · GAZ-FREN · EL FRENİ · Mod & Vites · 📷: Kamera · İN: Çık',
     sanctuaryBanner: 'GÜVENLİ ALAN — Şiddet & Silah Kilitli',
     nearVehiclePrompt: 'Araç yakın — Binmek için F / BİN',
-    missionPickupPrefix: 'Yolcu Al',
-    missionDropoffPrefix: 'Yolcuyu Bırak',
-    missionPickedUpToast: 'Yolcu bindi! Hedefe götür',
-    missionCompletedToast: 'Yolculuk tamamlandı!',
-    missionExpiredToast: 'Süre doldu — Yeni yolcu haritada!',
     taxiCalledToast: 'Araç yanına getirildi!',
-    wantedLabel: 'ARANMA',
-    bustedTitle: 'YAKALANDIN (BUSTED)',
-    bustedBody: 'Şehir Polisi tarafından durduruldun ve serbest bırakıldın.',
-    bustedResumeButton: 'Sokağa Dön',
+    drivingModeToastPrefix: 'Sürüş Modu',
+    transmissionToastPrefix: 'Vites',
+    steeringModeToastPrefix: 'Direksiyon',
   },
   en: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.6.0 · Free Roam',
+    milestoneTag: 'v0.7.0 · Apex Drive',
     fpsLabel: 'FPS',
     drawsLabel: 'Draws',
     trisLabel: 'Tris',
@@ -187,6 +205,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     cameraChase: 'Chase',
     cameraWide: 'Wide',
     cameraHood: 'Hood',
+    cameraBumper: 'Bumper',
     cameraTopdown: 'Top-Down',
     soundOn: 'Sound On',
     soundOff: 'Muted',
@@ -196,8 +215,22 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     callTaxiButton: 'CAR',
     gasButton: 'GAS',
     brakeButton: 'BRAKE',
-    driftButton: 'DRIFT',
+    driftButton: 'H-BRAKE',
     hornButton: 'HORN',
+    modeStreet: 'STREET',
+    modeDrift: 'DRIFT',
+    modeSim: 'SIM',
+    transAuto: 'AUTO',
+    transManual: 'MAN',
+    steerButtons: 'Buttons',
+    steerSlider: 'CarX Slider',
+    steerGyro: 'Tilt Gyro',
+    steerSliderHint: '◀  SLIDE  ▶',
+    gyroHint: '📱 TILT TO STEER',
+    shiftUpButton: 'G+',
+    shiftDownButton: 'G-',
+    driftScoreLabel: 'DRIFT',
+    turboLabel: 'BAR',
     pausedTitle: 'Paused',
     resumeButton: 'Resume',
     resetPosButton: 'Reset Position',
@@ -205,13 +238,13 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     fastTravelHeading: 'Region Landmarks (Quick Explore)',
     viewCrashLogButton: 'Crash Log',
     closeButton: 'Close',
-    settingsTitle: 'Settings & Diagnostics Panel',
+    settingsTitle: 'Settings, Driving & Diagnostics',
     diagnosticsHeading: 'Device & Performance Diagnostics (JSON)',
     copyReportButton: 'COPY REPORT',
     reportCopied: 'Report copied to clipboard!',
     aboutTitle: 'About & ODbL / Open Data Attributions',
     aboutSubtitle:
-      'Istanbul Streets v0.6.0 — 100% original offline GTA-style free-roam open-world game built from open Istanbul geospatial data.',
+      'Istanbul Streets v0.7.0 — 240 Hz 4-wheel Pacejka vehicle physics & offline open-world driving built from open Istanbul geospatial data.',
     aboutDataHeading: 'Map & Derived Data Attributions (public/derived-data/)',
     aboutOriginalityNote:
       'All characters, vehicles, brands, and agencies are fictional; zero real people, home addresses, or brand logos. All places of worship are automatic Safe Zones.',
@@ -227,21 +260,15 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     controlsHintFootDesktop:
       'WASD: Walk · Shift: Run · F: Enter Any Car · R: Call Car · C: Camera · M: Audio · Esc: Menu',
     controlsHintDriveDesktop:
-      'W/S: Gas/Brake · A/D: Steer · Space: Drift · H: Horn · C: Camera · F: Exit',
+      'W/S: Gas/Brake · A/D: Steer · Space: Handbrake · V: Street/Drift/Sim · G: Auto/Man · E/Q: Shift +/- · C: Cam · F: Exit',
     controlsHintFootTouch: 'Left stick: Walk · Drag right: Camera · DRIVE: Any Car · Tap Radar: Zoom',
-    controlsHintDriveTouch: '◀/▶: Steer · GAS/BRAKE/DRIFT · 🔔: Horn · 📷: Cam · EXIT: Leave',
+    controlsHintDriveTouch: 'Steer / Slider · GAS-BRAKE · H-BRAKE · Mode & Gear · 📷: Cam · EXIT',
     sanctuaryBanner: 'SAFE ZONE — Sanctuary Precinct (No Combat)',
     nearVehiclePrompt: 'Vehicle nearby — Press F / DRIVE',
-    missionPickupPrefix: 'Pick Up Fare',
-    missionDropoffPrefix: 'Drop Off Fare',
-    missionPickedUpToast: 'Passenger aboard! Drive to drop-off',
-    missionCompletedToast: 'Fare completed!',
-    missionExpiredToast: 'Time up — New fare marked on radar!',
     taxiCalledToast: 'Vehicle delivered nearby!',
-    wantedLabel: 'WANTED',
-    bustedTitle: 'BUSTED',
-    bustedBody: 'Stopped by City Police and released back to the street.',
-    bustedResumeButton: 'Back to Street',
+    drivingModeToastPrefix: 'Driving Mode',
+    transmissionToastPrefix: 'Transmission',
+    steeringModeToastPrefix: 'Steering',
   },
 };
 

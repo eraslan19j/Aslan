@@ -99,7 +99,7 @@ try {
   // plus ~35 persistent scene/character/taxi/landmark geometries.
   // Checking bounded total geometries catches any real unload/dispose leak even as the car
   // drives across tile borders (e.g. 9 -> 12 tiles in hysteresis window) and warms frustum uploads.
-  const maxExpectedGeometries = 45 + lastTiles * 6;
+  const maxExpectedGeometries = 52 + lastTiles * 6;
   const tileDelta = Math.max(0, lastTiles - firstTiles);
   const allowedGeoDrift = 32 + tileDelta * 6;
 

@@ -62,12 +62,13 @@ try {
   const hasMinimap = await page.getByTestId('minimap-radar').isVisible();
   const initialPos = await page.evaluate(() => ({ ...window.__game.player }));
 
-  // Check camera cycling (C) & audio mute toggle (M) + horn (H)
+  // Check camera cycling (C: chase -> wide -> hood -> bumper -> topdown -> chase) & audio mute (M) + horn (H)
   const camBefore = await page.evaluate(() => window.__game.cameraView);
   await page.keyboard.press('KeyC');
   await page.waitForTimeout(80);
   const camAfter = await page.evaluate(() => window.__game.cameraView);
-  // Cycle back to chase for normal walk/drive test
+  // Cycle back to chase for normal walk/drive test (5 total camera views)
+  await page.keyboard.press('KeyC');
   await page.keyboard.press('KeyC');
   await page.keyboard.press('KeyC');
   await page.keyboard.press('KeyC');
@@ -93,8 +94,20 @@ try {
   const walkedPos = await page.evaluate(() => ({ ...window.__game.player }));
   const walkDist = Math.hypot(walkedPos.x - initialPos.x, walkedPos.z - initialPos.z);
 
-  // 2. Enter Yellow Taxi, drive along street until >= 2.5m (SwiftShader-safe), then exit
+  // 2. Enter GT Sports Coupe, verify Street/Drift/Sim (V) & Auto/Manual (G) toggles, drive along street, then exit
   await page.evaluate(() => window.__game.enterVehicle());
+  const modeBeforeV = await page.evaluate(() => window.__game.drivingMode);
+  await page.keyboard.press('KeyV');
+  await page.waitForTimeout(60);
+  const modeAfterV = await page.evaluate(() => window.__game.drivingMode);
+  await page.keyboard.press('KeyV');
+  await page.keyboard.press('KeyV'); // back to street
+  const transBeforeG = await page.evaluate(() => window.__game.transmissionMode);
+  await page.keyboard.press('KeyG');
+  await page.waitForTimeout(60);
+  const transAfterG = await page.evaluate(() => window.__game.transmissionMode);
+  await page.keyboard.press('KeyG'); // back to auto
+
   const driveStart = await page.evaluate(() => ({ ...window.__game.vehicle }));
   await page.keyboard.down('KeyW');
   await page.waitForFunction(
@@ -113,6 +126,8 @@ try {
     inVehicle: window.__game.inVehicle,
     driverVisibleInCabin: window.__game.driverVisibleInCabin,
     speedKph: window.__game.speedKph,
+    gear: window.__game.gear,
+    rpm: window.__game.rpm,
     trafficCount: window.__game.trafficCount,
     vehicle: { ...window.__game.vehicle },
   }));
@@ -205,7 +220,8 @@ try {
       physicsReady: window.__game?.physicsReady ?? false,
       trafficCount: window.__game?.trafficCount ?? 0,
       pedestrianCount: window.__game?.pedestrianCount ?? 0,
-      activeMissionPhase: window.__game?.activeMissionPhase ?? null,
+      drivingMode: window.__game?.drivingMode ?? null,
+      transmissionMode: window.__game?.transmissionMode ?? null,
       crashCount: window.__game?.getCrashCount() ?? -1,
       perf: window.__game?.perf ?? null,
     };
@@ -244,10 +260,14 @@ try {
     hudFreeOfDirectDistrictName,
     hasMinimap,
     cameraCycleOk: camBefore !== camAfter,
+    drivingModeToggleOk: modeBeforeV !== modeAfterV,
+    transmissionToggleOk: transBeforeG !== transAfterG,
     audioToggleOk: audioMutedAfterM === true,
     walkDist: Number(walkDist.toFixed(2)),
     driveDist: Number(driveDist.toFixed(2)),
     driveSpeedKph: driveState.speedKph,
+    driveGear: driveState.gear,
+    driveRpm: driveState.rpm,
     driverVisibleInCabin: driveState.driverVisibleInCabin,
     exitedOk,
     esenlerSanctuaryId,
@@ -277,8 +297,11 @@ try {
   if ((snapshot.pedestrianCount ?? 0) < 10) {
     fail(`Too few sidewalk pedestrians: ${snapshot.pedestrianCount}`);
   }
-  if (snapshot.activeMissionPhase !== null) {
-    fail(`Expected pure GTA Free-Roam (no forced taxi mission), got ${snapshot.activeMissionPhase}`);
+  if (modeBeforeV === modeAfterV) {
+    fail('Driving mode cycle (KeyV) did not switch Street/Drift/Sim');
+  }
+  if (transBeforeG === transAfterG) {
+    fail('Transmission toggle (KeyG) did not switch Auto/Manual');
   }
   if (!snapshot.hasCanvas || snapshot.canvasW === 0 || snapshot.canvasH === 0) {
     fail('Canvas missing or zero size');

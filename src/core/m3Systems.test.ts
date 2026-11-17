@@ -132,16 +132,18 @@ describe('M3 & Mobile Benchmark Systems', () => {
     const taxi = createVehicleState('t1', 'taxi', 0, 0, 0, 0);
     const bounds = { minX: -500, maxX: 500, minZ: -500, maxZ: 500 };
 
-    // Accelerate forward -> gear D
-    let gear: 'R' | 'N' | 'D' = 'N';
-    for (let i = 0; i < 30; i += 1) {
+    // Accelerate forward -> forward gear ('1'..'6')
+    let gear: string = 'N';
+    for (let i = 0; i < 45; i += 1) {
       gear = stepPlayerVehicle(taxi, { throttle: 1, brake: 0, steer: 0, handbrake: false }, 1 / 60, bounds, () => 0, grid).gear;
     }
-    expect(gear).toBe('D');
+    expect(['1', '2', '3', '4', '5', '6']).toContain(gear);
     expect(taxi.speed).toBeGreaterThan(5);
 
     // Pull handbrake while steering -> drifting flag activates!
-    stepPlayerVehicle(taxi, { throttle: 0, brake: 0, steer: 1, handbrake: true }, 1 / 60, bounds, () => 0, grid);
+    for (let i = 0; i < 12; i += 1) {
+      stepPlayerVehicle(taxi, { throttle: 0, brake: 0, steer: 1, handbrake: true }, 1 / 60, bounds, () => 0, grid);
+    }
     expect(taxi.drifting).toBe(true);
   });
 });
