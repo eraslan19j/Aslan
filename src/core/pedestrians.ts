@@ -1,5 +1,10 @@
+import {
+  resolveCircleAgainstVehicleOBB,
+  type VehicleColliderOBB,
+} from './playerController';
 import { createRng, type Rng } from './rng';
 import { findSanctuaryZone, type SanctuaryZone } from './sanctuary';
+import type { BuildingSpatialGrid } from './world/collision';
 import type { RoadGraph, RoadGraphNode } from './world/types';
 
 export interface PedestrianAgent {
@@ -24,10 +29,12 @@ export interface PedestrianAgent {
 interface PedLink {
   to: string;
   length: number;
+  halfWidth: number;
 }
 
 const PED_STREAM_MIN = 18;
 const PED_STREAM_MAX = 155;
+const PED_COLLISION_RADIUS = 0.42;
 
 /**
  * Pure TypeScript sidewalk pedestrian simulator (M3).
@@ -48,20 +55,24 @@ export class PedestrianSimulator {
       this.nodes.set(n.id, n);
     }
 
-    const addLink = (from: string, to: string, length: number): void => {
+    const addLink = (from: string, to: string, length: number, width: number): void => {
       if (from === to || !this.nodes.has(from) || !this.nodes.has(to)) return;
       let list = this.outgoing.get(from);
       if (!list) {
         list = [];
         this.outgoing.set(from, list);
       }
-      list.push({ to, length: Math.max(2, length) });
+      list.push({
+        to,
+        length: Math.max(2, length),
+        halfWidth: Math.max(1.5, Math.min(4.6, (width || 5.8) * 0.5)),
+      });
     };
 
     for (const edge of graph.edges) {
       if (edge.roadClass === 'tram') continue;
-      addLink(edge.from, edge.to, edge.lengthMeters);
-      addLink(edge.to, edge.from, edge.lengthMeters);
+      addLink(edge.from, edge.to, edge.lengthMeters, edge.width);
+      addLink(edge.to, edge.from, edge.lengthMeters, edge.width);
     }
 
     for (const id of this.outgoing.keys()) {
@@ -150,9 +161,75 @@ export class PedestrianSimulator {
     }
   }
 
+  private getEdgeHalfWidth(fromId: string, toId: string): number {
+    const links = this.outgoing.get(fromId);
+    if (!links) return 2.8;
+    for (const l of links) {
+      if (l.to === toId) return l.halfWidth;
+    }
+    return 2.8;
+  }
+
   /**
-   * Advances sidewalk pedestrians and returns how many pedestrians had a reckless close-call
-   * with a fast-moving vehicle outside sanctuary safe zones.
+   * Resolves a pedestrian's desired sidewalk point against building footprints and vehicle OBBs,
+   * automatically adapting curb offset inside tight Istanbul alleys so pedestrians NEVER clip walls.
+   */
+  private resolveWalkableSidewalkPoint(
+    baseX: number,
+    baseZ: number,
+    rightX: number,
+    rightZ: number,
+    sideSign: 1 | -1,
+    preferredOffset: number,
+    spatialGrid?: BuildingSpatialGrid,
+    vehicleObstacles?: readonly VehicleColliderOBB[],
+  ): { x: number; z: number } {
+    // Try preferred outer curb first, then smoothly tighten inward toward road edge if a facade pinches sidewalk
+    const offsets = [preferredOffset, preferredOffset * 0.72, preferredOffset * 0.45, -preferredOffset * 0.65, 0];
+    let x = baseX + rightX * preferredOffset * sideSign;
+    let z = baseZ + rightZ * preferredOffset * sideSign;
+
+    if (spatialGrid) {
+      let placed = false;
+      for (const off of offsets) {
+        const cx = baseX + rightX * off * sideSign;
+        const cz = baseZ + rightZ * off * sideSign;
+        if (!spatialGrid.isPointInsideBuilding(cx, cz, PED_COLLISION_RADIUS + 0.08)) {
+          x = cx;
+          z = cz;
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        const res = spatialGrid.resolveCircle(baseX, baseZ, PED_COLLISION_RADIUS);
+        x = res.x;
+        z = res.z;
+      }
+    }
+
+    if (vehicleObstacles) {
+      for (const veh of vehicleObstacles) {
+        const vRes = resolveCircleAgainstVehicleOBB(x, z, PED_COLLISION_RADIUS, veh);
+        if (vRes.hit) {
+          x = vRes.x;
+          z = vRes.z;
+        }
+      }
+    }
+
+    if (spatialGrid) {
+      const finalB = spatialGrid.resolveCircle(x, z, PED_COLLISION_RADIUS);
+      x = finalB.x;
+      z = finalB.z;
+    }
+
+    return { x, z };
+  }
+
+  /**
+   * Advances sidewalk pedestrians with obstacle avoidance (buildings + vehicles) and returns how
+   * many pedestrians had a reckless close-call with a fast-moving vehicle outside sanctuary zones.
    */
   step(
     dt: number,
@@ -162,6 +239,8 @@ export class PedestrianSimulator {
     inVehicle: boolean,
     sanctuaries: readonly SanctuaryZone[],
     sampleElev?: (x: number, z: number) => number,
+    spatialGrid?: BuildingSpatialGrid,
+    vehicleObstacles?: readonly VehicleColliderOBB[],
   ): { closeCalls: number } {
     const safeDt = Math.min(dt, 0.1);
     const maxSq = PED_STREAM_MAX * PED_STREAM_MAX;
@@ -172,6 +251,11 @@ export class PedestrianSimulator {
       const dFocusSq = (p.x - focusX) ** 2 + (p.z - focusZ) ** 2;
       if (dFocusSq > maxSq && this.startIds.length > 4) {
         const respawned = this.spawnNear(p.id, focusX, focusZ);
+        if (spatialGrid) {
+          const pushed = spatialGrid.resolveCircle(respawned.x, respawned.z, PED_COLLISION_RADIUS);
+          respawned.x = pushed.x;
+          respawned.z = pushed.z;
+        }
         if (sampleElev) respawned.y = sampleElev(respawned.x, respawned.z);
         this.agents[i] = respawned;
         continue;
@@ -189,7 +273,7 @@ export class PedestrianSimulator {
 
       if (p.panicTimer > 0) {
         p.panicTimer = Math.max(0, p.panicTimer - safeDt);
-        p.dodgeOffset = Math.min(1.35, p.dodgeOffset + safeDt * 2.8);
+        p.dodgeOffset = Math.min(1.15, p.dodgeOffset + safeDt * 2.8);
       } else {
         p.dodgeOffset = Math.max(0, p.dodgeOffset - safeDt * 1.4);
       }
@@ -228,10 +312,24 @@ export class PedestrianSimulator {
       const segLen = Math.hypot(segDx, segDz) || 1;
       const rightX = -segDz / segLen;
       const rightZ = segDx / segLen;
-      const offset = (3.55 + p.dodgeOffset) * p.sideSign;
+      const halfRoadW = this.getEdgeHalfWidth(p.fromNodeId, p.toNodeId);
+      const desiredOffset = Math.min(3.3, halfRoadW - 0.3) + p.dodgeOffset;
 
-      p.x = nFrom.x + segDx * p.edgeProgress + rightX * offset;
-      p.z = nFrom.z + segDz * p.edgeProgress + rightZ * offset;
+      const baseX = nFrom.x + segDx * p.edgeProgress;
+      const baseZ = nFrom.z + segDz * p.edgeProgress;
+      const resolved = this.resolveWalkableSidewalkPoint(
+        baseX,
+        baseZ,
+        rightX,
+        rightZ,
+        p.sideSign,
+        desiredOffset,
+        spatialGrid,
+        vehicleObstacles,
+      );
+
+      p.x = resolved.x;
+      p.z = resolved.z;
       p.y = sampleElev ? sampleElev(p.x, p.z) : nFrom.y + (nTo.y - nFrom.y) * p.edgeProgress;
       p.heading = Math.atan2(segDx, segDz);
     }

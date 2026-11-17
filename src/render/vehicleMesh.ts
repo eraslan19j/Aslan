@@ -10,6 +10,7 @@ import {
 export interface PlayerTaxiRig {
   root: THREE.Group;
   chassisGroup: THREE.Group;
+  driverSeatMount: THREE.Group;
   frontSteerPivots: THREE.Group[];
   wheelSpinMeshes: THREE.Group[];
   headlightMat: THREE.MeshBasicMaterial;
@@ -57,7 +58,14 @@ export function createPlayerTaxiRig(contactShadowTex: THREE.Texture): PlayerTaxi
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.36, metalness: 0.28 }),
   );
   const glassMat = trackMat(
-    new THREE.MeshStandardMaterial({ color: 0x26435e, roughness: 0.14, metalness: 0.6 }),
+    new THREE.MeshStandardMaterial({
+      color: 0x3b6384,
+      roughness: 0.14,
+      metalness: 0.45,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+    }),
   );
   const wheelMat = trackMat(
     new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.35 }),
@@ -125,10 +133,21 @@ export function createPlayerTaxiRig(contactShadowTex: THREE.Texture): PlayerTaxi
       // Hood & Trunk
       { geometry: new THREE.BoxGeometry(1.76, 0.14, 1.32), color: C_YELLOW, position: [0, 0.92, 1.32], rotation: [0.08, 0, 0] },
       { geometry: new THREE.BoxGeometry(1.78, 0.14, 0.92), color: C_YELLOW, position: [0, 0.92, -1.58], rotation: [-0.06, 0, 0] },
-      // Roof cap + B-pillar + Sign base
-      { geometry: new THREE.BoxGeometry(1.58, 0.09, 1.66), color: C_YELLOW, position: [0, 1.42, -0.18] },
-      { geometry: new THREE.BoxGeometry(1.61, 0.49, 0.14), color: C_DARK, position: [0, 1.15, -0.14] },
-      { geometry: new THREE.BoxGeometry(0.76, 0.06, 0.24), color: C_DARK, position: [0, 1.48, -0.05] },
+      // Roof cap + corner pillars + cabin interior (dashboard, steering wheel, seats) + sign base
+      { geometry: new THREE.BoxGeometry(1.58, 0.08, 1.66), color: C_YELLOW, position: [0, 1.44, -0.18] },
+      // A/B/C thin corner window pillars (leaving open interior so seated driver is clearly visible!)
+      { geometry: new THREE.BoxGeometry(0.08, 0.54, 0.08), color: C_DARK, position: [0.74, 1.15, 0.58], rotation: [-0.45, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.08, 0.54, 0.08), color: C_DARK, position: [-0.74, 1.15, 0.58], rotation: [-0.45, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.08, 0.5, 0.1), color: C_DARK, position: [0.75, 1.16, -0.16] },
+      { geometry: new THREE.BoxGeometry(0.08, 0.5, 0.1), color: C_DARK, position: [-0.75, 1.16, -0.16] },
+      { geometry: new THREE.BoxGeometry(0.09, 0.52, 0.1), color: C_DARK, position: [0.74, 1.16, -0.92], rotation: [0.42, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.09, 0.52, 0.1), color: C_DARK, position: [-0.74, 1.16, -0.92], rotation: [0.42, 0, 0] },
+      // Interior dashboard, driver steering wheel & two seatbacks
+      { geometry: new THREE.BoxGeometry(1.54, 0.24, 0.34), color: C_DARK, position: [0, 0.96, 0.56] },
+      { geometry: new THREE.CylinderGeometry(0.16, 0.16, 0.04, 10), color: 0x11161f, position: [0.38, 1.07, 0.38], rotation: [1.15, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.44, 0.44, 0.1), color: 0x2c3340, position: [0.38, 1.02, -0.34], rotation: [-0.14, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.44, 0.44, 0.1), color: 0x2c3340, position: [-0.38, 1.02, -0.34], rotation: [-0.14, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.76, 0.06, 0.24), color: C_DARK, position: [0, 1.5, -0.05] },
       // Side mirrors
       { geometry: new THREE.BoxGeometry(0.22, 0.11, 0.14), color: C_YELLOW, position: [0.98, 0.98, 0.62] },
       { geometry: new THREE.BoxGeometry(0.22, 0.11, 0.14), color: C_YELLOW, position: [-0.98, 0.98, 0.62] },
@@ -152,16 +171,26 @@ export function createPlayerTaxiRig(contactShadowTex: THREE.Texture): PlayerTaxi
   mergedChassis.castShadow = true;
   chassisGroup.add(mergedChassis);
 
-  // 4. Merged Greenhouse Glass (cabin core + sloped windshield + sloped rear window = 1 draw call!)
+  // 4. Translucent Hollow Greenhouse Glass (windshield, rear glass & side panes = 1 draw call; driver visible inside!)
   const mergedGlassGeo = trackGeo(
     mergeColoredParts([
-      { geometry: new THREE.BoxGeometry(1.58, 0.48, 1.56), color: 0xffffff, position: [0, 1.15, -0.18] },
-      { geometry: new THREE.BoxGeometry(1.54, 0.56, 0.1), color: 0xffffff, position: [0, 1.13, 0.72], rotation: [-0.62, 0, 0] },
-      { geometry: new THREE.BoxGeometry(1.54, 0.54, 0.1), color: 0xffffff, position: [0, 1.14, -1.08], rotation: [0.58, 0, 0] },
+      // Left & right side window panes (thin plates so interior driver stays crystal clear)
+      { geometry: new THREE.BoxGeometry(0.04, 0.46, 1.54), color: 0xffffff, position: [0.76, 1.16, -0.18] },
+      { geometry: new THREE.BoxGeometry(0.04, 0.46, 1.54), color: 0xffffff, position: [-0.76, 1.16, -0.18] },
+      // Sloped front windshield & rear window
+      { geometry: new THREE.BoxGeometry(1.5, 0.56, 0.05), color: 0xffffff, position: [0, 1.15, 0.72], rotation: [-0.62, 0, 0] },
+      { geometry: new THREE.BoxGeometry(1.5, 0.54, 0.05), color: 0xffffff, position: [0, 1.16, -1.06], rotation: [0.58, 0, 0] },
     ]),
   );
   const mergedGlass = new THREE.Mesh(mergedGlassGeo, glassMat);
+  mergedGlass.renderOrder = 2;
   chassisGroup.add(mergedGlass);
+
+  // Driver seat mount (Istanbul LHD front-left seat — protagonist attaches here while driving!)
+  const driverSeatMount = new THREE.Group();
+  driverSeatMount.position.set(0.38, 0.08, -0.14);
+  driverSeatMount.scale.setScalar(0.84);
+  chassisGroup.add(driverSeatMount);
 
   // 5. Dynamic Rear Brake Lights (merged pair -> 1 draw call, brightens when braking!)
   const brakeLightsGeo = trackGeo(
@@ -233,6 +262,7 @@ export function createPlayerTaxiRig(contactShadowTex: THREE.Texture): PlayerTaxi
   return {
     root,
     chassisGroup,
+    driverSeatMount,
     frontSteerPivots,
     wheelSpinMeshes,
     headlightMat,

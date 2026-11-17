@@ -12,6 +12,13 @@ import { clamp, distance2D } from './core/math';
 import { TaxiMissionManager } from './core/missions';
 import { PedestrianSimulator } from './core/pedestrians';
 import { ensureRapierReady } from './core/physics';
+import {
+  attachPlayerToVehicleSeat,
+  createPlayerCapsuleState,
+  detachPlayerFromVehicleSeat,
+  stepOnFootPlayer,
+  type VehicleColliderOBB,
+} from './core/playerController';
 import { suggestQualityTier, type QualityTier } from './core/quality';
 import { findSanctuaryZone } from './core/sanctuary';
 import { SaveStore, type SaveData } from './core/save';
@@ -20,6 +27,7 @@ import {
   computeSafeExitPosition,
   createVehicleState,
   ENTER_VEHICLE_DISTANCE,
+  getVehicleColliderOBB,
   stepPlayerVehicle,
   type PlayerVehicleState,
 } from './core/vehicle';
@@ -54,9 +62,6 @@ import { HudOverlay } from './ui/HudOverlay';
 import { MinimapRenderer } from './ui/MinimapRenderer';
 
 const APP_VERSION = '0.3.0';
-const WALK_SPEED = 7.2;
-const SPRINT_SPEED = 14.5;
-const PLAYER_RADIUS = 0.7;
 
 interface ActiveRegionRuntime {
   meta: RegionRegistryEntry;
@@ -81,6 +86,7 @@ interface GameDebugHandle {
   locale: 'tr' | 'en';
   physicsReady: boolean;
   inVehicle: boolean;
+  driverVisibleInCabin: boolean;
   speedKph: number;
   cash: number;
   wantedStars: number;
@@ -257,6 +263,7 @@ async function bootstrap(): Promise<void> {
   let gear: 'R' | 'N' | 'D' = 'N';
   let physicsReady = false;
   let elapsedSec = 0;
+  const playerCapsule = createPlayerCapsuleState(playerX, playerY, playerZ);
 
   const placeVehicleNear = (
     rt: ActiveRegionRuntime,
@@ -357,6 +364,31 @@ async function bootstrap(): Promise<void> {
 
   let syncDebugHandle: () => void = () => {};
 
+  const collectActiveVehicleOBBs = (): VehicleColliderOBB[] => {
+    const list: VehicleColliderOBB[] = [getVehicleColliderOBB(playerVehicle)];
+    for (const car of runtime.traffic.getAgents()) {
+      list.push({
+        id: `traffic-${car.id}`,
+        x: car.x,
+        z: car.z,
+        heading: car.heading,
+        halfWidth: car.archetype === 'dolmus' ? 1.05 : 0.96,
+        halfLength: car.archetype === 'dolmus' ? 2.55 : 2.15,
+      });
+    }
+    for (const unit of wanted.getUnits()) {
+      list.push({
+        id: `police-${unit.id}`,
+        x: unit.x,
+        z: unit.z,
+        heading: unit.heading,
+        halfWidth: 0.98,
+        halfLength: 2.25,
+      });
+    }
+    return list;
+  };
+
   const teleportTo = (x: number, z: number): void => {
     const tx = clamp(x, runtime.terrain.minX + 12, runtime.terrain.maxX - 12);
     const tz = clamp(z, runtime.terrain.minZ + 12, runtime.terrain.maxZ - 12);
@@ -370,6 +402,11 @@ async function bootstrap(): Promise<void> {
     playerX = tx;
     playerZ = tz;
     playerY = ty;
+    playerCapsule.x = tx;
+    playerCapsule.y = ty;
+    playerCapsule.z = tz;
+    playerCapsule.vx = 0;
+    playerCapsule.vz = 0;
     runtime.scene.updateStreaming(tx, tz);
     applySave();
     syncDebugHandle();
@@ -380,6 +417,9 @@ async function bootstrap(): Promise<void> {
     playerX = playerVehicle.x;
     playerY = playerVehicle.y;
     playerZ = playerVehicle.z;
+    velX = 0;
+    velZ = 0;
+    attachPlayerToVehicleSeat(playerCapsule, playerVehicle.id, playerX, playerY, playerZ);
     hud.resetTouchInputs();
     sound.playDoorClick();
     void triggerLightHaptic();
@@ -391,12 +431,24 @@ async function bootstrap(): Promise<void> {
     inVehicle = false;
     playerVehicle.speed = 0;
     playerVehicle.drifting = false;
-    const exit = computeSafeExitPosition(playerVehicle, runtime.scene.spatialGrid, (x, z) =>
-      sampleTerrainElevation(runtime.terrain, x, z),
+    const exit = computeSafeExitPosition(
+      playerVehicle,
+      runtime.scene.spatialGrid,
+      (x, z) => sampleTerrainElevation(runtime.terrain, x, z),
+      collectActiveVehicleOBBs(),
+      {
+        minX: runtime.terrain.minX,
+        maxX: runtime.terrain.maxX,
+        minZ: runtime.terrain.minZ,
+        maxZ: runtime.terrain.maxZ,
+      },
     );
     playerX = exit.x;
     playerY = exit.y;
     playerZ = exit.z;
+    velX = 0;
+    velZ = 0;
+    detachPlayerFromVehicleSeat(playerCapsule, exit.x, exit.y, exit.z);
     speedKph = 0;
     gear = 'N';
     hud.resetTouchInputs();
@@ -490,6 +542,7 @@ async function bootstrap(): Promise<void> {
       playerX = runtime.manifest.spawn.x;
       playerZ = runtime.manifest.spawn.z;
       playerY = sampleTerrainElevation(runtime.terrain, playerX, playerZ);
+      detachPlayerFromVehicleSeat(playerCapsule, playerX, playerY, playerZ);
       playerVehicle = placeVehicleNear(
         runtime,
         runtime.manifest.spawn.x,
@@ -815,6 +868,7 @@ async function bootstrap(): Promise<void> {
     locale: save.locale,
     physicsReady: false,
     inVehicle: false,
+    driverVisibleInCabin: false,
     speedKph: 0,
     cash: save.cash,
     wantedStars: 0,
@@ -947,6 +1001,8 @@ async function bootstrap(): Promise<void> {
         const inSanctuary =
           findSanctuaryZone(playerX, playerZ, runtime.manifest.sanctuaryZones) !== null;
 
+        const activeVehicles = collectActiveVehicleOBBs();
+
         if (inVehicle) {
           const throttle = kb.forward || driveTouch.gas ? 1 : 0;
           const brake = kb.backward || driveTouch.brake ? 1 : 0;
@@ -1002,42 +1058,43 @@ async function bootstrap(): Promise<void> {
           playerX = playerVehicle.x;
           playerY = playerVehicle.y;
           playerZ = playerVehicle.z;
+          playerCapsule.x = playerX;
+          playerCapsule.y = playerY;
+          playerCapsule.z = playerZ;
           velX = Math.sin(playerVehicle.heading) * playerVehicle.speed;
           velZ = Math.cos(playerVehicle.heading) * playerVehicle.speed;
         } else {
-          const speed = intent.sprint ? SPRINT_SPEED : WALK_SPEED;
-          const yaw = runtime.scene.getCameraYaw();
-          const fwdX = -Math.sin(yaw);
-          const fwdZ = -Math.cos(yaw);
-          const rightX = Math.cos(yaw);
-          const rightZ = -Math.sin(yaw);
-
-          velX = (rightX * intent.moveX + fwdX * intent.moveY) * speed;
-          velZ = (rightZ * intent.moveX + fwdZ * intent.moveY) * speed;
-
-          let nextX = clamp(
-            playerX + velX * dt,
-            runtime.terrain.minX + 8,
-            runtime.terrain.maxX - 8,
+          playerCapsule.x = playerX;
+          playerCapsule.y = playerY;
+          playerCapsule.z = playerZ;
+          stepOnFootPlayer(
+            playerCapsule,
+            intent.moveX,
+            intent.moveY,
+            intent.sprint,
+            runtime.scene.getCameraYaw(),
+            dt,
+            {
+              minX: runtime.terrain.minX,
+              maxX: runtime.terrain.maxX,
+              minZ: runtime.terrain.minZ,
+              maxZ: runtime.terrain.maxZ,
+            },
+            sampleElev,
+            runtime.scene.spatialGrid,
+            activeVehicles,
           );
-          let nextZ = clamp(
-            playerZ + velZ * dt,
-            runtime.terrain.minZ + 8,
-            runtime.terrain.maxZ - 8,
-          );
 
-          const resolved = runtime.scene.spatialGrid.resolveCircle(nextX, nextZ, PLAYER_RADIUS);
-          nextX = resolved.x;
-          nextZ = resolved.z;
-
-          playerX = nextX;
-          playerZ = nextZ;
-          playerY = sampleElev(playerX, playerZ);
+          playerX = playerCapsule.x;
+          playerY = playerCapsule.y;
+          playerZ = playerCapsule.z;
+          velX = playerCapsule.vx;
+          velZ = playerCapsule.vz;
           speedKph = 0;
           gear = 'N';
         }
 
-        // Advance road-graph AI traffic & sidewalk pedestrians around active player
+        // Advance road-graph AI traffic & obstacle-aware sidewalk pedestrians around active player
         runtime.traffic.step(dt, playerX, playerZ, sampleElev);
         const pedStep = runtime.pedestrians.step(
           dt,
@@ -1047,6 +1104,8 @@ async function bootstrap(): Promise<void> {
           inVehicle,
           runtime.manifest.sanctuaryZones,
           sampleElev,
+          runtime.scene.spatialGrid,
+          activeVehicles,
         );
         if (pedStep.closeCalls > 0) {
           wanted.reportOffense(14 * pedStep.closeCalls, inSanctuary);

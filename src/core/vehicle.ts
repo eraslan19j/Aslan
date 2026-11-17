@@ -1,4 +1,9 @@
 import { clamp } from './math';
+import {
+  PLAYER_CAPSULE_RADIUS,
+  resolveCircleAgainstVehicleOBB,
+  type VehicleColliderOBB,
+} from './playerController';
 import type { BuildingSpatialGrid } from './world/collision';
 
 export type VehicleArchetype = 'taxi' | 'dolmus' | 'sedan';
@@ -111,6 +116,18 @@ export interface WorldBounds2D {
 
 export const ENTER_VEHICLE_DISTANCE = 5.5;
 
+export function getVehicleColliderOBB(v: PlayerVehicleState): VehicleColliderOBB {
+  const spec = VEHICLE_SPECS[v.archetype];
+  return {
+    id: v.id,
+    x: v.x,
+    z: v.z,
+    heading: v.heading,
+    halfWidth: spec.width * 0.5,
+    halfLength: spec.length * 0.5,
+  };
+}
+
 export function createVehicleState(
   id: string,
   archetype: VehicleArchetype,
@@ -207,40 +224,76 @@ export function stepPlayerVehicle(
 
   const nextFwdX = Math.sin(v.heading);
   const nextFwdZ = Math.cos(v.heading);
-  let nextX = clamp(v.x + nextFwdX * v.speed * dt, bounds.minX + 10, bounds.maxX - 10);
-  let nextZ = clamp(v.z + nextFwdZ * v.speed * dt, bounds.minZ + 10, bounds.maxZ - 10);
+  const nextRightX = Math.cos(v.heading);
+  const nextRightZ = -Math.sin(v.heading);
 
-  // Oriented dual-circle collision (front + rear axles) against exact 2D building polygons
-  const frontOrigX = nextX + nextFwdX * spec.axleOffset;
-  const frontOrigZ = nextZ + nextFwdZ * spec.axleOffset;
-  const frontRes = spatialGrid.resolveCircle(frontOrigX, frontOrigZ, spec.collisionRadius);
-  const frontPushX = frontRes.x - frontOrigX;
-  const frontPushZ = frontRes.z - frontOrigZ;
-  nextX += frontPushX;
-  nextZ += frontPushZ;
+  // Anti-tunneling sub-stepping + 6-point oriented body collider (front/rear axles + 4 bumper corners)
+  const stepDist = Math.abs(v.speed * dt);
+  const subSteps = Math.max(1, Math.min(8, Math.ceil(stepDist / 0.35)));
+  const subDt = dt / subSteps;
+  const cornerHalfW = spec.width * 0.44;
+  const cornerHalfL = spec.length * 0.45;
+  const cornerRadius = 0.28;
 
-  const rearOrigX = nextX - nextFwdX * spec.axleOffset;
-  const rearOrigZ = nextZ - nextFwdZ * spec.axleOffset;
-  const rearRes = spatialGrid.resolveCircle(rearOrigX, rearOrigZ, spec.collisionRadius);
-  const rearPushX = rearRes.x - rearOrigX;
-  const rearPushZ = rearRes.z - rearOrigZ;
-  nextX += rearPushX;
-  nextZ += rearPushZ;
+  let nextX = v.x;
+  let nextZ = v.z;
+  let collided = false;
+  let accNx = 0;
+  let accNz = 0;
 
-  const collided = frontRes.collided || rearRes.collided;
+  for (let s = 0; s < subSteps; s += 1) {
+    nextX = clamp(nextX + nextFwdX * v.speed * subDt, bounds.minX + 10, bounds.maxX - 10);
+    nextZ = clamp(nextZ + nextFwdZ * v.speed * subDt, bounds.minZ + 10, bounds.maxZ - 10);
+
+    // 1. Primary front & rear axle circles
+    const frontOrigX = nextX + nextFwdX * spec.axleOffset;
+    const frontOrigZ = nextZ + nextFwdZ * spec.axleOffset;
+    const frontRes = spatialGrid.resolveCircle(frontOrigX, frontOrigZ, spec.collisionRadius);
+    if (frontRes.collided) {
+      nextX += frontRes.x - frontOrigX;
+      nextZ += frontRes.z - frontOrigZ;
+      accNx += frontRes.normalX;
+      accNz += frontRes.normalZ;
+      collided = true;
+    }
+
+    const rearOrigX = nextX - nextFwdX * spec.axleOffset;
+    const rearOrigZ = nextZ - nextFwdZ * spec.axleOffset;
+    const rearRes = spatialGrid.resolveCircle(rearOrigX, rearOrigZ, spec.collisionRadius);
+    if (rearRes.collided) {
+      nextX += rearRes.x - rearOrigX;
+      nextZ += rearRes.z - rearOrigZ;
+      accNx += rearRes.normalX;
+      accNz += rearRes.normalZ;
+      collided = true;
+    }
+
+    // 2. 4 Oriented chassis bumper corners (prevents diagonal corner clipping into walls!)
+    const corners: [number, number][] = [
+      [cornerHalfL, cornerHalfW],
+      [cornerHalfL, -cornerHalfW],
+      [-cornerHalfL, cornerHalfW],
+      [-cornerHalfL, -cornerHalfW],
+    ];
+    for (const [cl, cw] of corners) {
+      const cx = nextX + nextFwdX * cl + nextRightX * cw;
+      const cz = nextZ + nextFwdZ * cl + nextRightZ * cw;
+      const cRes = spatialGrid.resolveCircle(cx, cz, cornerRadius);
+      if (cRes.collided) {
+        nextX += cRes.x - cx;
+        nextZ += cRes.z - cz;
+        accNx += cRes.normalX * 0.65;
+        accNz += cRes.normalZ * 0.65;
+        collided = true;
+      }
+    }
+  }
+
   let impactSpeed = 0;
   if (collided) {
     // Combine surface push normals for physically accurate tangent wall-sliding
-    let nx = 0;
-    let nz = 0;
-    if (frontRes.collided) {
-      nx += frontRes.normalX;
-      nz += frontRes.normalZ;
-    }
-    if (rearRes.collided) {
-      nx += rearRes.normalX;
-      nz += rearRes.normalZ;
-    }
+    let nx = accNx;
+    let nz = accNz;
     const nLen = Math.hypot(nx, nz);
     if (nLen > 1e-5) {
       nx /= nLen;
@@ -286,25 +339,64 @@ export function stepPlayerVehicle(
   };
 }
 
-/** Computes a safe exit spot beside the driver's left door, pushed clear of buildings. */
+/**
+ * Computes a guaranteed collision-free exit spot beside the driver's door,
+ * checking buildings, nearby traffic/police OBBs, and the vehicle's own OBB
+ * so exiting NEVER clips the player into walls or cars (GTA Vice City / OpenCity standard).
+ */
 export function computeSafeExitPosition(
   v: PlayerVehicleState,
   spatialGrid: BuildingSpatialGrid,
   sampleElev: (x: number, z: number) => number,
+  otherVehicles: readonly VehicleColliderOBB[] = [],
+  bounds?: WorldBounds2D,
 ): { x: number; y: number; z: number } {
+  const spec = VEHICLE_SPECS[v.archetype];
+  const ownObb = getVehicleColliderOBB(v);
+  const fwdX = Math.sin(v.heading);
+  const fwdZ = Math.cos(v.heading);
   const leftX = Math.cos(v.heading);
   const leftZ = -Math.sin(v.heading);
+  const sideDist = spec.width * 0.5 + PLAYER_CAPSULE_RADIUS + 0.55;
+  const endDist = spec.length * 0.5 + PLAYER_CAPSULE_RADIUS + 0.65;
+
   const candidates = [
-    { x: v.x + leftX * 2.2, z: v.z + leftZ * 2.2 },
-    { x: v.x - leftX * 2.2, z: v.z - leftZ * 2.2 },
-    { x: v.x - Math.sin(v.heading) * 2.9, z: v.z - Math.cos(v.heading) * 2.9 },
+    // Driver side (left-hand drive in Istanbul)
+    { x: v.x + leftX * sideDist, z: v.z + leftZ * sideDist },
+    // Passenger side
+    { x: v.x - leftX * sideDist, z: v.z - leftZ * sideDist },
+    // Rear-left & rear-right doors
+    { x: v.x + leftX * sideDist - fwdX * 1.1, z: v.z + leftZ * sideDist - fwdZ * 1.1 },
+    { x: v.x - leftX * sideDist - fwdX * 1.1, z: v.z - leftZ * sideDist - fwdZ * 1.1 },
+    // Behind trunk & ahead of hood
+    { x: v.x - fwdX * endDist, z: v.z - fwdZ * endDist },
+    { x: v.x + fwdX * endDist, z: v.z + fwdZ * endDist },
   ];
+
   for (const c of candidates) {
-    const res = spatialGrid.resolveCircle(c.x, c.z, 0.7);
-    if (!res.collided) {
-      return { x: res.x, y: sampleElev(res.x, res.z), z: res.z };
+    const cx = bounds ? clamp(c.x, bounds.minX + 8, bounds.maxX - 8) : c.x;
+    const cz = bounds ? clamp(c.z, bounds.minZ + 8, bounds.maxZ - 8) : c.z;
+    const bRes = spatialGrid.resolveCircle(cx, cz, PLAYER_CAPSULE_RADIUS + 0.12);
+    if (bRes.collided) continue;
+
+    // Must also clear own vehicle & all other vehicles
+    if (resolveCircleAgainstVehicleOBB(cx, cz, PLAYER_CAPSULE_RADIUS, ownObb).hit) continue;
+    let hitsOtherCar = false;
+    for (const ov of otherVehicles) {
+      if (ov.id === v.id) continue;
+      if (resolveCircleAgainstVehicleOBB(cx, cz, PLAYER_CAPSULE_RADIUS + 0.08, ov).hit) {
+        hitsOtherCar = true;
+        break;
+      }
+    }
+    if (!hitsOtherCar) {
+      return { x: cx, y: sampleElev(cx, cz), z: cz };
     }
   }
-  const fallback = spatialGrid.resolveCircle(v.x, v.z, 0.7);
-  return { x: fallback.x, y: sampleElev(fallback.x, fallback.z), z: fallback.z };
+
+  // Fallback: push clear of building & own vehicle
+  const pushed = spatialGrid.resolveCircle(v.x - fwdX * endDist, v.z - fwdZ * endDist, PLAYER_CAPSULE_RADIUS);
+  const outOwn = resolveCircleAgainstVehicleOBB(pushed.x, pushed.z, PLAYER_CAPSULE_RADIUS + 0.05, ownObb);
+  const finalB = spatialGrid.resolveCircle(outOwn.x, outOwn.z, PLAYER_CAPSULE_RADIUS);
+  return { x: finalB.x, y: sampleElev(finalB.x, finalB.z), z: finalB.z };
 }

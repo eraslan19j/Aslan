@@ -3,6 +3,7 @@ import { mergeColoredParts } from './meshMerge';
 
 export interface CharacterRig {
   root: THREE.Group;
+  shadowDisc: THREE.Mesh;
   bodyPivot: THREE.Group;
   leftLegPivot: THREE.Group;
   rightLegPivot: THREE.Group;
@@ -176,6 +177,7 @@ export function createCharacterRig(contactShadowTex: THREE.Texture): CharacterRi
 
   return {
     root,
+    shadowDisc,
     bodyPivot,
     leftLegPivot,
     rightLegPivot,
@@ -232,5 +234,22 @@ export function animateCharacterRig(
     rig.bodyPivot.rotation.x += (0 - rig.bodyPivot.rotation.x) * blend;
     rig.bodyPivot.rotation.y += (0 - rig.bodyPivot.rotation.y) * blend;
     rig.headGroup.rotation.x += (0 - rig.headGroup.rotation.x) * blend;
+    rig.headGroup.rotation.y += (0 - rig.headGroup.rotation.y) * blend;
   }
+}
+
+/**
+ * GTA Vice City style seated driving posture inside the cabin:
+ * hips seated, hands gripping steering wheel, head glancing gently into turns.
+ */
+export function poseCharacterSeated(rig: CharacterRig, steerVisual: number): void {
+  rig.shadowDisc.visible = false;
+  rig.bodyPivot.position.set(0, 0, 0);
+  rig.bodyPivot.rotation.set(-0.08, 0, 0);
+  rig.leftLegPivot.rotation.set(-1.38, 0, 0.05);
+  rig.rightLegPivot.rotation.set(-1.38, 0, -0.05);
+  // Reach hands forward onto the wheel, shifting subtly with steering angle
+  rig.leftArmPivot.rotation.set(-1.08 + steerVisual * 0.16, 0, -0.18);
+  rig.rightArmPivot.rotation.set(-1.08 - steerVisual * 0.16, 0, 0.18);
+  rig.headGroup.rotation.set(-0.04, steerVisual * 0.28, 0);
 }

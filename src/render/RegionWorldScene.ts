@@ -20,6 +20,7 @@ import type {
 import {
   animateCharacterRig,
   createCharacterRig,
+  poseCharacterSeated,
   type CharacterRig,
 } from './characterMesh';
 import { mergeColoredParts, type ColoredGeometryPart } from './meshMerge';
@@ -103,6 +104,7 @@ export class RegionWorldScene {
   private readonly nightSkyTex: THREE.CanvasTexture;
   private readonly waterMesh: THREE.Mesh | null;
   private readonly characterRig: CharacterRig;
+  private characterMountedInTaxi = false;
   private readonly taxiRig: PlayerTaxiRig;
 
   // Upgraded 4-part instanced AI traffic (4 draw calls total for all 24 vehicles)
@@ -786,6 +788,14 @@ export class RegionWorldScene {
     return this.playerCameraView;
   }
 
+  isCharacterMountedInTaxi(): boolean {
+    return (
+      this.characterMountedInTaxi &&
+      this.characterRig.root.parent === this.taxiRig.driverSeatMount &&
+      this.characterRig.root.visible
+    );
+  }
+
   cyclePlayerCameraView(): PlayerCameraView {
     const idx = CAMERA_VIEW_ORDER.indexOf(this.playerCameraView);
     this.playerCameraView = CAMERA_VIEW_ORDER[(idx + 1) % CAMERA_VIEW_ORDER.length]!;
@@ -1029,13 +1039,28 @@ export class RegionWorldScene {
     const slopeRoll = Math.atan2(yLeft - yRight, 1.9);
     const avgY = Math.max(vehicle.y, (yFront + yRear + yLeft + yRight) * 0.25);
 
-    this.taxiRig.root.position.set(vehicle.x, avgY + 0.35, vehicle.z);
+    this.taxiRig.root.position.set(vehicle.x, avgY + 0.26, vehicle.z);
     this.taxiRig.root.rotation.set(-slopePitch, vehicle.heading, slopeRoll, 'YXZ');
     updatePlayerTaxiRig(this.taxiRig, vehicle);
 
-    // Update grounded articulated on-foot human character
-    this.characterRig.root.visible = !inVehicle;
-    if (!inVehicle) {
+    // GTA Vice City Seat Attachment: protagonist stays visibly seated inside the taxi cabin!
+    if (inVehicle) {
+      if (!this.characterMountedInTaxi) {
+        this.taxiRig.driverSeatMount.add(this.characterRig.root);
+        this.characterRig.root.position.set(0, 0, 0);
+        this.characterRig.root.rotation.set(0, 0, 0);
+        this.characterMountedInTaxi = true;
+      }
+      // Visible through rear/side/windshield glass in Chase, Wide & Top-Down; hidden only in Hood cam
+      this.characterRig.root.visible = this.playerCameraView !== 'hood';
+      poseCharacterSeated(this.characterRig, vehicle.steerVisual);
+    } else {
+      if (this.characterMountedInTaxi) {
+        this.scene.add(this.characterRig.root);
+        this.characterRig.shadowDisc.visible = true;
+        this.characterMountedInTaxi = false;
+      }
+      this.characterRig.root.visible = true;
       const horizSpeed = Math.hypot(velX, velZ);
       if (horizSpeed > 0.2) {
         const targetHeading = Math.atan2(velX, velZ);
@@ -1044,9 +1069,9 @@ export class RegionWorldScene {
         while (diff < -Math.PI) diff += Math.PI * 2;
         this.avatarHeading += diff * Math.min(1, dt * 11);
       }
-      // Sneakers bottom sits at local y=0; road deck sits at terrain + ~0.34m -> ZERO floating!
-      this.characterRig.root.position.set(playerX, playerY + 0.34, playerZ);
-      this.characterRig.root.rotation.y = this.avatarHeading;
+      // Sneakers bottom sits cleanly at local y=0 -> grounded on road/sidewalk surface without floating!
+      this.characterRig.root.position.set(playerX, playerY + 0.24, playerZ);
+      this.characterRig.root.rotation.set(0, this.avatarHeading, 0);
       animateCharacterRig(this.characterRig, horizSpeed, dt);
     }
 
