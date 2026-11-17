@@ -351,12 +351,51 @@ function buildBatchedRoadsGeometry(
   const uv: number[] = [];
   const col: number[] = [];
 
+  const appendRoadCap = (
+    cx: number,
+    cz: number,
+    dirX: number,
+    dirZ: number,
+    halfW: number,
+    yLift: number,
+    uMid: number,
+    vCoord: number,
+    r: number,
+    g: number,
+    b: number,
+  ): void => {
+    // 4-step semicircular end-cap so intersections & tile transitions never show sharp half-cut stumps
+    const cy = sampleTerrainElevation(terrain, cx, cz) + yLift;
+    const baseAngle = Math.atan2(dirZ, dirX);
+    const steps = 4;
+    for (let s = 0; s < steps; s += 1) {
+      const a0 = baseAngle - Math.PI * 0.5 + (s / steps) * Math.PI;
+      const a1 = baseAngle - Math.PI * 0.5 + ((s + 1) / steps) * Math.PI;
+      const x0 = cx + Math.cos(a0) * halfW;
+      const z0 = cz + Math.sin(a0) * halfW;
+      const x1 = cx + Math.cos(a1) * halfW;
+      const z1 = cz + Math.sin(a1) * halfW;
+      const y0 = sampleTerrainElevation(terrain, x0, z0) + yLift;
+      const y1 = sampleTerrainElevation(terrain, x1, z1) + yLift;
+      // Upward (+Y) CCW winding in XZ (screen-right X, screen-down Z)
+      pushTri(
+        pos, nor, uv, col,
+        cx, cy, cz,
+        x1, y1, z1,
+        x0, y0, z0,
+        0, 1, 0,
+        uMid, vCoord, uMid, vCoord, uMid, vCoord,
+        r, g, b,
+      );
+    }
+  };
+
   for (const road of tile.roads) {
     const ptCount = Math.floor(road.points.length / 2);
     if (ptCount < 2) continue;
 
-    // Slight curb apron width boost makes sidewalks & curb seams meet building fronts cleanly
-    const halfW = road.width * 0.5 + (road.roadClass === 'tram' ? 0 : 0.45);
+    // Exact repaired road width (zero artificial apron bloat into building facades!)
+    const halfW = Math.max(1.4, road.width * 0.5);
     const yLift = ROAD_LIFT[road.roadClass] ?? 0.26;
     const [r, g, b] = ROAD_RGB[road.roadClass] ?? ROAD_RGB.residential;
     const hasCenterLine =
@@ -364,11 +403,16 @@ function buildBatchedRoadsGeometry(
       road.roadClass === 'secondary' ||
       road.roadClass === 'tertiary' ||
       road.roadClass === 'residential';
-    // Narrow service/pedestrian streets sample the asphalt texture without center lane stripe
     const uLeft = hasCenterLine ? 0.0 : 0.14;
     const uRight = hasCenterLine ? 1.0 : 0.46;
+    const uAsphalt = 0.25;
 
     let distSoFar = 0;
+    let prevEndLeftX = 0;
+    let prevEndLeftZ = 0;
+    let prevEndRightX = 0;
+    let prevEndRightZ = 0;
+    let hasPrevSeg = false;
 
     for (let i = 1; i < ptCount; i += 1) {
       const sx0 = road.points[(i - 1) * 2]!;
@@ -378,10 +422,86 @@ function buildBatchedRoadsGeometry(
       const totalDx = sx1 - sx0;
       const totalDz = sz1 - sz0;
       const totalLen = Math.hypot(totalDx, totalDz);
-      if (totalLen < 0.4) continue;
+      if (totalLen < 0.35) continue;
 
-      const px = (-totalDz / totalLen) * halfW;
-      const pz = (totalDx / totalLen) * halfW;
+      const dirX = totalDx / totalLen;
+      const dirZ = totalDz / totalLen;
+      const px = -dirZ * halfW;
+      const pz = dirX * halfW;
+
+      // Start rounded junction cap on the very first segment
+      if (!hasPrevSeg) {
+        appendRoadCap(sx0, sz0, -dirX, -dirZ, halfW, yLift, uAsphalt, 0, r, g, b);
+      } else {
+        // Fill corner bend wedge seamlessly between previous segment end and current segment start
+        const jcY = sampleTerrainElevation(terrain, sx0, sz0) + yLift;
+        const curStartLeftX = sx0 - px;
+        const curStartLeftZ = sz0 - pz;
+        const curStartRightX = sx0 + px;
+        const curStartRightZ = sz0 + pz;
+        const vJoin = distSoFar / 8.0;
+
+        // Left outer bevel wedge (only if edges separated at bend)
+        if (Math.hypot(curStartLeftX - prevEndLeftX, curStartLeftZ - prevEndLeftZ) > 0.08) {
+          const yPrevL = sampleTerrainElevation(terrain, prevEndLeftX, prevEndLeftZ) + yLift;
+          const yCurL = sampleTerrainElevation(terrain, curStartLeftX, curStartLeftZ) + yLift;
+          // Ensure upward normal regardless of turn sign
+          const crossL =
+            (prevEndLeftX - sx0) * (curStartLeftZ - sz0) -
+            (prevEndLeftZ - sz0) * (curStartLeftX - sx0);
+          if (crossL < 0) {
+            pushTri(
+              pos, nor, uv, col,
+              sx0, jcY, sz0,
+              prevEndLeftX, yPrevL, prevEndLeftZ,
+              curStartLeftX, yCurL, curStartLeftZ,
+              0, 1, 0,
+              uAsphalt, vJoin, uLeft, vJoin, uLeft, vJoin,
+              r, g, b,
+            );
+          } else {
+            pushTri(
+              pos, nor, uv, col,
+              sx0, jcY, sz0,
+              curStartLeftX, yCurL, curStartLeftZ,
+              prevEndLeftX, yPrevL, prevEndLeftZ,
+              0, 1, 0,
+              uAsphalt, vJoin, uLeft, vJoin, uLeft, vJoin,
+              r, g, b,
+            );
+          }
+        }
+        // Right outer bevel wedge
+        if (Math.hypot(curStartRightX - prevEndRightX, curStartRightZ - prevEndRightZ) > 0.08) {
+          const yPrevR = sampleTerrainElevation(terrain, prevEndRightX, prevEndRightZ) + yLift;
+          const yCurR = sampleTerrainElevation(terrain, curStartRightX, curStartRightZ) + yLift;
+          const crossR =
+            (prevEndRightX - sx0) * (curStartRightZ - sz0) -
+            (prevEndRightZ - sz0) * (curStartRightX - sx0);
+          if (crossR < 0) {
+            pushTri(
+              pos, nor, uv, col,
+              sx0, jcY, sz0,
+              prevEndRightX, yPrevR, prevEndRightZ,
+              curStartRightX, yCurR, curStartRightZ,
+              0, 1, 0,
+              uAsphalt, vJoin, uRight, vJoin, uRight, vJoin,
+              r, g, b,
+            );
+          } else {
+            pushTri(
+              pos, nor, uv, col,
+              sx0, jcY, sz0,
+              curStartRightX, yCurR, curStartRightZ,
+              prevEndRightX, yPrevR, prevEndRightZ,
+              0, 1, 0,
+              uAsphalt, vJoin, uRight, vJoin, uRight, vJoin,
+              r, g, b,
+            );
+          }
+        }
+      }
+
       const steps = Math.max(1, Math.min(8, Math.ceil(totalLen / 10)));
 
       for (let s = 0; s < steps; s += 1) {
@@ -430,6 +550,17 @@ function buildBatchedRoadsGeometry(
           uLeft, v0, uRight, v1, uLeft, v1,
           r, g, b,
         );
+      }
+
+      prevEndLeftX = sx1 - px;
+      prevEndLeftZ = sz1 - pz;
+      prevEndRightX = sx1 + px;
+      prevEndRightZ = sz1 + pz;
+      hasPrevSeg = true;
+
+      // End rounded junction cap on the final segment
+      if (i === ptCount - 1) {
+        appendRoadCap(sx1, sz1, dirX, dirZ, halfW, yLift, uAsphalt, distSoFar / 8.0, r, g, b);
       }
     }
   }
