@@ -35,6 +35,15 @@ npm run cap:sync   -> PASS (Capacitor 8.6.2 synced to Android project in 0.101s)
 
 ---
 
-## 3. GitHub Actions CI, Visual QA, Android Emulator QA & API 36 APK
+## 3. GitHub Actions CI, Visual QA, Android Emulator QA & API 36 APK (Verified on `8ccb1da`)
 
-_Updated after remote CI workflows complete on the pushed commit._
+| Pipeline | Run ID | Status | Verified Output & Metrics |
+|---|---|---|---|
+| **CI (Web + Unit + Headless Chromium Smoke + 14-Shot Visual QA + 3-Min Soak)** | `44048155803` | **PASS (`7m15s`)** | **50/50 Vitest tests**, **0 console errors**, **0 HUD layout warnings**, `driverVisibleInCabin: true`, `walkDist: 2.25 m`, `driveDist: 3.30 m` (`33 km/h`), `exitedOk: true`, `fatihSwitchedOk: true`, **14/14 screenshots** (`Lite: 66–70 draw calls / 86K–109K tris`, `Normal: 83–100 draw calls / 116K–173K tris`), 3-min Soak (`maxDrawCalls: 68`, `texDrift: 0`, `heapGrowthMb: -0.09 MB`, `errors: []`) |
+| **Android Emulator QA (x86_64 KVM + Screencap + Logcat)** | `44048155727` | **PASS** | `ISTANBUL_BOOT` `v0.4.0`, `glError: 0`, `FPS: 32`, `Çizim: 63`, `Karo: 7`, `Bina: 2033`, `2400x1080` landscape, `fatalCount: 0`, `anrCount: 0`, `chromiumErrorCount: 0`, `appAliveAfterBack: true` |
+| **Android APK / AAB (API 36)** | `44048155859` | **PASS (`1m53s`)** | `com.istanbulstreets.game`, `versionCode 6` (`v0.4.0`), `targetSdkVersion 36`, `sensorLandscape`, Debug APK **`6.91 MB` (`7,247,998 B`)** published to GitHub Release `v0.4.0` |
+
+**Verified Visual Inspection (`qa-screens` PNGs):**
+- `esenler_07_driving_20x9.png`: Seated protagonist clearly visible on left-hand driver seat behind translucent tinted rear & side glass; continuous road surface down the slope; zero HUD overlap.
+- `esenler_02_street.png`: Grounded character sneakers on asphalt beside parked Sarı Taksi; building fronts aligned cleanly behind curbs with zero road intrusions.
+- `esenler_03_overview.png` & `fatih_03_overview.png`: Continuous bend-joined roads & intersections across both regions with zero triangular bend gaps and all original buildings/landmarks preserved.

@@ -78,7 +78,7 @@ export interface UiStrings {
 const STRINGS: Record<LocaleCode, UiStrings> = {
   tr: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.3.0 · Açık Dünya',
+    milestoneTag: 'v0.4.0 · Açık Dünya',
     fpsLabel: 'FPS',
     drawsLabel: 'Çizim',
     trisLabel: 'Üçgen',
@@ -123,7 +123,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     reportCopied: 'Rapor panoya kopyalandı!',
     aboutTitle: 'Hakkında ve ODbL / Açık Veri Atıfları',
     aboutSubtitle:
-      'Istanbul Streets v0.3.0 — İstanbul açık harita verileriyle çevrimdışı çalışan %100 orijinal açık dünya oyunu.',
+      'Istanbul Streets v0.4.0 — İstanbul açık harita verileriyle çevrimdışı çalışan %100 orijinal açık dünya oyunu.',
     aboutDataHeading: 'Harita ve Türetilmiş Veri Atıfları (public/derived-data/)',
     aboutOriginalityNote:
       'Tüm karakterler, araçlar, markalar ve kurumlar kurgusaldır; gerçek kişi, ev adresi veya işletme logosu yoktur. Tüm ibadethaneler otomatik şiddetsiz Güvenli Alandır.',
@@ -157,7 +157,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
   },
   en: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.3.0 · Open World',
+    milestoneTag: 'v0.4.0 · Open World',
     fpsLabel: 'FPS',
     drawsLabel: 'Draws',
     trisLabel: 'Tris',
@@ -202,7 +202,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     reportCopied: 'Report copied to clipboard!',
     aboutTitle: 'About & ODbL / Open Data Attributions',
     aboutSubtitle:
-      'Istanbul Streets v0.3.0 — 100% original offline open-world game built from open Istanbul geospatial data.',
+      'Istanbul Streets v0.4.0 — 100% original offline open-world game built from open Istanbul geospatial data.',
     aboutDataHeading: 'Map & Derived Data Attributions (public/derived-data/)',
     aboutOriginalityNote:
       'All characters, vehicles, brands, and agencies are fictional; zero real people, home addresses, or brand logos. All places of worship are automatic Safe Zones.',
