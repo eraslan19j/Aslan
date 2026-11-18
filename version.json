@@ -1,5 +1,5 @@
 {
   "$comment": "TEK SÜRÜM KAYNAĞI. Bu dosyayı elle düzenleyin, diğerleri `npm run version:sync` ile güncellenir. `npm run version:check` eşitliği doğrular (CI'da zorunlu).",
-  "version": "0.10.0",
-  "versionCode": 12
+  "version": "0.10.1",
+  "versionCode": 13
 }
