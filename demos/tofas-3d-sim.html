@@ -1758,23 +1758,44 @@ carVisual.add(shell);
 
 /* ── the roof: a slightly domed panel spanning the cabin ───────────────────── */
 {
+  /* A roof is a shallow dome — crowned across the car AND tapering down into
+     the pillars at both ends.  Six vertices with a 28 mm rise came out as a
+     flat plate ending in a hard edge, which is one of the things that made the
+     greenhouse read as a box rather than a pressing. */
   const ROOF_W = BODY_W - 0.012;
-  const roofV = new Float32Array([
-    -ROOF_W / 2, Y_ROOF - 0.020, -0.735,
-     ROOF_W / 2, Y_ROOF - 0.020, -0.735,
-     ROOF_W / 2, Y_ROOF - 0.020,  0.315,
-    -ROOF_W / 2, Y_ROOF - 0.020,  0.315,
-    /* a shallow crown, 18 mm higher in the middle */
-    -ROOF_W / 2, Y_ROOF + 0.008, -0.210,
-     ROOF_W / 2, Y_ROOF + 0.008, -0.210,
-  ]);
+  const NZ = 12, NX = 8;
+  const zA = -0.760, zB = 0.330;      // roof panel runs between these
+  const roofV = [];
+  const roofI = [];
+  for (let iz = 0; iz <= NZ; iz++) {
+    const tz = iz / NZ;
+    const z = lerp(zA, zB, tz);
+    /* taper the ends: the roof narrows and drops into the pillars */
+    const endFade = Math.sin(Math.PI * Math.min(1, Math.max(0, tz))) ** 0.55;
+    const w = ROOF_W * (0.80 + 0.20 * endFade);
+    for (let ix = 0; ix <= NX; ix++) {
+      const tx = ix / NX;
+      const x = (tx - 0.5) * w;
+      /* crown across the car, and a gentle fall to each end */
+      const crown = 0.030 * Math.cos((tx - 0.5) * Math.PI);
+      const drop = 0.016 * (1 - endFade);
+      roofV.push(x, Y_ROOF - 0.018 + crown - drop, z);
+    }
+  }
+  for (let iz = 0; iz < NZ; iz++) {
+    for (let ix = 0; ix < NX; ix++) {
+      const a = iz * (NX + 1) + ix;
+      const b = a + 1;
+      const c = a + NX + 1;
+      const d = c + 1;
+      roofI.push(a, c, b, b, c, d);
+    }
+  }
   const roofGeo = new THREE.BufferGeometry();
-  roofGeo.setAttribute('position', new THREE.BufferAttribute(roofV, 3));
-  roofGeo.setIndex([
-    0, 1, 5, 0, 5, 4,      // left half of the crown
-    4, 5, 2, 4, 2, 3,      // right half
-  ]);
+  roofGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(roofV), 3));
+  roofGeo.setIndex(roofI);
   roofGeo.computeVertexNormals();
+
   const roof = new THREE.Mesh(roofGeo, matPaint);
   roof.material = matPaint;
   roof.castShadow = true;
