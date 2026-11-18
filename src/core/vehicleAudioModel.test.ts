@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  computeBoostAudio,
   computeEngineAudioFrame,
   computeTyreFrame,
   computeWheelAudio,
@@ -130,5 +131,51 @@ describe('v0.9.0 realistic tyre + layered engine audio model', () => {
     expect(metal.gain).toBeGreaterThan(0.5);
     // A parking nudge still makes a quiet noise, never full volume
     expect(describeImpact(2, 'metal').gain).toBeLessThan(0.2);
+  });
+});
+
+describe('boost audio frame (v0.9.0 A7 nitro & turbo layers)', () => {
+  it('is silent at rest with no nitro and no boost', () => {
+    const f = computeBoostAudio(0, 0, 0, false);
+    expect(f.hissGain).toBe(0);
+    expect(f.whooshGain).toBe(0);
+    expect(f.whistleGain).toBe(0);
+    expect(f.chuffGain).toBe(0);
+  });
+
+  it('keeps every layer above the phone-speaker rolloff', () => {
+    for (const nitro of [0, 0.25, 0.5, 1]) {
+      const f = computeBoostAudio(nitro, 0.8, 120, false);
+      expect(f.whooshHz).toBeGreaterThanOrEqual(350);
+      expect(f.hissHz).toBeGreaterThan(1500);
+      expect(f.whistleHz).toBeGreaterThan(2000);
+    }
+  });
+
+  it('nitro hiss and jet body rise with pressure', () => {
+    const low = computeBoostAudio(0.2, 0, 60, false);
+    const high = computeBoostAudio(1.0, 0, 60, false);
+    expect(high.hissHz).toBeGreaterThan(low.hissHz);
+    expect(high.hissGain).toBeGreaterThan(low.hissGain);
+    expect(high.whooshGain).toBeGreaterThan(low.whooshGain);
+  });
+
+  it('turbo whistle climbs with boost but stays gentle', () => {
+    const low = computeBoostAudio(0, 0.2, 80, false);
+    const high = computeBoostAudio(0, 1.0, 80, false);
+    expect(high.whistleHz).toBeGreaterThan(low.whistleHz);
+    expect(high.whistleGain).toBeLessThan(0.12);
+  });
+
+  it('wastegate chuff only fires on lift-off with real boost', () => {
+    expect(computeBoostAudio(0, 0.9, 90, false).chuffGain).toBe(0);
+    expect(computeBoostAudio(0, 0.1, 90, true).chuffGain).toBe(0);
+    expect(computeBoostAudio(0, 0.9, 90, true).chuffGain).toBeGreaterThan(0.1);
+  });
+
+  it('never sums the layers into clipping territory', () => {
+    const f = computeBoostAudio(1, 1, 200, true);
+    const total = f.hissGain + f.whooshGain + f.whistleGain + f.chuffGain;
+    expect(total).toBeLessThan(1);
   });
 });

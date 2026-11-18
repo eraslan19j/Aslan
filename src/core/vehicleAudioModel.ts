@@ -240,3 +240,92 @@ export function describeImpact(
     decaySec: 0.22 + (1 - loudness) * 0.16,
   };
 }
+
+
+/**
+ * v0.9.0 (A7) — Nitro / turbo layer mix.
+ *
+ * Phone loudspeakers roll off hard below ~350 Hz, so a pure sub-bass "whoosh"
+ * simply disappears on a handset. This model keeps every layer above that knee
+ * and gives each one its own band, so nitro reads as a *pressure jet* rather than
+ * a filtered hiss:
+ *
+ *   • `hissHz`   — 1.8 → 6.4 kHz air-jet hiss that rises with pressure
+ *   • `whooshHz` — 380 → 900 Hz body of the jet (survives phone speakers)
+ *   • `whistleHz`— turbo shaft whistle, 2.4 → 9.1 kHz with boost
+ *   • `chuffHz`  — wastegate dump when the throttle is released
+ */
+export interface BoostAudioFrame {
+  /** 0..1 overall nitro intensity. */
+  nitro: number;
+  /** 0..1 turbo shaft energy. */
+  turbo: number;
+  /** Air-jet hiss centre (Hz). */
+  hissHz: number;
+  /** Jet body centre (Hz) — deliberately above the phone-speaker knee. */
+  whooshHz: number;
+  /** Turbo whistle centre (Hz). */
+  whistleHz: number;
+  /** Wastegate chuff centre (Hz). */
+  chuffHz: number;
+  /** Layer gains, all kept under 1 so the master bus never clips. */
+  hissGain: number;
+  whooshGain: number;
+  whistleGain: number;
+  chuffGain: number;
+}
+
+export const EMPTY_BOOST_FRAME: BoostAudioFrame = {
+  nitro: 0,
+  turbo: 0,
+  hissHz: 1800,
+  whooshHz: 380,
+  whistleHz: 2400,
+  chuffHz: 520,
+  hissGain: 0,
+  whooshGain: 0,
+  whistleGain: 0,
+  chuffGain: 0,
+};
+
+/**
+ * @param nitro 0..1 nitro charge in use
+ * @param boost 0..1 turbo boost pressure
+ * @param speedKph road speed (nitro sounds brighter at speed)
+ * @param released true while the throttle is lifting off (wastegate chuff)
+ */
+export function computeBoostAudio(
+  nitro: number,
+  boost: number,
+  speedKph: number,
+  released: boolean,
+): BoostAudioFrame {
+  const n = clamp(nitro, 0, 1);
+  const b = clamp(boost, 0, 1);
+  const speed = clamp(speedKph / 200, 0, 1);
+
+  // Nitro pressure builds a bright hiss on top of a mid "jet body".
+  const hissHz = 1800 + n * 3600 + speed * 900;
+  const whooshHz = clamp(380 + n * 420 + speed * 120, 350, 900);
+  // The turbo spins up with boost pressure, not with engine rpm.
+  const whistleHz = clamp(2400 + Math.pow(b, 0.75) * 6700, 2400, 9200);
+
+  const hissGain = n * n * 0.24;
+  const whooshGain = n * 0.3;
+  // The whistle is intentionally quiet: it is a detail, not the main event.
+  const whistleGain = b > 0.06 ? Math.pow(b, 1.4) * 0.11 : 0;
+  const chuffGain = released && b > 0.25 ? Math.min(0.28, (b - 0.25) * 0.48) : 0;
+
+  return {
+    nitro: n,
+    turbo: b,
+    hissHz,
+    whooshHz,
+    whistleHz,
+    chuffHz: clamp(430 + b * 320, 430, 750),
+    hissGain,
+    whooshGain,
+    whistleGain,
+    chuffGain,
+  };
+}

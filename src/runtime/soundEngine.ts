@@ -1,4 +1,5 @@
 import {
+  computeBoostAudio,
   computeEngineAudioFrame,
   computeTyreFrame,
   describeImpact,
@@ -91,6 +92,14 @@ export class ProceduralSoundEngine {
   // Nitro
   private nitroGain: GainNode | null = null;
   private nitroFilter: BiquadFilterNode | null = null;
+  /** v0.9.0 A7 — nitro "jet body" layer that survives phone speakers. */
+  private nitroWhooshGain: GainNode | null = null;
+  private nitroWhooshFilter: BiquadFilterNode | null = null;
+  /** v0.9.0 A7 — wastegate chuff noise (lift-off with boost). */
+  private chuffGain: GainNode | null = null;
+  private chuffFilter: BiquadFilterNode | null = null;
+  /** Octave partial of the turbo whistle — keeps the spin audible on a phone. */
+  private turboOsc2: OscillatorNode | null = null;
 
   private muted = false;
   private initialized = false;
@@ -297,6 +306,15 @@ export class ProceduralSoundEngine {
     this.turboOsc = turboOsc;
     this.turboGain = turboGain;
 
+    // Octave upper partial: a single sine at 1.5 kHz is inaudible on a handset
+    // speaker, but the octave sits right in its passband.
+    const turboOsc2 = ctx.createOscillator();
+    turboOsc2.type = 'sine';
+    turboOsc2.frequency.value = 3300;
+    turboOsc2.connect(turboGain);
+    turboOsc2.start();
+    this.turboOsc2 = turboOsc2;
+
     // ---- 4. BOV / wastegate noise (band-passed white noise) ----
     const bovSrc = ctx.createBufferSource();
     bovSrc.buffer = white;
@@ -426,6 +444,41 @@ export class ProceduralSoundEngine {
     nitroSrc.start();
     this.nitroFilter = nitroFilter;
     this.nitroGain = nitroGain;
+
+    // Nitro "jet body": a narrow band well above the phone-speaker knee, so the
+    // effect is felt on a handset instead of vanishing into sub-bass.
+    const whooshSrc = ctx.createBufferSource();
+    whooshSrc.buffer = white;
+    whooshSrc.loop = true;
+    const whooshFilter = ctx.createBiquadFilter();
+    whooshFilter.type = 'bandpass';
+    whooshFilter.frequency.value = 520;
+    whooshFilter.Q.value = 1.6;
+    const whooshGain = ctx.createGain();
+    whooshGain.gain.value = 0;
+    whooshSrc.connect(whooshFilter);
+    whooshFilter.connect(whooshGain);
+    whooshGain.connect(master);
+    whooshSrc.start();
+    this.nitroWhooshFilter = whooshFilter;
+    this.nitroWhooshGain = whooshGain;
+
+    // Wastegate chuff: short low-mid noise burst on lift-off.
+    const chuffSrc = ctx.createBufferSource();
+    chuffSrc.buffer = white;
+    chuffSrc.loop = true;
+    const chuffFilter = ctx.createBiquadFilter();
+    chuffFilter.type = 'bandpass';
+    chuffFilter.frequency.value = 600;
+    chuffFilter.Q.value = 2.2;
+    const chuffGain = ctx.createGain();
+    chuffGain.gain.value = 0;
+    chuffSrc.connect(chuffFilter);
+    chuffFilter.connect(chuffGain);
+    chuffGain.connect(master);
+    chuffSrc.start();
+    this.chuffFilter = chuffFilter;
+    this.chuffGain = chuffGain;
   }
 
   /** Updates the whole vehicle mix from one telemetry packet (call once per frame). */
@@ -448,6 +501,8 @@ export class ProceduralSoundEngine {
         this.tyreRoadGain?.gain.setTargetAtTime(0, now, 0.06);
         this.windGain?.gain.setTargetAtTime(0, now, 0.08);
         this.nitroGain?.gain.setTargetAtTime(0, now, 0.05);
+        this.nitroWhooshGain?.gain.setTargetAtTime(0, now, 0.05);
+        this.chuffGain?.gain.setTargetAtTime(0, now, 0.08);
       };
 
       if (v.paused || this.muted || !v.inVehicle) {
@@ -576,11 +631,32 @@ export class ProceduralSoundEngine {
         this.windFilter.frequency.setTargetAtTime(300 + windNorm * 900, now, 0.08);
       }
 
-      // ---------------- NITRO (throttle-pinned + boost) ----------------
+      // ---------------- NITRO + TURBO (layered, phone-speaker safe) ----------------
+      // A pure sub-bass whoosh is inaudible on a phone, which is why the old effect
+      // read as fake. `computeBoostAudio` splits it into hiss + jet body + whistle +
+      // wastegate chuff, every one of them above ~350 Hz.
+      const nitroNorm = Math.max(0, Math.min(1, ((v.turboBoost || 0) - 1.0) / 0.35));
+      const boostNorm = Math.max(0, Math.min(1, (v.turboBoost || 0) / 1.35));
+      const liftingOff = safeThrottle < 0.12 && (v.speedKph || 0) > 25;
+      const boostFrame = computeBoostAudio(nitroNorm, boostNorm, v.speedKph || 0, liftingOff);
+
       if (this.nitroGain && this.nitroFilter) {
-        const nitroNorm = Math.max(0, Math.min(1, ((v.turboBoost || 0) - 1.0) / 0.35));
-        this.nitroGain.gain.setTargetAtTime(nitroNorm * 0.16, now, 0.06);
-        this.nitroFilter.frequency.setTargetAtTime(1600 + nitroNorm * 2600, now, 0.08);
+        this.nitroGain.gain.setTargetAtTime(boostFrame.hissGain, now, 0.06);
+        this.nitroFilter.frequency.setTargetAtTime(boostFrame.hissHz, now, 0.08);
+      }
+      if (this.nitroWhooshGain && this.nitroWhooshFilter) {
+        this.nitroWhooshGain.gain.setTargetAtTime(boostFrame.whooshGain, now, 0.05);
+        this.nitroWhooshFilter.frequency.setTargetAtTime(boostFrame.whooshHz, now, 0.09);
+      }
+      if (this.chuffGain && this.chuffFilter) {
+        this.chuffGain.gain.setTargetAtTime(boostFrame.chuffGain, now, 0.05);
+        this.chuffFilter.frequency.setTargetAtTime(boostFrame.chuffHz, now, 0.07);
+      }
+      if (this.turboOsc && this.turboGain && hasTurbo) {
+        // Two-partial whistle: the octave partial keeps the spin audible on a phone.
+        this.turboOsc.frequency.setTargetAtTime(boostFrame.whistleHz, now, 0.05);
+        this.turboOsc2?.frequency.setTargetAtTime(boostFrame.whistleHz * 2.02, now, 0.05);
+        this.turboGain.gain.setTargetAtTime(boostFrame.whistleGain, now, 0.06);
       }
 
       // ---------------- ONE-SHOT EVENTS ----------------
@@ -833,6 +909,7 @@ export class ProceduralSoundEngine {
       this.engineHarmOsc?.stop();
       this.engineSubOsc?.stop();
       this.turboOsc?.stop();
+      this.turboOsc2?.stop();
       this.tyreSqueal?.stop();
       this.tyreSqueal2?.stop();
       this.tyreScuffSrc?.stop();

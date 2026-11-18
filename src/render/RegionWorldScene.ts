@@ -55,6 +55,7 @@ import {
   type TrafficVisualClass,
 } from './vehicleMesh';
 import type { VehicleDamageState } from '../core/vehicleDamage';
+import { BOARDING_DURATION_SEC } from './boardingPath';
 
 export type QaCameraMode = 'follow' | 'street' | 'overview';
 export type PlayerCameraView = 'chase' | 'wide' | 'hood' | 'bumper' | 'topdown';
@@ -170,6 +171,12 @@ export class RegionWorldScene {
   private readonly trafficClasses: Record<TrafficVisualClass, TrafficInstancedClass>;
   private readonly trafficWheelInst: THREE.InstancedMesh;
   private readonly trafficColorScratch = new THREE.Color();
+  /** v0.9.0 (K2) — character walk-in beat before the seat takes over. */
+  private boardingActive = false;
+  private boardingProgress = 0;
+  private readonly boardingFrom = new THREE.Vector3();
+  private readonly boardingTo = new THREE.Vector3();
+
   /** v0.9.0 — grime tint used to show accumulated NPC body damage. */
   private readonly grimeColor = new THREE.Color(0x4a4640);
   private readonly wheelParentMat = new THREE.Matrix4();
@@ -1382,6 +1389,46 @@ export class RegionWorldScene {
     setDoorAngle(this.taxiRig, side, angle);
   }
 
+  /**
+   * v0.9.0 (K2) — drives the visible "walk to the door and climb in" beat.
+   * While active the character rig is placed along `boardingPath` instead of
+   * following the walking controller, then hands over to the seat mount.
+   */
+  setBoarding(
+    active: boolean,
+    path?: { from: { x: number; y: number; z: number }; to: { x: number; y: number; z: number } },
+  ): void {
+    this.boardingActive = active;
+    if (active && path) {
+      this.boardingFrom.set(path.from.x, path.from.y, path.from.z);
+      this.boardingTo.set(path.to.x, path.to.y, path.to.z);
+      this.boardingProgress = 0;
+    }
+    if (!active) this.boardingProgress = 0;
+  }
+
+  /** Advances the boarding beat and returns true while it still owns the character. */
+  updateBoarding(dt: number, durationSec: number): boolean {
+    if (!this.boardingActive) return false;
+    this.boardingProgress = Math.min(1, this.boardingProgress + dt / Math.max(0.05, durationSec));
+    const e = this.boardingProgress < 0.5
+      ? 4 * this.boardingProgress ** 3
+      : 1 - Math.pow(-2 * this.boardingProgress + 2, 3) / 2;
+    const lift = Math.sin(Math.PI * e) * 0.16;
+    this.characterRig.root.position.set(
+      this.boardingFrom.x + (this.boardingTo.x - this.boardingFrom.x) * e,
+      this.boardingFrom.y + (this.boardingTo.y - this.boardingFrom.y) * e + lift,
+      this.boardingFrom.z + (this.boardingTo.z - this.boardingFrom.z) * e,
+    );
+    // Face the door while stepping in.
+    const dx = this.boardingTo.x - this.boardingFrom.x;
+    const dz = this.boardingTo.z - this.boardingFrom.z;
+    this.characterRig.root.rotation.set(0, Math.atan2(dx, dz) + Math.PI * 0.5, 0);
+    const done = this.boardingProgress >= 1;
+    if (done) this.boardingActive = false;
+    return !done;
+  }
+
   resetVehicleEffects(): void {
     this.vehicleEffects.reset();
   }
@@ -1456,9 +1503,16 @@ export class RegionWorldScene {
         while (diff < -Math.PI) diff += Math.PI * 2;
         this.avatarHeading += diff * Math.min(1, dt * 11);
       }
-      this.characterRig.root.position.set(playerX, playerY + 0.24, playerZ);
-      this.characterRig.root.rotation.set(0, this.avatarHeading, 0);
-      animateCharacterRig(this.characterRig, horizSpeed, dt);
+      if (this.boardingActive) {
+        // v0.9.0 (K2): the walk-in beat owns the character while it runs.
+        if (this.updateBoarding(dt, BOARDING_DURATION_SEC)) {
+          animateCharacterRig(this.characterRig, 1.2, dt);
+        }
+      } else {
+        this.characterRig.root.position.set(playerX, playerY + 0.24, playerZ);
+        this.characterRig.root.rotation.set(0, this.avatarHeading, 0);
+        animateCharacterRig(this.characterRig, horizSpeed, dt);
+      }
     }
 
     const focusX = inVehicle ? vehicle.x : playerX;

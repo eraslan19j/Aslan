@@ -33,6 +33,7 @@ import {
   startDoorSequence,
   stepDoorChoreography,
 } from './render/doorChoreography';
+import { buildBoardingPath } from './render/boardingPath';
 import { RoadTrafficSimulator } from './core/traffic';
 import {
   applyVehicleCollisionImpulse,
@@ -399,6 +400,8 @@ async function bootstrap(): Promise<void> {
   // Re-pointed whenever the player swaps into a different car (archetype-specific panels).
   /** v0.9.0 — door swing choreography (unit-tested pure state machine). */
   const door = createDoorChoreography();
+  /** v0.9.0 (K2) — true while the character is visibly walking into the car. */
+  let boardingInProgress = false;
   playerVehicle = placeVehicleNear(
     runtime,
     runtime.manifest.spawn.x,
@@ -609,6 +612,34 @@ async function bootstrap(): Promise<void> {
   };
 
   const enterVehicle = (): void => {
+    if (boardingInProgress) return;
+    const spec = VEHICLE_SPECS[playerVehicle.archetype];
+
+    // v0.9.0 (K2): the door swings open, the character walks in, *then* the seat
+    // takes over. Without this the player saw a door open and a body teleport.
+    startDoorSequence(door, 'opening');
+    sound.playDoorClick();
+    void triggerLightHaptic();
+
+    const groundY = sampleTerrainElevation(runtime.terrain, playerX, playerZ);
+    runtime.scene.setBoarding(
+      true,
+      buildBoardingPath(
+        playerVehicle.x,
+        playerVehicle.z,
+        playerVehicle.heading,
+        spec.width,
+        spec.length,
+        groundY,
+        playerVehicle.y + 0.18,
+      ),
+    );
+    boardingInProgress = true;
+  };
+
+  /** Called once the walk-in beat finishes: sit the player down for real. */
+  const completeBoarding = (): void => {
+    boardingInProgress = false;
     inVehicle = true;
     playerVehicle.dyn.drivingMode = drivingMode;
     playerVehicle.dyn.transmissionMode = transmissionMode;
@@ -619,13 +650,19 @@ async function bootstrap(): Promise<void> {
     velZ = 0;
     attachPlayerToVehicleSeat(playerCapsule, playerVehicle.id, playerX, playerY, playerZ);
     hud.resetTouchInputs();
-    sound.playDoorClick();
-    void triggerLightHaptic();
-    startDoorSequence(door, 'opening');
     syncDebugHandle();
   };
 
   const exitVehicle = (): void => {
+    if (boardingInProgress) {
+      // Abort a walk-in that has not finished yet.
+      boardingInProgress = false;
+      runtime.scene.setBoarding(false);
+      door.phase = 'closed';
+      door.angle = 0;
+      runtime.scene.setPlayerDoorAngle('left', 0);
+      return;
+    }
     if (!inVehicle) return;
     inVehicle = false;
     playerVehicle.speed = 0;
@@ -1547,6 +1584,9 @@ async function bootstrap(): Promise<void> {
 
     // v0.9.0: door swing choreography + visible crash damage, then clear one-shot queues.
     stepDoorAnimation(Math.min(rawDt, 0.05));
+    if (boardingInProgress && door.phase === 'boarding') {
+      completeBoarding();
+    }
     runtime.scene.syncPlayerDamage(
       vehicleDamage,
       playerVehicle.x,
