@@ -1,0 +1,5 @@
+# Binary artifacts: never diff, never attempt to merge them as text.
+*.apk binary
+*.aab binary
+*.keystore binary
+*.jar binary
