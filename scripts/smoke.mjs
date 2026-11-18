@@ -99,6 +99,9 @@ try {
 
   // 2. Enter GT Sports Coupe, verify Street/Drift/Sim (V) & Auto/Manual (G) toggles, drive along street, then exit
   await page.evaluate(() => window.__game.enterVehicle());
+  // v0.9.0: entering the car now plays a door-open + walk-in beat (~0.75 s) before
+  // the seat takes over, so wait for the state instead of assuming it is instant.
+  await page.waitForFunction(() => window.__game?.inVehicle === true, null, { timeout: 8000 });
   const modeBeforeV = await page.evaluate(() => window.__game.drivingMode);
   await page.keyboard.press('KeyV');
   await page.waitForTimeout(100);
@@ -139,7 +142,7 @@ try {
     driveState.vehicle.z - driveStart.z,
   );
   await page.keyboard.press('KeyF');
-  await page.waitForTimeout(100);
+  await page.waitForFunction(() => window.__game?.inVehicle === false, null, { timeout: 4000 });
   const exitedOk = await page.evaluate(() => window.__game.inVehicle === false);
 
   // 3. Verify automatic amenity=place_of_worship Sanctuary Zone in Esenler
