@@ -1302,7 +1302,7 @@ const CAR = {
   bonnetNoseH: 0.80,    // bonnet at the nose (it slopes down)
   deckH: 0.93,          // boot lid
   roofH: 1.36,
-  archR: 0.44,          // wheel arch radius
+  archR: 0.375,         // wheel arch radius — must clear a 0.305 m tyre
 };
 
 /* model-space Y for each of those heights */
@@ -1315,6 +1315,8 @@ const Y_BONNET_N = YG(CAR.bonnetNoseH);
 const Y_DECK     = YG(CAR.deckH);
 const Y_ROOF     = YG(CAR.roofH);
 const Y_ARCH     = YG(CAR.sillH);
+/* the hub axis: wheel radius above the contact patch */
+const Y_HUB      = YG(CFG.WHEEL_R);
 /* the physics chassis check refers to the body underside by this name */
 const Y_FLOOR = Y_SILL;
 
@@ -1395,10 +1397,33 @@ function buildSilhouette() {
                       Z_NOSE - 0.045, Y_BONNET_N - 0.055);  // nose rounds off
   sh.lineTo(Z_NOSE - 0.05, Y_SCUTTLE - 0.295); // grille panel
   sh.lineTo(Z_NOSE - 0.075, Y_SILL + 0.02);    // front valance
-  sh.lineTo(AXLE_F + ARCH_R * 0.96, Y_SILL);
-  sh.absarc(AXLE_F, Y_SILL, ARCH_R * 0.96, 0, Math.PI, true);    // front arch
-  sh.lineTo(AXLE_R + ARCH_R * 0.96, Y_SILL);
-  sh.absarc(AXLE_R, Y_SILL, ARCH_R * 0.96, 0, Math.PI, true);    // rear arch
+  /* The two wheel arches.  They are rooted at the HUB height (not the sill):
+     the hub sits 0.15 m above the sill, so a semicircle drawn from the sill
+     cannot reach over the tyre and merely scallops the paint.  Rooted at the
+     hub, a 0.375 m arc clears a 0.305 m tyre with 70 mm to spare — exactly
+     the gap a real car shows — and the wall below the sill is left open,
+     which is where the tyre lives.
+
+     Walked as explicit segments: `absarc` here kept bulging the wrong way
+     because the shape's winding and the sweep direction must agree, and this
+     is easier to reason about than fighting that. */
+  const ARC_SEGS = 16;
+  const r = ARCH_R;
+  /* An arch is a doorway, not a scallop: from the sill it rises straight up
+     to the hub line on one side, sweeps a half circle over the tyre, then
+     drops back to the sill on the other side.  Cutting it this way leaves the
+     tyre's whole upper half standing in open air. */
+  const arch = (zc) => {
+    sh.lineTo(zc + r, Y_SILL);      // we arrive along the floor
+    sh.lineTo(zc + r, Y_HUB);       // straight up the trailing edge
+    for (let i = 1; i <= ARC_SEGS; i++) {
+      const a = (i / ARC_SEGS) * Math.PI;
+      sh.lineTo(zc - r * Math.cos(a), Y_HUB + r * Math.sin(a));
+    }
+    sh.lineTo(zc - r, Y_SILL);      // straight back down the leading edge
+  };
+  arch(AXLE_F);      // nose → tail along the floor, so front arch first
+  arch(AXLE_R);
   sh.lineTo(Z_TAIL + 0.115, Y_SILL);
   sh.closePath();
   return sh;
