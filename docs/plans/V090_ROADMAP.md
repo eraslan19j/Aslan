@@ -157,6 +157,9 @@ Her PR/commit sonunda **zorunlu** güncellenecek dosyalar:
 
 **Kapılar:** `tsc --noEmit` ✅ · `eslint .` ✅ · `vitest run` 104/104 ✅ · `vite build` ✅
 
+Tam araç künyeleri (motor kodu, sıkıştırma, supap düzeni, şanzıman oranları, lastik/fren ölçüleri,
+ses kimliği) → [`VEHICLE_SPECS_V090.md`](./VEHICLE_SPECS_V090.md) (katalogdan otomatik üretilir).
+
 ### Bilinçli olarak v1.0'a bırakılanlar
 - NPC panellerinin ayrı ayrı kopması (instanced renderer nedeniyle şimdilik gövde ezmesi + kir ile temsil ediliyor).
 - Nitro/turbo sesinin gerçek telefon hoparlöründe ince ayarı (kulakla doğrulama gerekiyor).
