@@ -1,14 +1,16 @@
 {
   "name": "istanbul-streets",
-  "version": "0.8.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "description": "Istanbul Streets — 3rd-person open-world action/driving game set in Istanbul (Vite + TypeScript + Three.js + Rapier3D + Capacitor 8).",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version:check": "node scripts/sync-version.mjs --check",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "npm run version:check && vitest run",
     "test:watch": "vitest",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",

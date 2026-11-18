@@ -95,7 +95,7 @@ export interface UiStrings {
 const STRINGS: Record<LocaleCode, UiStrings> = {
   tr: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.9.1 · Hasar & Ses',
+    milestoneTag: 'v0.10.0 · Hasar & Ses',
     fpsLabel: 'FPS',
     drawsLabel: 'Çizim',
     trisLabel: 'Üçgen',
@@ -162,7 +162,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     reportCopied: 'Rapor panoya kopyalandı!',
     aboutTitle: 'Hakkında ve ODbL / Açık Veri Atıfları',
     aboutSubtitle:
-      'Istanbul Streets v0.8.0 — 240 Hz 4-teker Pacejka fizik motoru ve gerçek İstanbul açık harita verileriyle çalışan çevrimdışı açık dünya sürüş oyunu.',
+      'Istanbul Streets v0.10.0 — 240 Hz 4-teker Pacejka fizik motoru ve gerçek İstanbul açık harita verileriyle çalışan çevrimdışı açık dünya sürüş oyunu.',
     aboutDataHeading: 'Harita ve Türetilmiş Veri Atıfları (public/derived-data/)',
     aboutOriginalityNote:
       'Tüm karakterler, araçlar, markalar ve kurumlar kurgusaldır; gerçek kişi, ev adresi veya işletme logosu yoktur. Tüm ibadethaneler otomatik şiddetsiz Güvenli Alandır.',
@@ -190,7 +190,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
   },
   en: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.9.1 · Damage & Audio',
+    milestoneTag: 'v0.10.0 · Damage & Audio',
     fpsLabel: 'FPS',
     drawsLabel: 'Draws',
     trisLabel: 'Tris',
@@ -257,7 +257,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     reportCopied: 'Report copied to clipboard!',
     aboutTitle: 'About & ODbL / Open Data Attributions',
     aboutSubtitle:
-      'Istanbul Streets v0.8.0 — 240 Hz 4-wheel Pacejka vehicle physics & offline open-world driving built from open Istanbul geospatial data.',
+      'Istanbul Streets v0.10.0 — 240 Hz 4-wheel Pacejka vehicle physics & offline open-world driving built from open Istanbul geospatial data.',
     aboutDataHeading: 'Map & Derived Data Attributions (public/derived-data/)',
     aboutOriginalityNote:
       'All characters, vehicles, brands, and agencies are fictional; zero real people, home addresses, or brand logos. All places of worship are automatic Safe Zones.',

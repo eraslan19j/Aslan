@@ -34,6 +34,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Version single-source check (version.json is the only source of truth)
+        run: npm run version:check
+
       - name: Typecheck
         run: npm run typecheck
 
