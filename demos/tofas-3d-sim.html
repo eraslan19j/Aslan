@@ -1996,15 +1996,16 @@ const taillights = [];
   const lensGeo  = new THREE.BoxGeometry(0.470, 0.185, 0.026);
   const bezelGeo = new THREE.BoxGeometry(0.500, 0.208, 0.014);
   const y = Y_DECK - 0.185;
-  const z = REAR_FACE + 0.012;
+  /* -Z is rearward, so proud of the panel means a SMALLER z, not a larger one */
+  const z = REAR_FACE - 0.010;
 
   [-1, 1].forEach((side) => {
     const bez = new THREE.Mesh(bezelGeo, matTrim);
-    bez.position.set(side * 0.505, y, z - 0.005);
+    bez.position.set(side * 0.505, y, z + 0.005);
     carVisual.add(bez);
 
     const lens = new THREE.Mesh(lensGeo, matTailLens.clone());
-    lens.position.set(side * 0.505, y, z + 0.006);
+    lens.position.set(side * 0.505, y, z - 0.006);
     carVisual.add(lens);
     taillights.push(lens);
   });
@@ -2013,13 +2014,13 @@ const taillights = [];
   [-1, 1].forEach((side) => {
     const r = new THREE.Mesh(new THREE.BoxGeometry(0.105, 0.075, 0.024),
       new THREE.MeshStandardMaterial({ color: 0xcfcfc8, roughness: 0.32 }));
-    r.position.set(side * 0.175, y, z + 0.004);
+    r.position.set(side * 0.175, y, z - 0.004);
     carVisual.add(r);
   });
 
   /* the boot-lid trim strip that joins the two clusters */
   const bar = new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.045, 0.014), matTrim);
-  bar.position.set(0, y, z - 0.002);
+  bar.position.set(0, y, z + 0.002);
   carVisual.add(bar);
 
   /* number plate recess */
