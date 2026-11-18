@@ -1,6 +1,7 @@
 import { clamp } from './math';
 import { createRng, type Rng } from './rng';
-import { VEHICLE_PAINT_PALETTE, type VehicleArchetype } from './vehicle';
+import { VEHICLE_PAINT_PALETTE, VEHICLE_SPECS, type VehicleArchetype } from './vehicle';
+import { testBoxOverlap } from './vehicleCollision';
 import { VEHICLE_PHYSICS_SPECS } from './vehiclePhysics';
 import type { BuildingSpatialGrid } from './world/collision';
 import type { RoadGraph, RoadGraphEdge, RoadGraphNode } from './world/types';
@@ -53,6 +54,11 @@ export interface TrafficCollisionResult {
   z: number;
   nx: number;
   nz: number;
+  /** v0.9.0: deepest box penetration removed this frame (metres, 0 = clean). */
+  penetrationDepth: number;
+  /** v0.9.0: world-space contact point for sparks/damage decals. */
+  contactX: number;
+  contactZ: number;
 }
 
 interface DirectedLink {
@@ -390,70 +396,113 @@ export class RoadTrafficSimulator {
   }
 
   /**
-   * Resolves solid momentum collision between the player's vehicle and all live AI traffic.
-   * Transfers mass-weighted linear + angular impulse so NPC cars physically deflect, skid,
-   * dip suspension, and recover naturally instead of acting like immovable rails!
+   * v0.9.0 exact OBB ↔ OBB collision between the player car and all live AI traffic.
+   *
+   * Previously both cars were approximated by single circles (r ≈ 1.15 m), so a long
+   * nose could poke 0.3–0.7 m inside another car's door and the correction vector was
+   * wrong, leaving visible interpenetration (the device screenshot bug). This now runs
+   * a true oriented-box SAT test with the real footprint, applies the minimum
+   * translation vector split by mass, and returns mass-weighted normal/tangential
+   * impulses + contact-patch torque so NPC cars genuinely deflect and spin.
+   *
+   * `playerHeading` defaults to the former circle behaviour when omitted (tests).
    */
   resolvePlayerVehicleCollision(
     vx: number,
     vz: number,
     velX: number,
     velZ: number,
-    playerRadius = 1.15,
     playerMassKg = 1400,
+    playerHeading?: number,
+    playerArchetype: VehicleArchetype = 'sedan',
   ): TrafficCollisionResult {
     let x = vx;
     let z = vz;
     let collided = false;
     let hitAgentId: number | null = null;
     let maxImpact = 0;
+    let maxDepth = 0;
     let accumNx = 0;
     let accumNz = 0;
+    let contactX = vx;
+    let contactZ = vz;
+
+    const playerHalfW = VEHICLE_SPECS[playerArchetype].width * 0.5;
+    const playerHalfL = VEHICLE_SPECS[playerArchetype].length * 0.5;
 
     for (const a of this.agents) {
-      const agentRadius = a.archetype === 'dolmus' || a.archetype === 'van' ? 1.3 : 1.12;
-      const minDist = playerRadius + agentRadius;
-      const dx = x - a.x;
-      const dz = z - a.z;
-      const distSq = dx * dx + dz * dz;
-      if (distSq >= minDist * minDist) continue;
+      const npcHalfW = VEHICLE_SPECS[a.archetype].width * 0.5;
+      const npcHalfL = VEHICLE_SPECS[a.archetype].length * 0.5;
 
-      const dist = Math.sqrt(distSq);
-      const nx = dist > 1e-4 ? dx / dist : Math.sin(a.heading + Math.PI / 2);
-      const nz = dist > 1e-4 ? dz / dist : Math.cos(a.heading + Math.PI / 2);
-      const overlap = minDist - dist;
+      let nx: number;
+      let nz: number;
+      let overlap: number;
+      let px: number;
+      let pz: number;
+      let impact: number;
+
+      if (playerHeading === undefined) {
+        // Legacy circle fallback (kept for older call sites / unit tests).
+        const agentRadius = a.archetype === 'dolmus' || a.archetype === 'van' ? 1.3 : 1.12;
+        const minDist = playerHalfW + agentRadius;
+        const dx = x - a.x;
+        const dz = z - a.z;
+        const distSq = dx * dx + dz * dz;
+        if (distSq >= minDist * minDist) continue;
+        const dist = Math.sqrt(distSq);
+        nx = dist > 1e-4 ? dx / dist : Math.sin(a.heading + Math.PI / 2);
+        nz = dist > 1e-4 ? dz / dist : Math.cos(a.heading + Math.PI / 2);
+        overlap = minDist - dist;
+        px = (x + a.x) * 0.5;
+        pz = (z + a.z) * 0.5;
+        impact = Math.max(0, -((velX - a.vx) * nx + (velZ - a.vz) * nz));
+      } else {
+        const contact = testBoxOverlap(
+          { x, z, heading: playerHeading, halfWidth: playerHalfW, halfLength: playerHalfL },
+          { x: a.x, z: a.z, heading: a.heading, halfWidth: npcHalfW, halfLength: npcHalfL },
+        );
+        if (!contact.hit) continue;
+        nx = contact.nx;
+        nz = contact.nz;
+        overlap = contact.depth;
+        px = contact.px;
+        pz = contact.pz;
+        impact = Math.max(0, -((velX - a.vx) * nx + (velZ - a.vz) * nz));
+      }
 
       const dyn = getArchetypeCruiseDynamics(a.archetype);
-      const massRatio = clamp(playerMassKg / (playerMassKg + dyn.massKg), 0.35, 0.65);
+      const massRatio = clamp(playerMassKg / (playerMassKg + dyn.massKg), 0.3, 0.72);
 
-      // Separate cleanly proportional to mass
+      // 1. Positional separation — the player takes the smaller share (heavier car wins).
       x += nx * overlap * (1 - massRatio * 0.45);
       z += nz * overlap * (1 - massRatio * 0.45);
       a.x -= nx * overlap * (massRatio * 0.72);
       a.z -= nz * overlap * (massRatio * 0.72);
 
-      const relVx = velX - a.vx;
-      const relVz = velZ - a.vz;
-      const closing = Math.max(0, -(relVx * nx + relVz * nz));
-      if (closing > maxImpact) {
-        maxImpact = closing;
+      if (impact > maxImpact) {
+        maxImpact = impact;
         hitAgentId = a.id;
+        contactX = px;
+        contactZ = pz;
       }
+      if (overlap > maxDepth) maxDepth = overlap;
 
-      if (closing > 1.2) {
-        // Real momentum impulse pushes & spins the struck NPC car physically!
-        const knockMag = clamp(closing * (0.68 + massRatio * 0.55), 1.5, 22);
+      if (impact > 0.9) {
+        // 2. Real momentum impulse (mass-weighted) pushes & spins the struck NPC car.
+        const knockMag = clamp(impact * (0.7 + massRatio * 0.6), 1.5, 26);
         a.knockVx = a.vx - nx * knockMag;
         a.knockVz = a.vz - nz * knockMag;
-        // Off-center torque spins the car realistically
         const fwdX = Math.sin(a.heading);
         const fwdZ = Math.cos(a.heading);
         const crossSpin = fwdX * nz - fwdZ * nx;
-        a.knockYawRate = clamp(crossSpin * closing * 0.28, -3.2, 3.2);
-        a.knockTimer = clamp(0.55 + closing * 0.08, 0.6, 1.9);
-        a.suspRoll = clamp(a.suspRoll + crossSpin * closing * 0.025, -0.14, 0.14);
-        a.suspPitch = clamp(a.suspPitch - closing * 0.015, -0.1, 0.1);
-        a.skidIntensity = clamp(closing / 12, 0.3, 1.0);
+        const leverX = px - a.x;
+        const leverZ = pz - a.z;
+        const patchSpin = leverX * nz - leverZ * nx;
+        a.knockYawRate = clamp(crossSpin * impact * 0.26 + patchSpin * impact * 0.3, -3.4, 3.4);
+        a.knockTimer = clamp(0.55 + impact * 0.08, 0.6, 2.0);
+        a.suspRoll = clamp(a.suspRoll + crossSpin * impact * 0.026, -0.16, 0.16);
+        a.suspPitch = clamp(a.suspPitch - impact * 0.016, -0.12, 0.12);
+        a.skidIntensity = clamp(impact / 11, 0.3, 1.0);
         a.braking = true;
       }
 
@@ -474,6 +523,9 @@ export class RoadTrafficSimulator {
       z,
       nx: nLen > 1e-4 ? accumNx / nLen : 0,
       nz: nLen > 1e-4 ? accumNz / nLen : 0,
+      penetrationDepth: maxDepth,
+      contactX,
+      contactZ,
     };
   }
 

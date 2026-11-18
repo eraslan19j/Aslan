@@ -478,6 +478,8 @@ async function bootstrap(): Promise<void> {
     blowOffPulse: 0,
     gearShiftPulse: 0,
     cylinders: 6,
+    archetype: 'sports',
+    surfaceWetness: 1,
   };
 
   // Drag-to-orbit camera handler attached to current WebGL canvas
@@ -1326,14 +1328,15 @@ async function bootstrap(): Promise<void> {
             void triggerDrivingHaptic('drift', clamp(playerVehicle.dyn.driftAngleDeg / 55, 0.25, 0.7));
           }
 
-          // Solid momentum collision against AI traffic using full 2D velocity vector & vehicle mass!
+          // v0.9.0 exact OBB ↔ OBB collision: real footprint, zero interpenetration.
           const trafficHit = runtime.traffic.resolvePlayerVehicleCollision(
             playerVehicle.x,
             playerVehicle.z,
             playerVehicle.dyn.vx,
             playerVehicle.dyn.vz,
-            1.15,
             VEHICLE_PHYSICS_SPECS[playerVehicle.archetype].massKg,
+            playerVehicle.heading,
+            playerVehicle.archetype,
           );
           if (trafficHit.collided) {
             applyVehicleCollisionImpulse(
@@ -1343,13 +1346,13 @@ async function bootstrap(): Promise<void> {
               trafficHit.impactSpeed,
               sampleElev,
             );
-            if (trafficHit.impactSpeed > 2.4) {
+            if (trafficHit.impactSpeed > 1.6) {
               sound.playImpact(trafficHit.impactSpeed * 1.15);
               runtime.scene.emitCollisionSparks(
-                trafficHit.x,
+                trafficHit.contactX,
                 playerVehicle.y + 0.72,
-                trafficHit.z,
-                Math.min(16, Math.round(trafficHit.impactSpeed * 1.3)),
+                trafficHit.contactZ,
+                Math.min(18, Math.round(trafficHit.impactSpeed * 1.4)),
               );
               void triggerDrivingHaptic('impact', clamp(trafficHit.impactSpeed / 16, 0.35, 1));
             }
@@ -1444,7 +1447,10 @@ async function bootstrap(): Promise<void> {
     audioPacket.backfirePulse = dyn.backfirePulse;
     audioPacket.blowOffPulse = dyn.blowOffPulse;
     audioPacket.gearShiftPulse = dyn.gearShiftPulse;
-    audioPacket.cylinders = playerVehicle.archetype === 'sports' ? 6 : 4;
+    audioPacket.idleRpm = pSpec.idleRpm;
+    audioPacket.wheels = dyn.wheels;
+    audioPacket.archetype = playerVehicle.archetype;
+    audioPacket.surfaceWetness = timeOfDay === 'night' ? 1.12 : timeOfDay === 'sunset' ? 1.05 : 1.0;
     sound.updateVehicleAudio(audioPacket);
 
     runtime.scene.render();
