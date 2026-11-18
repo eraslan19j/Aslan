@@ -2142,10 +2142,26 @@ const taillights = [];
 {
   [AXLE_F, AXLE_R].forEach((az) => {
     [-1, 1].forEach((side) => {
-      const lip = new THREE.Mesh(
-        new THREE.TorusGeometry(ARCH_R * 0.955, 0.020, 6, 18, Math.PI),
+      /* ── the flare ─────────────────────────────────────────────────────
+         A 20 mm painted torus reads as a painted line, not as a wing.  The
+         real car has a pressed blister around each arch: the panel swells
+         outward by ~22 mm and then folds back.  Build it as a half-torus with
+         a large minor radius and squash it against the flank, then put a thin
+         bright lip on its outer edge so the fold catches the light. */
+      const flare = new THREE.Mesh(
+        new THREE.TorusGeometry(ARCH_R * 0.99, 0.048, 8, 24, Math.PI),
         matPaint);
-      lip.position.set(side * (BODY_W / 2 - 0.006), Y_ARCH, az);
+      flare.position.set(side * (BODY_W / 2 - 0.020), Y_ARCH, az);
+      flare.rotation.y = Math.PI / 2;
+      /* flatten across the car so it hugs the flank instead of bulging as a tube */
+      flare.scale.set(1, 1, 0.55);
+      flare.castShadow = true;
+      carVisual.add(flare);
+
+      const lip = new THREE.Mesh(
+        new THREE.TorusGeometry(ARCH_R * 0.945, 0.013, 6, 24, Math.PI),
+        matPaint);
+      lip.position.set(side * (BODY_W / 2 + 0.008), Y_ARCH, az);
       lip.rotation.y = Math.PI / 2;
       carVisual.add(lip);
 
@@ -3769,7 +3785,31 @@ const CAM = {
   pos: new THREE.Vector3(),
   fov: CFG.FOV_BASE,
   init: false,
+
+  /* ── free look ─────────────────────────────────────────────────────────
+     Drag anywhere on the canvas to orbit the camera around the car, the way
+     every driving game lets you.  Yaw has no limit at all — you can swing all
+     the way round the car and look at the nose from the front.  Pitch is
+     clamped so you cannot go under the ground or straight over the roof.
+
+     The offset is expressed in the CAR's frame, not the world's, so the view
+     you choose stays with the car as it turns: pick a rear-three-quarter and
+     it stays a rear-three-quarter through the corner.  That is what makes it
+     feel like a camera you are holding rather than a value that drifts. */
+  yaw: 0,            // radians, added to the chase direction
+  pitch: 0,          // radians, added to the chase elevation
+  dist: 1.0,         // multiplier on the chase distance (wheel / pinch)
+  dragging: false,
+  lastX: 0, lastY: 0,
+  idle: 0,           // seconds since the last input — drives the auto-return
 };
+
+/* How long the view holds after you let go, and how fast it eases back to the
+   chase position afterwards.  Long hold, slow return: fighting the camera is
+   the fastest way to make a game feel bad. */
+const CAM_HOLD = 2.2;
+const CAM_RETURN = 2.4;
+const CAM_PITCH_LIMIT = Math.PI * 0.46;   // just short of straight up/down
 
 const _cf = new THREE.Vector3();
 const _cu = new THREE.Vector3();
@@ -3785,20 +3825,52 @@ function updateCamera(dt) {
 
   const sN = clamp(V.speed / 45, 0, 1);
 
+  /* ── the orbit offset ────────────────────────────────────────────────────
+     Ease yaw and pitch back to zero once you have stopped dragging, so the
+     camera returns to the chase position by itself.  Snapping back would be
+     jarring; a 2.4 s exponential is about right. */
+  CAM.idle += dt;
+  if (!CAM.dragging && CAM.idle > CAM_HOLD) {
+    const k = 1 - Math.exp(-CAM_RETURN * dt);
+    CAM.yaw *= 1 - k;
+    CAM.pitch *= 1 - k;
+    CAM.dist = lerp(CAM.dist, 1.0, k);
+  }
+
   if (CAM.mode === 0) {
-    const back = 6.6 + sN * 2.4;
+    const back = (6.6 + sN * 2.4) * CAM.dist;
     const up = 2.35 + sN * 0.45;
 
-    _camWant.copy(V.pos).addScaledVector(_cf, -back).addScaledVector(_cu, up);
+    /* The orbit is built in the car's own frame: start from directly behind
+       and above, then swing around the car's vertical axis by yaw and up by
+       pitch.  Yaw is unbounded, so the camera can go all the way round. */
+    const cy = Math.cos(CAM.yaw), sy = Math.sin(CAM.yaw);
+    const cp = Math.cos(CAM.pitch), sp = Math.sin(CAM.pitch);
+
+    /* horizontal direction, in the car's frame: -cf is "behind" */
+    _camWant.copy(V.pos)
+      .addScaledVector(_cf, -back * cp * cy)
+      .addScaledVector(_cr, back * cp * sy)
+      .addScaledVector(_cu, up + back * sp);
 
     /* never let the chase camera sink into a hill */
     const gh = terrainHeight(_camWant.x, _camWant.z) + 1.5;
     if (_camWant.y < gh) _camWant.y = gh;
 
     if (!CAM.init) { CAM.pos.copy(_camWant); CAM.init = true; }
-    CAM.pos.lerp(_camWant, 1 - Math.exp(-7.5 * dt));
+    /* Snappier while you are holding the camera, softer when it lets go, so
+       dragging feels direct and the return feels unhurried. */
+    const follow = CAM.dragging ? 18 : 7.5;
+    CAM.pos.lerp(_camWant, 1 - Math.exp(-follow * dt));
 
-    _camLook.copy(V.pos).addScaledVector(_cf, 7.0 + sN * 9).addScaledVector(_cu, 0.55);
+    /* When you swing round to the front, look AT the car instead of past it —
+       otherwise a front view points away from the thing you want to see. */
+    const lookingBack = Math.cos(CAM.yaw) < 0;
+    if (lookingBack) {
+      _camLook.copy(V.pos).addScaledVector(_cu, 0.5);
+    } else {
+      _camLook.copy(V.pos).addScaledVector(_cf, 7.0 + sN * 9).addScaledVector(_cu, 0.55);
+    }
 
     camera.position.copy(CAM.pos);
     camera.up.copy(_worldUp);
@@ -4236,6 +4308,93 @@ const resumeAudio = () => {
   if (AUDIO.ctx && AUDIO.ctx.state === 'suspended') AUDIO.ctx.resume();
 };
 window.addEventListener('pointerdown', resumeAudio);
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FREE LOOK — drag anywhere to orbit the camera around the car
+   ══════════════════════════════════════════════════════════════════════════
+   Bound to the canvas, not the window, so dragging on a HUD button does not
+   spin the camera.  Pointer Events cover mouse, pen and touch with one code
+   path.  Two-finger pinch and the wheel both zoom.
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  const cv = renderer.domElement;
+
+  /* radians of camera rotation per pixel dragged.  Tuned so a full sweep round
+     the car is about one comfortable drag at any screen size. */
+  const YAW_PER_PX = 0.0075;
+  const PITCH_PER_PX = 0.0060;
+
+  const pointers = new Map();     // live pointers, for pinch
+  let pinchStart = 0;
+  let distStart = 1;
+
+  cv.style.touchAction = 'none';  // stop the browser eating the drag
+
+  cv.addEventListener('pointerdown', (e) => {
+    if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
+    cv.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.size === 1) {
+      CAM.dragging = true;
+      CAM.lastX = e.clientX;
+      CAM.lastY = e.clientY;
+      CAM.idle = 0;
+    } else if (pointers.size === 2) {
+      /* two fingers down: switch from orbit to pinch-zoom */
+      const [a, b] = [...pointers.values()];
+      pinchStart = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      distStart = CAM.dist;
+    }
+  });
+
+  cv.addEventListener('pointermove', (e) => {
+    const p = pointers.get(e.pointerId);
+    if (!p) return;
+    p.x = e.clientX;
+    p.y = e.clientY;
+
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      CAM.dist = clamp(distStart * (pinchStart / d), 0.45, 3.2);
+      CAM.idle = 0;
+      return;
+    }
+    if (!CAM.dragging) return;
+
+    const dx = e.clientX - CAM.lastX;
+    const dy = e.clientY - CAM.lastY;
+    CAM.lastX = e.clientX;
+    CAM.lastY = e.clientY;
+
+    /* No wrap on yaw: the user asked for 360°, so let it run past 2π and keep
+       turning rather than folding back at the seam. */
+    CAM.yaw -= dx * YAW_PER_PX;
+    CAM.pitch = clamp(CAM.pitch + dy * PITCH_PER_PX, -CAM_PITCH_LIMIT, CAM_PITCH_LIMIT);
+    CAM.idle = 0;
+  });
+
+  const endPointer = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size === 0) {
+      CAM.dragging = false;
+      CAM.idle = 0;                 // start the hold timer
+    } else if (pointers.size === 1) {
+      const [only] = [...pointers.values()];
+      CAM.lastX = only.x;
+      CAM.lastY = only.y;
+    }
+  };
+  cv.addEventListener('pointerup', endPointer);
+  cv.addEventListener('pointercancel', endPointer);
+
+  cv.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    CAM.dist = clamp(CAM.dist * (1 + Math.sign(e.deltaY) * 0.10), 0.45, 3.2);
+    CAM.idle = 0;
+  }, { passive: false });
+}
 window.addEventListener('keydown', resumeAudio);
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -4565,6 +4724,9 @@ function loop(now) {
     UI.load.classList.add('gone');
     $('hud').classList.add('on');
     window.__ready = true;
+    /* small debug handle — handy in the console and used by the test harness */
+    window.__game = { V, CAM, wheels, CFG, camera, renderer, scene,
+                      resetVehicle, syncCarMesh, terrainHeight };
   }
 }
 
