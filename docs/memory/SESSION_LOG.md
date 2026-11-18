@@ -130,3 +130,45 @@
 - **Sonuç:** 127/127 test (24 dosya), `tsc` ✅ `eslint` ✅ `workflows:check` ✅.
 - **Sonraki İlk Adım:** kullanıcı telefonda K2/K5/K6/K8 ölçsün. K5 ≥ 30 ise Faz 1 (`feat/g2-vehicle-pipeline`);
   değilse profil düşür → hâlâ altındaysa Filament/C++ yoluna geç.
+
+---
+
+## Oturum 7 — 2026-11-18 (v0.10.1 — ilk gerçek cihaz ölçümü + yoğunluk merdiveni)
+
+- **Telefon ölçümü geldi [ölçüldü]** — POCO X7 Pro, Mali-G720 MC7, Android 16:
+  ```
+  113.0 FPS | 8.85 ms (p95 11.49) | draw 12 | tri 2.1k
+  Mali-G720 MC7 | mobile(vulkan)
+  ```
+  K2 ✅ K6 ✅ K8 ✅ · K5 **113 FPS** ama ⚠️ tavan.
+
+- **Yorum:** 113 FPS = 8.85 ms ≈ 120 Hz ekran tavanı (8.33 ms). Sahne koddan sayıldı:
+  **362 üçgen** (zemin 2 + 12 bina 144 + oyuncu 24 + 8 NPC 192). Hedef dünya ~600.000
+  ⇒ **1.657 kat** fark. Ölçüm "geçti" ama GPU yükünü göstermedi. K5 ⚠️ olarak işaretlendi.
+
+- **v0.10.1 — yoğunluk merdiveni:** tek APK'da 4 seviye (butonla geçiş), seviye değişince
+  sayaç + ısınma sıfırlanıyor:
+  L0 Boş ~2.4k · L1 Mahalle ~25k · L2 Yoğun ~120k · L3 Hedef ~500k üçgen.
+  Yeni geometri: `_append_cylinder` (tekerlek, seg 8/12/16 → ~150/350/590 üçgen),
+  `_make_quad` (cam), `BoxMesh.subdivide` (bina detayı).
+
+- **Ekran görüntüsünden yakalanan 2 hata (düzeltildi):**
+  1. **Gölge tırtıklanması** — bina kenarlarında zikzak. Sebep: 180 m gölge mesafesi +
+     4 split PSSM. Düzeltme: 90 m, 2 split, bias 0.02/0.8, blur 1.6, filtre kalitesi 3.
+  2. **Cam saydamlığı** — v1'de cam materyali proje ayarına bağlıydı; eski oyundaki
+     `trafficGlassMat` opak hatasının (**H1'in parçası**) aynısı. Artık materyal kendi
+     `TRANSPARENCY_ALPHA` ayarını taşıyor, `CULL_DISABLED`.
+
+- **CI'da yakalanan gerçek sürüm hatası:** `godot/export_presets.cfg` içinde sürüm sabitti
+  (`version/code=12`, `version/name="0.10.0"`) ve `sync-version.mjs` bu dosyayı kapsamıyordu.
+  Sürüm 0.10.1'e çıkınca APK **hâlâ 0.10.0** üretildi — **Faz 0'ın öldürmesi gereken hatanın
+  birebir aynısı, yeni bir dosyada.**
+  Düzeltme: `sync-version.mjs` **9 → 11 hedef**; K3 adımı artık APK sürümünü `version.json`
+  ile karşılaştırıp **eşleşmezse build kırıyor** (ADR-020).
+  Doğrulandı: `[SURUM] versionName=0.10.1 versionCode=13`.
+
+- **CI iyileştirmesi:** `GDScript parse check` adımı (`--check-only`) export'tan önce.
+  Parse hataları artık annotation olarak geliyor.
+
+- **Sonuç:** tsc ✅ eslint ✅ 127 test ✅ workflows 7/7 ✅ sync 11 hedef ✅
+  Godot CI ✅ (1 m 25 s) · Android APK ✅

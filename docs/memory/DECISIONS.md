@@ -208,3 +208,24 @@ Her önemli teknik, ürün veya politika kararı burada tarih ve kanıtla kayıt
   Hata durumunda export logunun son satırları `ERR`/`CTX`/`TAIL` başlıklarıyla annotation'a taşınır.
 - **Sonuç:** Kullanıcı release'i kendi ağından indirebilir (engel yalnızca bu ortama özgü);
   ajan ise APK'nın Play şartlarını karşıladığını annotation'lardan **ölçümle** doğrular.
+
+---
+
+### ADR-020 — Godot Export Sürümü de Tek Kaynaktan; Sürüm Eşleşmezse Build Kırılır
+
+- **Tarih:** 2026-11-18 · **Durum:** Kabul (CI'da hata yakalandı, düzeltildi)
+- **Bağlam:** `version.json` tek kaynak yapıldıktan sonra `godot/export_presets.cfg` eklendi,
+  içine `version/code=12` + `version/name="0.10.0"` sabit yazıldı. `sync-version.mjs` bu dosyayı
+  kapsamıyordu. Sürüm 0.10.1'e çıkınca APK **hâlâ 0.10.0 / code 12** olarak üretildi.
+- **Neden gözden kaçtı:** Godot Android export sürümü `project.godot`'tan **değil**,
+  `export_presets.cfg`'den okunur. Yeni bir dosya = yeni bir sürüm kaynağı.
+- **Karar:**
+  1. `sync-version.mjs` hedef sayısı **9 → 11**: `godot/export_presets.cfg` `version/code` +
+     `version/name` eklendi.
+  2. CI'da K3 adımı APK'nın `versionName`/`versionCode` değerini **`version.json` ile karşılaştırır**;
+     eşleşmezse **build kırılır** (annotation: `SURUM-UYUSMUYOR`). Önceden yalnız uyarıydı ve
+     değer sabit `0.10.0`'a karşı kontrol ediliyordu — yani kontrolün kendisi de yanlıştı.
+- **Kural (genel):** **Yeni bir derleme hedefi eklemek, yeni bir sürüm kaynağı eklemektir.**
+  Yeni platform/dizin eklenirse `sync-version.mjs` ve `version.test.ts` birlikte güncellenir.
+- **Sonuç [ölçüldü]:** `--check` önce 2 uyumsuzluğu yakaladı (exit 1), sync sonrası 11 hedef eşit
+  (exit 0). CI annotation: `[SURUM] versionName=0.10.1 versionCode=13`.
