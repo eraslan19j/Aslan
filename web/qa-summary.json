@@ -1,9 +1,9 @@
 {
-  "generatedAtIso": "2026-11-18T12:58:01.262Z",
+  "generatedAtIso": "2026-11-18T13:19:45.386Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 15,
   "totalErrors": 0,
-  "regressionWarnings": 0,
+  "regressionWarnings": 2,
   "hudWarnings": 0,
   "screenshots": [
     {
@@ -15,17 +15,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 131,
-        "triangles": 351790,
+        "drawCalls": 129,
+        "triangles": 355315,
         "loadedTiles": 25,
-        "activeBuildings": 4131
+        "activeBuildings": 4159
       },
-      "uniqueColors": 893,
-      "brightFrac": 0.411,
+      "uniqueColors": 899,
+      "brightFrac": 0.4012,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.41,
+        "diffPct": 3.62,
         "warning": false
       },
       "errors": []
@@ -40,16 +40,16 @@
         "qualityTier": "medium",
         "timeOfDay": "day",
         "drawCalls": 107,
-        "triangles": 258687,
+        "triangles": 260960,
         "loadedTiles": 9,
-        "activeBuildings": 2402
+        "activeBuildings": 2414
       },
-      "uniqueColors": 985,
-      "brightFrac": 0.3473,
+      "uniqueColors": 992,
+      "brightFrac": 0.3412,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.02,
+        "diffPct": 2.15,
         "warning": false
       },
       "errors": []
@@ -63,18 +63,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "medium",
         "timeOfDay": "day",
-        "drawCalls": 117,
-        "triangles": 268434,
+        "drawCalls": 116,
+        "triangles": 270746,
         "loadedTiles": 9,
-        "activeBuildings": 2402
+        "activeBuildings": 2414
       },
-      "uniqueColors": 1387,
-      "brightFrac": 0.4233,
+      "uniqueColors": 1369,
+      "brightFrac": 0.4143,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.03,
-        "warning": false
+        "diffPct": 6.12,
+        "warning": true
       },
       "errors": []
     },
@@ -87,17 +87,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "medium",
         "timeOfDay": "night",
-        "drawCalls": 108,
-        "triangles": 258687,
+        "drawCalls": 107,
+        "triangles": 260936,
         "loadedTiles": 9,
-        "activeBuildings": 2402
+        "activeBuildings": 2414
       },
-      "uniqueColors": 1481,
-      "brightFrac": 0.1038,
+      "uniqueColors": 1469,
+      "brightFrac": 0.1056,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 1.68,
         "warning": false
       },
       "errors": []
@@ -111,17 +111,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "low",
         "timeOfDay": "day",
-        "drawCalls": 85,
-        "triangles": 183376,
+        "drawCalls": 84,
+        "triangles": 184960,
         "loadedTiles": 9,
-        "activeBuildings": 2402
+        "activeBuildings": 2414
       },
-      "uniqueColors": 794,
-      "brightFrac": 0.4805,
+      "uniqueColors": 787,
+      "brightFrac": 0.4723,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 3.15,
         "warning": false
       },
       "errors": []
@@ -135,17 +135,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "medium",
         "timeOfDay": "day",
-        "drawCalls": 107,
-        "triangles": 258687,
+        "drawCalls": 106,
+        "triangles": 260936,
         "loadedTiles": 9,
-        "activeBuildings": 2402
+        "activeBuildings": 2414
       },
-      "uniqueColors": 803,
-      "brightFrac": 0.4296,
+      "uniqueColors": 796,
+      "brightFrac": 0.4228,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 2.24,
         "warning": false
       },
       "errors": []
@@ -159,18 +159,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 133,
-        "triangles": 357238,
+        "drawCalls": 132,
+        "triangles": 360877,
         "loadedTiles": 25,
-        "activeBuildings": 4131
+        "activeBuildings": 4159
       },
-      "uniqueColors": 842,
-      "brightFrac": 0.3394,
+      "uniqueColors": 848,
+      "brightFrac": 0.3321,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.43,
-        "warning": false
+        "diffPct": 7.22,
+        "warning": true
       },
       "errors": []
     },
@@ -183,17 +183,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 134,
-        "triangles": 357240,
+        "drawCalls": 133,
+        "triangles": 360879,
         "loadedTiles": 25,
-        "activeBuildings": 4131
+        "activeBuildings": 4159
       },
-      "uniqueColors": 575,
-      "brightFrac": 0.0465,
+      "uniqueColors": 567,
+      "brightFrac": 0.0467,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.41,
+        "diffPct": 0.89,
         "warning": false
       },
       "errors": []
@@ -207,17 +207,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "sunset",
-        "drawCalls": 131,
-        "triangles": 351824,
+        "drawCalls": 129,
+        "triangles": 355313,
         "loadedTiles": 25,
-        "activeBuildings": 4131
+        "activeBuildings": 4159
       },
-      "uniqueColors": 1242,
-      "brightFrac": 0.0817,
+      "uniqueColors": 1246,
+      "brightFrac": 0.0842,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 5.38,
+        "diffPct": 4.01,
         "warning": false
       },
       "errors": []
@@ -232,16 +232,16 @@
         "qualityTier": "high",
         "timeOfDay": "day",
         "drawCalls": 133,
-        "triangles": 260686,
+        "triangles": 260722,
         "loadedTiles": 24,
         "activeBuildings": 2811
       },
-      "uniqueColors": 848,
+      "uniqueColors": 847,
       "brightFrac": 0.841,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -260,7 +260,7 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 834,
+      "uniqueColors": 833,
       "brightFrac": 0.8207,
       "hudIssues": [],
       "regression": {
@@ -284,7 +284,7 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 1341,
+      "uniqueColors": 1339,
       "brightFrac": 0.7782,
       "hudIssues": [],
       "regression": {
@@ -308,7 +308,7 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 996,
+      "uniqueColors": 995,
       "brightFrac": 0.0213,
       "hudIssues": [],
       "regression": {
@@ -332,8 +332,8 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 727,
-      "brightFrac": 0.8568,
+      "uniqueColors": 728,
+      "brightFrac": 0.8567,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
@@ -357,7 +357,7 @@
         "activeBuildings": 1377
       },
       "uniqueColors": 800,
-      "brightFrac": 0.8157,
+      "brightFrac": 0.8156,
       "hudIssues": [],
       "regression": {
         "hasReference": true,

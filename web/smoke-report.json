@@ -13,15 +13,15 @@
     "transmissionMode": "auto",
     "crashCount": 0,
     "perf": {
-      "fps": 40.48839888635125,
-      "frameMs": 169.81500271683421,
-      "drawCalls": 131,
-      "triangles": 351778,
+      "fps": 38.995128896783285,
+      "frameMs": 225.58549494549015,
+      "drawCalls": 130,
+      "triangles": 355291,
       "geometries": 101,
       "textures": 13,
       "pixelRatio": 1,
       "loadedTiles": 25,
-      "activeBuildings": 4131
+      "activeBuildings": 4159
     }
   },
   "initialRegion": "esenler-namik-kemal",
@@ -45,7 +45,7 @@
   "qualityToggleOk": true,
   "hasAttributions": true,
   "pauseToggleOk": true,
-  "uniqueColors": 846,
-  "brightFrac": 0.3123,
+  "uniqueColors": 845,
+  "brightFrac": 0.3039,
   "errors": []
 }
