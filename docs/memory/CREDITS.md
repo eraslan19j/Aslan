@@ -40,3 +40,21 @@ Tüm OSM türetilmiş harita karoları kaynak koddan ayrı olarak **`public/deri
 
 ## 4. Görsel, 3B Model ve Ses Varlıkları
 - **M0–M2:** %100 kendi prosedürel kod üretimimiz (harici telifli varlık yok). Tüm binalar, asfalt yollar, T1 tramvay hattı, landmark silüetleri, kurgusal Sarı Taksi / Dolmuş / sivil trafik araçları ve karakter dokuları kodla üretilmiştir.
+
+## 7. v0.9.0 — Ses & Hasar Araştırma Referansları (2026-11-16)
+
+Bu sürümde motor/lastik sesi ve çarpışma deformasyonu için açık kaynak ekosistemi tarandı.
+**Hiçbir kod kopyalanmadı**; yalnızca teknik yaklaşım (algoritma fikri) incelendi.
+
+| Kaynak | Lisans | Nasıl Kullanıldı | Kod Alındı mı? |
+|---|---|---|---|
+| `https://github.com/geoffmyers/engine-sound-lab` | **GPL-3.0** | Silindir ateşleme açısına bağlı darbe dizisi, egzoz banka gecikmesi, susturucu + kuyruk borusu dalga kılavuzu, turbo surge/BOV sırası **fikir olarak** okundu | ❌ **Hayır** (GPL bulaşmasın) |
+| `https://github.com/Antonio-R1/engine-sound-generator` | MIT | AudioWorklet içinde emme/blok/çıkış seslerinin ayrı ses yolları, Doppler gecikme düğümleri — mimari | ❌ (kendi DSP'miz yazıldı) |
+| `https://github.com/DasEtwas/enginesound` | MIT | Boru/hazne akustik modeli, dikişsiz döngü çapraz geçiş matematiği | ❌ |
+| Godot "Unit 7" lastik cıyaklama PR'ı (YannickDurindel) | MIT | 2.6/5.2 kHz bant-geçiren gürültü + 1180 Hz cıyaklama tonu + FM vibrato + genlik salınımı; kayma eşiğinde smoothstep, 50 ms giriş / 140 ms çıkış | ❌ (matematik kendi `vehicleAudioModel.ts`'imizde) |
+| `CS-Software-LLC/skidpad` #6 | MIT | Cıyaklama ön-döngü (loop) fallback fikri | ❌ |
+| `https://github.com/aphix/crush-stream` | **Lisans yok** | Şekil-eşleştirme deformasyonuna bakıldı | ❌ **Hayır** |
+| `https://github.com/watrabi/beamng-web-clone` | **Lisans yok** | Kırılma/kopma fiziği incelemesi | ❌ **Hayır** |
+| `Letsmoe/third-gear` #24 | — | GTA/Forza seviyesi yaklaşım: darbe noktasında göçme, menteşeli parçalar, kuvvet eşiğinde kopma — **bizim D1/D2 modelimizin temeli** | ❌ |
+| `gor3a/vehicle-makes-models` | ODbL | Yalnızca **kalibrasyon** (güç/tork/ağırlık aralıkları); hiçbir gerçek marka/model adı oyuna girmedi | ❌ |
+| `Dazmac-PTY-LTD/car-data-specifications` | — | Aynı şekilde yalnızca sayısal kalibrasyon | ❌ |
