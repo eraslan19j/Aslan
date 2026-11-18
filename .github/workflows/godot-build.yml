@@ -128,22 +128,42 @@ jobs:
           ls "$ANDROID_HOME/ndk"
 
       # ---- Godot Android export ayarları (başsız) ----
+      - name: Generate debug keystore
+        run: |
+          set -euo pipefail
+          KS="$HOME/debug.keystore"
+          rm -f "$KS"
+          keytool -genkeypair -v \
+            -keystore "$KS" \
+            -storepass android -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US" > /dev/null
+          keytool -list -keystore "$KS" -storepass android | tail -3
+          echo "KEYSTORE_PATH=$KS" >> "$GITHUB_ENV"
+          ls -la "$KS"
+
       - name: Configure Godot editor settings
         run: |
           set -euo pipefail
           mkdir -p ~/.config/godot
-          CFG=~/.config/godot/editor_settings-4.7.tres
-          {
-            echo '[gd_resource type="EditorSettings" format=3]'
-            echo ''
-            echo '[resource]'
-            echo "export/android/android_sdk_path = \"${ANDROID_HOME}\""
-            echo "export/android/java_sdk_path = \"${JAVA_HOME}\""
-            echo 'export/android/debug_keystore = ""'
-            echo 'export/android/debug_keystore_user = "androiddebugkey"'
-            echo 'export/android/debug_keystore_pass = "android"'
-          } > "$CFG"
-          cat "$CFG"
+
+          # Godot sürüm dosya adını kendisi belirler; 4.x için olası adları yaz.
+          for NAME in editor_settings-4.7.tres editor_settings-4.tres editor_settings-4.6.tres editor_settings-4.5.tres; do
+            CFG="$HOME/.config/godot/$NAME"
+            {
+              printf '%s\n' '[gd_resource type="EditorSettings" format=3]'
+              printf '%s\n' ''
+              printf '%s\n' '[resource]'
+              printf 'export/android/android_sdk_path = "%s"\n' "${ANDROID_HOME}"
+              printf 'export/android/java_sdk_path = "%s"\n' "${JAVA_HOME}"
+              printf 'export/android/debug_keystore = "%s"\n' "${KEYSTORE_PATH}"
+              printf '%s\n' 'export/android/debug_keystore_user = "androiddebugkey"'
+              printf '%s\n' 'export/android/debug_keystore_pass = "android"'
+            } > "$CFG"
+          done
+          echo "--- yazılan ayar dosyası örneği ---"
+          cat "$HOME/.config/godot/editor_settings-4.7.tres"
 
       # ---- Import + export ----
       - name: Godot import (headless)
@@ -155,10 +175,35 @@ jobs:
       - name: Godot export APK (headless)
         working-directory: godot
         run: |
-          set -euo pipefail
+          set -uo pipefail
           mkdir -p ../build/android
-          "$GODOT_BIN_DIR/godot" --headless --path . \
-            --export-debug "Android" ../build/android/prototype.apk 2>&1 | tail -40
+          echo "--- şablonlar ---"
+          ls -la ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/ | grep -i android || echo "ANDROID ŞABLONU YOK"
+          echo
+          echo "--- export_presets.cfg var mı ---"
+          ls -la export_presets.cfg
+
+          set +e
+          "$GODOT_BIN_DIR/godot" --headless --verbose --path . \
+            --export-release "Android" ../build/android/prototype.apk > /tmp/export.log 2>&1
+          RC=$?
+          set -e
+
+          echo "--- export çıktısı (tam) ---"
+          cat /tmp/export.log
+          echo "--- çıkış kodu: $RC ---"
+
+          {
+            echo "### Godot export log (son 80 satır)"
+            echo '```'
+            tail -80 /tmp/export.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$RC" -ne 0 ]; then
+            echo "::error::Godot export başarısız (çıkış $RC) — log yukarıda"
+            exit 1
+          fi
           ls -la ../build/android/
 
       # ---- K7: boyut ----
