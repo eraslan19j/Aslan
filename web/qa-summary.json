@@ -1,9 +1,9 @@
 {
-  "generatedAtIso": "2026-11-18T19:11:29.930Z",
+  "generatedAtIso": "2026-11-18T19:28:29.692Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 15,
   "totalErrors": 0,
-  "regressionWarnings": 0,
+  "regressionWarnings": 1,
   "hudWarnings": 0,
   "screenshots": [
     {
@@ -15,17 +15,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 130,
-        "triangles": 355351,
+        "drawCalls": 131,
+        "triangles": 355375,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 915,
-      "brightFrac": 0.4021,
+      "uniqueColors": 906,
+      "brightFrac": 0.4,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 1.39,
+        "diffPct": 1.65,
         "warning": false
       },
       "errors": []
@@ -44,7 +44,7 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 995,
+      "uniqueColors": 993,
       "brightFrac": 0.3412,
       "hudIssues": [],
       "regression": {
@@ -68,12 +68,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 1367,
+      "uniqueColors": 1370,
       "brightFrac": 0.4143,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -92,7 +92,7 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 1466,
+      "uniqueColors": 1465,
       "brightFrac": 0.1056,
       "hudIssues": [],
       "regression": {
@@ -116,7 +116,7 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 779,
+      "uniqueColors": 780,
       "brightFrac": 0.4723,
       "hudIssues": [],
       "regression": {
@@ -140,12 +140,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 797,
-      "brightFrac": 0.4228,
+      "uniqueColors": 798,
+      "brightFrac": 0.4227,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0,
         "warning": false
       },
       "errors": []
@@ -159,17 +159,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 132,
-        "triangles": 360889,
+        "drawCalls": 133,
+        "triangles": 360913,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
       "uniqueColors": 838,
-      "brightFrac": 0.331,
+      "brightFrac": 0.3313,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.05,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
@@ -189,11 +189,11 @@
         "activeBuildings": 4159
       },
       "uniqueColors": 568,
-      "brightFrac": 0.047,
+      "brightFrac": 0.0467,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.2,
+        "diffPct": 0.28,
         "warning": false
       },
       "errors": []
@@ -208,17 +208,17 @@
         "qualityTier": "high",
         "timeOfDay": "sunset",
         "drawCalls": 131,
-        "triangles": 355373,
+        "triangles": 355351,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 1246,
-      "brightFrac": 0.0844,
+      "uniqueColors": 1230,
+      "brightFrac": 0.0865,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.27,
-        "warning": false
+        "diffPct": 30,
+        "warning": true
       },
       "errors": []
     },
@@ -232,12 +232,12 @@
         "qualityTier": "high",
         "timeOfDay": "day",
         "drawCalls": 133,
-        "triangles": 260722,
+        "triangles": 260794,
         "loadedTiles": 24,
         "activeBuildings": 2811
       },
-      "uniqueColors": 850,
-      "brightFrac": 0.841,
+      "uniqueColors": 851,
+      "brightFrac": 0.8409,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
@@ -260,7 +260,7 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 834,
+      "uniqueColors": 835,
       "brightFrac": 0.8207,
       "hudIssues": [],
       "regression": {
@@ -284,8 +284,8 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 1339,
-      "brightFrac": 0.7782,
+      "uniqueColors": 1338,
+      "brightFrac": 0.7781,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
@@ -332,7 +332,7 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 729,
+      "uniqueColors": 731,
       "brightFrac": 0.8567,
       "hudIssues": [],
       "regression": {
