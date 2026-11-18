@@ -1,12 +1,12 @@
 {
-  "generatedAtIso": "2026-11-18T12:54:09.574Z",
+  "generatedAtIso": "2026-11-18T13:11:03.983Z",
   "note": "Android x86_64 KVM emulator (SwiftShader GPU) validates layout, landscape, cutout, touch input, Back key, and crash-free launch — NOT real-device FPS.",
   "appAliveAfterBack": true,
   "fatalCount": 0,
   "anrCount": 0,
   "chromiumErrorCount": 0,
   "bootLines": [
-    "11-18 12:53:43.561 I/Capacitor/Console( 2360): File: https://localhost/assets/index-BvvkrSEW.js - Line 38 - Msg: ISTANBUL_BOOT {\"version\":\"0.8.0\",\"regionId\":\"esenler-namik-kemal\",\"qualityTier\":\"low\",\"drivingMode\":\"street\",\"transmissionMode\":\"auto\",\"steeringMode\":\"buttons\",\"touchUi\":true,\"nativeHw\":{\"cpuCores\":2,\"sdkInt\":34,\"manufacturer\":\"Google\",\"model\":\"sdk_gphone64_x86_64\",\"totalRamMb\":2979,\"availRamMb\":1700,\"lowMemory\":false,\"audioSampleRate\":48000,\"audioFramesPerBuffer\":1088,\"refreshRateHz\":60,\"gameMode\":\"standard\"},\"viewport\":\"866x412\",\"canvas\":\"866x412\",\"glError\":0,\"gpu\":{\"renderer\":\"Android Emulator OpenGL ES Translator (Google SwiftShader)\",\"vendor\":\"Google (Google Inc.)\"}}"
+    "11-18 13:10:40.709 I/Capacitor/Console( 3429): File: https://localhost/assets/index-BvvkrSEW.js - Line 38 - Msg: ISTANBUL_BOOT {\"version\":\"0.8.0\",\"regionId\":\"esenler-namik-kemal\",\"qualityTier\":\"low\",\"drivingMode\":\"street\",\"transmissionMode\":\"auto\",\"steeringMode\":\"buttons\",\"touchUi\":true,\"nativeHw\":{\"cpuCores\":2,\"sdkInt\":34,\"manufacturer\":\"Google\",\"model\":\"sdk_gphone64_x86_64\",\"totalRamMb\":2979,\"availRamMb\":1466,\"lowMemory\":false,\"audioSampleRate\":48000,\"audioFramesPerBuffer\":1088,\"refreshRateHz\":60,\"gameMode\":\"standard\"},\"viewport\":\"866x412\",\"canvas\":\"866x412\",\"glError\":0,\"gpu\":{\"renderer\":\"Android Emulator OpenGL ES Translator (Google SwiftShader)\",\"vendor\":\"Google (Google Inc.)\"}}"
   ],
   "fatals": [],
   "anrs": [],
@@ -17,8 +17,8 @@
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 1,
-      "brightFrac": 0,
+      "uniqueColors": 479,
+      "brightFrac": 0.0285,
       "centerBrightFrac": 0
     },
     {
@@ -26,18 +26,18 @@
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 1189,
-      "brightFrac": 0.8565,
-      "centerBrightFrac": 0.9371
+      "uniqueColors": 493,
+      "brightFrac": 0.0285,
+      "centerBrightFrac": 0
     },
     {
       "file": "qa-out/android/emulator_03_pause_back.png",
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 474,
-      "brightFrac": 0.0276,
-      "centerBrightFrac": 0
+      "uniqueColors": 216,
+      "brightFrac": 0.025,
+      "centerBrightFrac": 0.0404
     }
   ]
 }
