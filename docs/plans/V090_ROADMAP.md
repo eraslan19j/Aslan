@@ -139,3 +139,25 @@ Her PR/commit sonunda **zorunlu** güncellenecek dosyalar:
 | `docs/memory/PERF_BUDGET.md` | draw-call / RAM / FPS bütçesi |
 | `docs/plans/V090_ROADMAP.md` | Bu dosya — kalem durumu `⬜/🟨/✅` |
 | `AGENTS.md` | Oturum başlangıç okuma sırası |
+
+---
+
+## EK — v0.9.0 Uygulama Durumu (2026-11-16)
+
+| Kod | Durum | Kanıt |
+|---|---|---|
+| R1–R4 Araç kataloğu | ✅ | `src/core/vehicleCatalog.ts` + 6 test |
+| R5–R6 HUD sadeleştirme | ✅ | FPS/Çizim/Karo/Bina kaldırıldı; hasar çubuğu eklendi |
+| P1–P3 OBB çarpışma | ✅ | `vehicleCollision.ts` + 7 test (temas yaması düzeltmesi dahil) |
+| D1–D3 Panel hasarı | ✅ | `vehicleDamage.ts` (9 test) + `vehicleDamageVisuals.ts` |
+| A1–A6 Ses | ✅ | `engine-worklet.js` yeniden yazımı, `vehicleAudioModel.ts` (9 test) |
+| K1 Kapı animasyonu | ✅ | `doorChoreography.ts` + 6 test |
+| V1–V2 NPC hasarı | ✅ | `traffic.ts` `dent` alanı + `RegionWorldScene` ezme/kir |
+| Kalıcı hafıza | ✅ | `docs/memory/STATE.md` |
+
+**Kapılar:** `tsc --noEmit` ✅ · `eslint .` ✅ · `vitest run` 104/104 ✅ · `vite build` ✅
+
+### Bilinçli olarak v1.0'a bırakılanlar
+- NPC panellerinin ayrı ayrı kopması (instanced renderer nedeniyle şimdilik gövde ezmesi + kir ile temsil ediliyor).
+- Nitro/turbo sesinin gerçek telefon hoparlöründe ince ayarı (kulakla doğrulama gerekiyor).
+- Kapı animasyonunun karakter adım animasyonuyla senkronize edilmesi (şimdilik kapı açılır → karakter ışınlanarak oturur).
