@@ -294,6 +294,33 @@
   </svg>
 
   <div id="shift"></div>
+
+  <!-- ── powertrain telemetry: what the engine and gearbox are doing ───── -->
+  <div id="power">
+    <div class="pw-row">
+      <span class="pw-k">GÜÇ</span>
+      <span class="pw-v" id="pwPower">0</span>
+      <span class="pw-u">hp</span>
+    </div>
+    <div class="pw-bar"><i id="pwPowerBar"></i></div>
+    <div class="pw-row">
+      <span class="pw-k">TORK</span>
+      <span class="pw-v" id="pwTorque">0</span>
+      <span class="pw-u">Nm</span>
+    </div>
+    <div class="pw-bar"><i id="pwTorqueBar"></i></div>
+    <div class="pw-row">
+      <span class="pw-k">ÇEKİŞ</span>
+      <span class="pw-v" id="pwForce">0</span>
+      <span class="pw-u">N</span>
+    </div>
+    <div class="pw-bar"><i id="pwForceBar"></i></div>
+    <div class="pw-row pw-small">
+      <span class="pw-k">TUTUŞ</span>
+      <span class="pw-v" id="pwGrip">0%</span>
+      <span class="pw-k pw-tc" id="pwTc">TC</span>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════════
@@ -428,13 +455,37 @@ const CFG = {
   ENGINE_INERTIA: 0.19,
   ENGINE_BRAKE: 26,
 
-  GEARS: [3.50, 1.95, 1.32, 1.00],
-  FINAL_DRIVE: 4.10,
-  DRIVELINE_EFF: 0.91,
-  DIFF_LOCK: 0.55,
-  AUTO_UP: 4200,
-  AUTO_DOWN: 1700,
-  SHIFT_TIME: 0.24,
+  /* 6-speed automatic.  First is shorter and there are two more ratios over
+     the old four-speed, so the engine stays near its torque peak and each
+     shift drops fewer revs — that is the whole point of a modern box. */
+  GEARS: [3.48, 2.14, 1.55, 1.21, 0.98, 0.81],
+  REVERSE: 3.40,
+  FINAL_DRIVE: 3.05,
+  DRIVELINE_EFF: 0.93,
+  DIFF_LOCK: 0.62,
+
+  /* Torque converter.  A fluid coupling is what makes an automatic feel
+     elastic off the line: below the stall speed the engine can spin well
+     ahead of the gearbox, so the car creeps AND flares, then the lock-up
+     clutch closes and the link becomes mechanical. */
+  TC_STALL_RATIO: 2.05,      // engine rpm / turbine rpm at full stall
+  TC_STALL_TORQUE: 1.95,     // torque multiplication at stall
+  TC_LOCK_RATIO: 0.80,       // above this speed ratio the clutch locks
+  TC_LOCK_TIME: 0.18,        // s to fully lock — modern boxes lock almost at once
+  TC_K: 0.0000072,           // pump capacity coefficient (rpm^2 -> N·m)
+
+  AUTO_UP: 5200,
+  AUTO_DOWN: 1450,
+  SHIFT_TIME: 0.16,          // modern boxes shift fast
+  KICKDOWN_RPM: 0.72,        // fraction of redline that forces a downshift
+
+  /* measured engine figures, kept separate from the curve so the HUD and the
+     physics cannot disagree about what the car makes */
+  PEAK_TORQUE: 280,          // N·m
+  PEAK_TORQUE_RPM: 2400,
+  PEAK_POWER_KW: 134,        // 180 hp
+  PEAK_POWER_RPM: 5500,
+  BOOST_RPM: 1500,           // turbo spool threshold
 
   BRAKE_TORQUE: 2500,
   BRAKE_BIAS: 0.62,
@@ -2373,12 +2424,28 @@ const V = {
 
   /* drivetrain */
   rpm: CFG.IDLE_RPM,
+  turbineRpm: CFG.IDLE_RPM,
   gear: 1,
   gearboxAuto: true,
   shiftTimer: 0,
   shiftQueued: 0,
   engineTorque: 0,
   clutch: 1,
+  tcSlip: 0,          // engine rpm - turbine rpm
+  tcLock: 0,          // 0 = fully slipping, 1 = locked
+  tcLockTimer: 0,
+  converterTorque: 0, // N·m the converter is passing to the gearbox
+  stallFactor: 0,     // how far into the converter's stall region we are
+
+  /* measured output, for the HUD and the telemetry panel */
+  limiterActive: false,
+  tcIntervention: 0,   // 0 = no traction control, 1 = fully cutting
+  powerKw: 0,
+  powerHp: 0,
+  torqueAtWheels: 0,
+  driveForce: 0,      // N at the contact patch
+  gripUsed: 0,        // 0..1 of available longitudinal grip
+  accel: 0,           // m/s^2, smoothed
 
   /* controls (written by readInput) */
   throttle: 0,
@@ -2534,15 +2601,27 @@ function loadSensitivity(loadN) {
 /* 1.6 L OHV four, as fitted to the Şahin: 125 Nm at 3000 rpm and about
    75 hp (56 kW) at 5400.  The curve stays usable well past the power peak,
    which is what lets a 1050 kg car pull to 160 km/h with only four gears. */
+/* 2.0 litre turbocharged four.  280 N·m held flat from 1800 to 3000 — the
+   plateau a small turbo gives you — then a power curve that keeps climbing to
+   180 hp at 5500.  That flat shelf is exactly what a six-speed automatic
+   wants: every upshift lands back inside the torque band, so the car pulls in
+   every gear instead of only in first and second. */
 const TORQUE_CURVE = [
-  [700, 92], [1000, 108], [1400, 118], [1800, 123],
-  [2200, 126], [2600, 127], [3000, 125], [3400, 122],
-  [3800, 118], [4200, 113], [4600, 108], [5000, 102],
-  [5400, 95], [5800, 84], [6200, 64], [6600, 34],
+  [700, 140], [1000, 190], [1400, 240], [1600, 268],
+  [1800, 280], [2200, 280], [2600, 280], [3000, 278],
+  [3400, 275], [3800, 270], [4200, 262], [4600, 250],
+  [5000, 236], [5400, 218], [5800, 196], [6200, 160], [6600, 100],
 ];
 
 function torqueAtRpm(rpm) {
   const c = TORQUE_CURVE;
+  /* turbo lag: below the spool threshold the engine is naturally aspirated */
+  const lag = clamp((rpm - 900) / (CFG.BOOST_RPM - 900), 0, 1);
+  const raw = _torqueLookup(rpm, c);
+  return raw * lerp(0.55, 1.0, lag);
+}
+
+function _torqueLookup(rpm, c) {
   if (rpm <= c[0][0]) return c[0][1];
   if (rpm >= c[c.length - 1][0]) return c[c.length - 1][1];
   for (let i = 0; i < c.length - 1; i++) {
@@ -2553,7 +2632,7 @@ function torqueAtRpm(rpm) {
   return 0;
 }
 
-const gearRatio = () => (V.gear === -1 ? -3.40 : CFG.GEARS[V.gear - 1]);
+const gearRatio = () => (V.gear === -1 ? -CFG.REVERSE : CFG.GEARS[V.gear - 1]);
 const totalRatio = () => gearRatio() * CFG.FINAL_DRIVE;
 
 /* wheel angular speed → engine rpm through the current gear */
@@ -2576,6 +2655,7 @@ let inputHandbrake = 0;
 const _xAxis = new THREE.Vector3();
 const _yAxis = new THREE.Vector3();
 const _zAxis = new THREE.Vector3();
+const _teleVec = new THREE.Vector3();   // telemetry only, never shared
 const _invQ = new THREE.Quaternion();
 const _r = new THREE.Vector3();
 const _pVel = new THREE.Vector3();
@@ -2681,18 +2761,40 @@ function physicsStep(dt) {
   }
   V.steer = clamp(V.steer, -lock, lock);
 
-  /* ── gearbox ─────────────────────────────────────────────────────────── */
+  /* ── gearbox + converter ─────────────────────────────────────────────── */
   updateGearbox(dt);
+  updateConverter(dt);
 
   /* ── engine torque at the crank ──────────────────────────────────────── */
   const rpm = V.rpm;
   let engT = 0;
-  if (rpm < CFG.LIMITER_RPM) {
+  if (!V.limiterActive) {
     engT = torqueAtRpm(rpm) * V.throttle;
-    if (rpm > CFG.REDLINE_RPM) engT *= 1 - smoothstep(CFG.REDLINE_RPM, CFG.LIMITER_RPM, rpm);
+    /* soft cut as it approaches the limiter, so it bounces instead of slamming */
+    if (rpm > CFG.REDLINE_RPM - 150) {
+      engT *= 1 - smoothstep(CFG.REDLINE_RPM - 150, CFG.REDLINE_RPM, rpm);
+    }
   }
-  /* overrun: closed throttle drags the engine down, harder at high rpm */
-  if (V.throttle < 0.03) engT -= CFG.ENGINE_BRAKE * clamp(rpm / 2000, 0.3, 1.8);
+
+  /* ══════════════════════════════════════════════════════════════════════
+     TRACTION CONTROL / TORQUE MANAGEMENT
+     ══════════════════════════════════════════════════════════════════════
+     A modern TCU does not let the engine dump its whole torque into a
+     first-gear launch: it trims the throttle until the tyres are rolling
+     rather than spinning.  Detect rear-wheel slip, pull torque back
+     proportionally, and feed it in again as the slip falls.  Without this the
+     car simply smoked its tyres and never moved.
+     ══════════════════════════════════════════════════════════════════════ */
+  let worstSlip = 0;
+  for (let i = 2; i < 4; i++) {
+    worstSlip = Math.max(worstSlip, Math.abs(wheels[i].slipLong));
+  }
+  /* full torque below 0.12 slip, zero by 0.45 — smooth, so it does not chatter */
+  const tcGrip = 1 - smoothstep(0.12, 0.45, worstSlip);
+  V.tcIntervention = 1 - tcGrip;
+  /* only intervene when the driver is actually asking for torque */
+  engT *= lerp(1, lerp(0.30, 1.0, tcGrip), clamp(V.throttle * 1.4, 0, 1));
+
   V.engineTorque = engT;
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -3136,6 +3238,27 @@ function physicsStep(dt) {
      engine speed
      ══════════════════════════════════════════════════════════════════════ */
   updateEngineSpeed(dt);
+
+  /* ══════════════════════════════════════════════════════════════════════
+     telemetry — what the tyres are actually doing, not what we asked for
+     ══════════════════════════════════════════════════════════════════════ */
+  {
+    let f = 0, gripCap = 0;
+    for (let i = 0; i < 4; i++) {
+      const w = wheels[i];
+      f += w.fx;
+      gripCap += w.mu * Math.max(0, w.load);
+    }
+    V.driveForce = f;
+    V.gripUsed = gripCap > 1 ? clamp(Math.abs(f) / gripCap, 0, 1) : 0;
+
+    /* smoothed longitudinal acceleration, 1/4 s time constant */
+    const vAlong = V.vel.dot(_teleVec.set(0, 0, 1).applyQuaternion(V.quat));
+    if (V.prevVAlong === undefined) V.prevVAlong = vAlong;
+    const instAcc = (vAlong - V.prevVAlong) / Math.max(1e-4, dt);
+    V.prevVAlong = vAlong;
+    V.accel = lerp(V.accel, clamp(instAcc, -30, 30), 1 - Math.exp(-dt / 0.25));
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -3150,7 +3273,11 @@ function wheelDrive(i) {
      at a standstill the clutch is open and no torque reaches the axle */
   if (V.throttle < 0.02 && V.speed < 0.6) return 0;
 
-  const t = V.engineTorque * Math.abs(totalRatio()) * CFG.DRIVELINE_EFF * (V.gear === -1 ? -1 : 1);
+  /* the axle sees what the CONVERTER passed on, multiplied by the gearbox —
+     that is the whole reason an automatic pulls harder off the line than the
+     same engine bolted to a manual */
+  const t = V.converterTorque * Math.abs(totalRatio()) * CFG.DRIVELINE_EFF *
+            (V.gear === -1 ? -1 : 1);
 
   /* viscous LSD: torque migrates to the slower wheel */
   const other = wheels[i === 2 ? 3 : 2];
@@ -3168,31 +3295,129 @@ function wheelBrakeT(i) {
   return t;
 }
 
-/* The engine speed is dragged towards the wheel speed through the clutch,
-   but at low speed the clutch slips and the engine can flare — that is what
-   produces the elastic launch instead of a hard mechanical link.           */
+/* ══════════════════════════════════════════════════════════════════════════
+   ENGINE SPEED
+   ══════════════════════════════════════════════════════════════════════════
+   The crank is driven by two things and no more: combustion torque, and the
+   drag of the converter's pump.  Solve N = ∫(T_engine − T_pump)/I dt instead
+   of blending towards a target rpm, and the idle, the flare, the stall and
+   the engine braking all fall out of one equation instead of four fudges.
+   ══════════════════════════════════════════════════════════════════════════ */
 function updateEngineSpeed(dt) {
-  const wheelRpm = wheelRpmToEngine();
-  const groundDriven = V.gear === -1 ? V.speed > 1.0 : true;
+  /* Speed ratio and the slip the converter is currently allowing. */
+  const sr = V.rpm > 60 ? clamp(V.turbineRpm / V.rpm, 0, 1.2) : 0;
+  V.tcSlip = Math.max(0, V.rpm - V.turbineRpm);
 
-  const target = groundDriven ? Math.max(wheelRpm, CFG.IDLE_RPM) : CFG.IDLE_RPM;
+  /* ── how much slip the converter permits, right now ───────────────────
+     At full throttle and zero road speed the engine may flare to its stall
+     speed (turbine × stall ratio).  Lift off and the slip closes to nothing.
+     As the car gathers speed the ceiling falls away to zero, which is the
+     lock-up.                                                     */
+  /* The slip ceiling falls away with road speed: a converter flares hard off
+     the line and is fully coupled by about 60 km/h.  Above that the only
+     permitted slip is the tiny governor offset, which is what lock-up is. */
+  const coupled = clamp((V.speed * 3.6 - 12) / 48, 0, 1);
+  const maxSlip = lerp(CFG.IDLE_RPM * 2.6, 60, coupled);
+  const rpmCeiling = V.turbineRpm + maxSlip * clamp(V.throttle * 1.2, 0.15, 1);
 
-  /* below the clutch's lock-up speed the engine runs on its own */
-  const clutchLocked = clamp((V.speed - 1.0) / 7.0, 0, 1);
+  /* ── where the crank wants to be from combustion alone ────────────────
+     Free revving with no load, that is idle + throttle × the rev range.
+     This is the number the old code blended towards and it ran away because
+     nothing tied it to the road.  Now it is clamped by rpmCeiling. */
+  let freeTarget = CFG.IDLE_RPM + V.throttle * (CFG.LIMITER_RPM - CFG.IDLE_RPM) * 0.92;
 
-  if (clutchLocked < 0.98) {
-    /* free-revving: throttle spins the engine up, the clutch drags it down */
-    const freeTarget = CFG.IDLE_RPM + V.throttle * (CFG.REDLINE_RPM - CFG.IDLE_RPM) * 0.85;
-    V.rpm = lerp(V.rpm, freeTarget, 1 - Math.exp(-3.2 * dt));
+  /* once the converter is close to locked the engine is dragged by the road */
+  if (V.tcLock > 0.05) {
+    freeTarget = lerp(freeTarget, Math.max(V.turbineRpm, CFG.IDLE_RPM), V.tcLock);
   }
-  /* blend towards the wheel speed as the clutch bites */
-  const blend = 1 - Math.exp(-(2.5 + clutchLocked * 12) * dt * clutchLocked);
-  V.rpm = lerp(V.rpm, target, blend);
 
-  /* the limiter: hard cut, and it will not go past the ceiling */
-  if (V.rpm > CFG.LIMITER_RPM) V.rpm = CFG.LIMITER_RPM;
-  if (V.rpm < CFG.IDLE_RPM * 0.85) V.rpm = CFG.IDLE_RPM;
-  V.clutch = clutchLocked;
+  /* the crank can never exceed the slip ceiling */
+  const target = Math.min(freeTarget, rpmCeiling);
+
+  /* engine rotational inertia: a light crank follows fast, but not instantly */
+  const response = 1 - Math.exp(-dt / CFG.ENGINE_INERTIA);
+  V.rpm = Math.max(V.rpm * (1 - response) + target * response, CFG.IDLE_RPM * 0.72);
+
+  if (V.rpm >= CFG.REDLINE_RPM) V.limiterActive = true;
+  else if (V.rpm < CFG.REDLINE_RPM - 220) V.limiterActive = false;
+
+  V.clutch = 1 - V.tcLock;
+
+  /* ── torque delivered to the gearbox ──────────────────────────────────
+     Pump torque × the converter's multiplication.  At stall the multiplication
+     is nearly 2, which is what makes an automatic launch hard; as the ratio
+     approaches 1 it falls to unity and the car is effectively in direct
+     drive.                                                       */
+  const pumpT = (V.engineTorque + CFG.ENGINE_BRAKE * 0.4) *
+                clamp(0.55 + V.throttle * 0.55, 0.55, 1.10);
+  V.converterTorque = pumpT * converterTorqueRatio(sr);
+
+  /* ── measured output, recomputed every step so the HUD cannot lie ───── */
+  const tq = torqueAtRpm(V.rpm);
+  V.torqueAtWheels = tq;
+  V.powerKw = (tq * V.rpm * TAU / 60) / 1000;
+  V.powerHp = V.powerKw * 1.34102;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TORQUE CONVERTER
+   ══════════════════════════════════════════════════════════════════════════
+   A fluid coupling sits between the engine and the gearbox.  Its behaviour is
+   set by one number, the speed ratio
+
+       SR = turbine rpm / engine rpm
+
+   At SR = 0 (stalled, car held still) the engine can spin freely and the
+   converter multiplies torque by about 1.95, which is why an automatic pulls
+   away so strongly in first.  As SR rises the multiplication falls away to 1
+   and the coupling starts to look like a slipping clutch.  Above the lock-up
+   ratio a clutch plate closes and the link becomes solid — that is the moment
+   the drivetrain stops feeling elastic and starts feeling direct.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* how hard the converter multiplies torque at a given speed ratio */
+function converterTorqueRatio(sr) {
+  const t = clamp(sr / CFG.TC_LOCK_RATIO, 0, 1);
+  /* falls from stall ratio to 1.0, with the steep initial fall a real
+     converter shows */
+  return lerp(CFG.TC_STALL_TORQUE, 1.0, Math.pow(t, 0.48));
+}
+
+/* the torque the pump can drag out of the engine at this rpm */
+function pumpAbsorbTorque(rpm, sr) {
+  const capacity = CFG.TC_K * rpm * rpm;
+  /* a converter absorbs far less when it is nearly locked */
+  return capacity * (1 - clamp(sr / CFG.TC_LOCK_RATIO, 0, 1) * 0.88);
+}
+
+function updateConverter(dt) {
+  const turbineRpm = Math.max(0, wheelRpmToEngine());
+  V.turbineRpm = turbineRpm;
+
+  const sr = V.rpm > 60 ? clamp(turbineRpm / V.rpm, 0, 1.2) : 0;
+  V.stallFactor = 1 - clamp(sr / CFG.TC_LOCK_RATIO, 0, 1);
+  V.tcSlip = Math.max(0, V.rpm - turbineRpm);
+
+  /* lock-up: only once the ratio has been above the threshold for a while,
+     and it drops out again as soon as the box shifts or the car slows */
+  /* lock by ROAD SPEED and ratio together, the way a real TCU schedules it:
+     it locks in every gear once the car is rolling and the shift is done */
+  const lockThreshold = V.tcLock > 0.5
+    ? CFG.TC_LOCK_RATIO - 0.16
+    : CFG.TC_LOCK_RATIO - 0.06;
+  const rollingEnough = V.speed * 3.6 > 22;
+  if (sr > lockThreshold && rollingEnough && V.shiftTimer <= 0 && V.gear !== -1) {
+    V.tcLockTimer += dt;
+    if (V.tcLockTimer > CFG.TC_LOCK_TIME) V.tcLock = Math.min(1, V.tcLock + dt * 9);
+  } else {
+    V.tcLockTimer = 0;
+    V.tcLock = Math.max(0, V.tcLock - dt * 6);
+  }
+
+  /* V.converterTorque is produced by updateEngineSpeed, which owns the crank
+     side of the coupling.  This function must NOT write it: doing so used
+     lerp(..., tcLock), so it was a no-op when the converter was slipping and
+     destructive when it was locked. */
 }
 
 function updateGearbox(dt) {
@@ -3217,43 +3442,63 @@ function updateGearbox(dt) {
 
   if (!V.gearboxAuto || V.shiftTimer > 0) return;
 
-  /* Automatic shift logic.
-     Up-shifting on engine rpm alone is not enough: while the clutch is still
-     slipping the engine sits high in the rev range while the car has barely
-     moved, and the box would short-shift forever.  So the up-shift needs
-     BOTH the engine to be near the power peak AND the wheel speed to be
-     high enough for the next gear to be usable — the same rule a real
-     hydraulic box follows from its governor pressure.
-
-     gear top speed ≈ redline · 2π · R / (gear · final)                          */
+  /* ══════════════════════════════════════════════════════════════════════
+     AUTOMATIC SHIFT SCHEDULE  —  scheduled on ROAD SPEED, with hysteresis
+     ══════════════════════════════════════════════════════════════════════
+     Scheduling on engine rpm alone made the box hunt: a downshift spikes the
+     turbine speed instantly, which immediately satisfies the upshift test and
+     sends it straight back up.  A real TCU schedules on output (road) speed
+     and leaves a wide gap between the up and down points, so the box commits
+     to a gear and stays there.  Rpm is then only used as a veto at the top and
+     bottom of the range.
+     ══════════════════════════════════════════════════════════════════════ */
   const redlineRad = CFG.REDLINE_RPM * TAU / 60;
-  const gearTop = (g) => redlineRad * CFG.WHEEL_R / (CFG.GEARS[g - 1] * CFG.FINAL_DRIVE);
+  const NGEAR = CFG.GEARS.length;
+  const gearTopKph = (g) =>
+    (redlineRad * CFG.WHEEL_R / (CFG.GEARS[g - 1] * CFG.FINAL_DRIVE)) * 3.6;
 
-  if (V.gear < CFG.GEARS.length) {
-    const topNow = gearTop(V.gear);
-    /* at full throttle the box holds each gear longer; lifting off makes it
-       shift up early, which is what a kickdown-less hydraulic box does */
-    /* Up-shift earlier when cruising, later when pressing on — but never so
-       late that a modest engine has to reach redline to get there.  The old
-       mapping put the full-throttle point at 4600 rpm, which this engine
-       cannot reach in 3rd on the road, so the car never found 4th. */
-    const upAt = lerp(CFG.AUTO_UP - 1400, CFG.AUTO_UP, V.throttle);
-    const rpmHigh = V.rpm > upAt;
-    const pastGood = V.speed > topNow * 0.35;
-    if (rpmHigh && pastGood) {
+  const kph = V.speed * 3.6;
+  const thr = clamp(V.throttle, 0, 1);
+
+  /* upshift and downshift road speeds for each gear change, 0 → 1 … 4 → 5.
+     Light throttle shifts low for economy; flat out holds each gear to ~0.92
+     of its top speed.  The gap between the two columns is the hysteresis. */
+  const upKph   = (g) => lerp(gearTopKph(g) * 0.30, gearTopKph(g) * 0.92, Math.pow(thr, 0.9));
+  const downKph = (g) => lerp(gearTopKph(g) * 0.14, gearTopKph(g) * 0.55, Math.pow(thr, 0.9));
+
+  /* ── upshift ─────────────────────────────────────────────────────────── */
+  if (V.gear > 0 && V.gear < NGEAR) {
+    /* whichever arrives first: the road-speed schedule, or the engine running
+       out of revs (converter slip makes the second one bite first under load) */
+    const bySpeed = kph > upKph(V.gear) && V.rpm > 1500;
+    const byRpm = V.rpm > CFG.REDLINE_RPM - 250 && V.speed > 6;
+    if (bySpeed || byRpm) {
       V.gear++;
       V.shiftTimer = CFG.SHIFT_TIME;
+      V.tcLock *= 0.4;
+      V.tcLockTimer = 0;
       return;
     }
   }
+
+  /* ── downshift ───────────────────────────────────────────────────────── */
   if (V.gear > 1) {
-    /* down-shift when the engine would bog in this gear */
-    const topBelow = gearTop(V.gear - 1);
-    if (V.rpm < CFG.AUTO_DOWN && V.speed < topBelow * 0.42) {
+    const into = V.gear - 1;
+    /* do not select a gear whose top speed is already below the road speed */
+    const fits = gearTopKph(into) > kph * 1.06;
+    const must = (kph < downKph(into) || V.rpm < 1050) && fits;
+    /* kickdown: a deep stab skips one gear when it would help */
+    const kick = thr > 0.88 && V.rpm < CFG.REDLINE_RPM * 0.62 && V.gear > 1;
+    if (must || kick) {
       V.gear--;
       V.shiftTimer = CFG.SHIFT_TIME;
+      V.tcLock *= 0.4;
+      V.tcLockTimer = 0;
     }
   }
+
+  /* ── first gear from rest, and reverse ───────────────────────────────── */
+  if (V.gear === 0) V.gear = 1;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -3931,6 +4176,12 @@ const H = {
   debug: $('debug'),
 };
 
+const PW = {
+  power: $('pwPower'), torque: $('pwTorque'), force: $('pwForce'),
+  grip: $('pwGrip'), tc: $('pwTc'),
+  powerBar: $('pwPowerBar'), torqueBar: $('pwTorqueBar'), forceBar: $('pwForceBar'),
+};
+
 const CHIP = {
   auto: $('chipAuto'),
   abs: $('chipAbs'),
@@ -3997,6 +4248,21 @@ function updateHUD(dt) {
   const rT = clamp((V.rpm - CFG.IDLE_RPM) / (CFG.LIMITER_RPM - CFG.IDLE_RPM), 0, 1);
   H.rpmArc.setAttribute('d', rT > 0.003 ? arcD(90, 90, 75, 0, rT) : '');
   H.rpmMini.textContent = Math.round(V.rpm);
+
+  /* ── powertrain strip ───────────────────────────────────────────────────
+     Bars are scaled to the engine's own peaks, so a full bar means the engine
+     is actually making its advertised number rather than an arbitrary one. */
+  const hpNow = V.powerHp;
+  const tqNow = V.torqueAtWheels;
+  const fNow = Math.abs(V.driveForce);
+  PW.power.textContent = Math.round(hpNow);
+  PW.torque.textContent = Math.round(tqNow);
+  PW.force.textContent = Math.round(fNow);
+  PW.grip.textContent = Math.round(V.gripUsed * 100) + '%';
+  PW.powerBar.style.width = clamp(hpNow / (CFG.PEAK_POWER_KW * 1.34102), 0, 1) * 100 + '%';
+  PW.torqueBar.style.width = clamp(tqNow / CFG.PEAK_TORQUE, 0, 1) * 100 + '%';
+  PW.forceBar.style.width = clamp(fNow / 4200, 0, 1) * 100 + '%';
+  PW.tc.classList.toggle('on', V.tcIntervention > 0.12);
 
   const g = V.gear === -1 ? 'R' : String(V.gear);
   H.gearNum.textContent = g;
