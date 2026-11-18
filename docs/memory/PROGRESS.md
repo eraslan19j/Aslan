@@ -1,6 +1,8 @@
 # PROGRESS.md — İlerleme ve Sıradaki Adımlar
 
-Son güncelleme: **2026-11-17** (Oturum 3 — Gerçek Android 16 Ölçümü + `v0.2.1` Görünmez Duvar Düzeltmesi, Tam Görsel Yenileme ve Kurgusal Mahalle İsimlendirmesi)
+Son güncelleme: **2026-11-16** (Oturum 4 — `v0.9.0` Hasar & Ses: GTA-tarzı panel hasarı, OBB çarpışma, katmanlı motor/lastik sesi, HUD sadeleştirme, kapı animasyonu)
+
+> **Güncel sürüm özeti için önce [`STATE.md`](./STATE.md) oku.** Bu dosya yalnızca tarihsel aşama tablosudur.
 
 ## Aşama Tablosu
 
@@ -14,6 +16,8 @@ Son güncelleme: **2026-11-17** (Oturum 3 — Gerçek Android 16 Ölçümü + `v
 | **M4 İstanbul Hissi** | Gelişmiş landmark'lar, dinamik gün/gece döngüsü, Web Audio motor/trafik/ortam sesi, radyo, martı/kedi/simit, Fatih kıyı düzleştirmesi | ⚪ Bekliyor | Gündüz/Gece ışık & far/pencere geçişi M2'de temeliyle hazır |
 | **M5 Oyun** | Bölüm 1 hikâyesi (5 ana görev + 3 yan aktivite — Esenler + Fatih), kayıt, ayarlar, 10 dk soak testi, AdMob + IAP (test kimlikleri) | ⚪ Bekliyor | Esenler anonim mahalle görev noktaları (bakkal, çay ocağı, park, okul, pazar) haritada işaretli |
 | **M6 Mağaza** | İkon 512×512, öne çıkan 1024×500, ekran görüntüleri, gizlilik politikası, Play Checklist, Termux imzalı AAB | ⚪ Bekliyor | `privacy.html`, `PLAY_CHECKLIST.md` ve telefon-odaklı Termux `USER_TASKS.md` hazır |
+| **v0.6.0–v0.8.0 (Sürüş Derinliği)** | 240 Hz Pacejka lastik modeli, 6 ileri şanzıman + debriyaj, turbo/BOV/backfire, CarX drift modu, 4 kamera, dokunmatik CarX HUD, soak testi | ✅ Tamamlandı | 67/67 test, 131 draw call, `v0.8.0` APK 7.27 MB |
+| **`v0.9.0` Hasar & Ses** | Araç kataloğu (7 araç, tam teknik künye), OBB↔OBB araba çarpışması, 10 panelli GTA-tarzı hasar (ezilme + kopan parça + duman + cam), hasarın fiziğe etkisi, kapı açma animasyonu, AudioWorklet motor/egzoz/turbo yeniden yazımı, 3 katmanlı lastik sesi, HUD sadeleştirme, NPC araç hasarı | ✅ Tamamlandı | 104/104 test, `tsc`/`eslint`/`build` temiz |
 | **M7+ Yeni Bölgeler** | Beyoğlu, Beşiktaş, Üsküdar + Kadıköy… | ⚪ Bekliyor | Çoklu bölge kayıt defteri (`src/core/world/regions.ts`) aktif ve testli |
 
 ## GitHub Issue Takibi

@@ -39,3 +39,21 @@
 - **Sonraki Oturumun İlk Adımı:** M4 İstanbul Hissi — Dinamik gün/gece geçişi, sokak radyosu, martı/kedi/simit atmosferi ve Fatih kıyı düzleştirmesi.
 
 
+
+---
+
+## Oturum 4 — 2026-11-16 (v0.9.0 "Hasar & Ses" — kullanıcı geri bildirimi turu)
+
+- **Hedef:** Kullanıcının "oyun harika görünüyor" geri bildirimi sonrası v0.9.0 planı: araçlara en ince ayrıntısına kadar teknik künye, GTA-tarzı çarpışma/hasar, çok daha gerçekçi lastik ve motor sesi, HUD sadeleştirmesi, kapı açma animasyonu, kalıcı hafıza.
+- **Tamamlananlar:**
+  1. **Araç kataloğu (`R1`–`R4`):** 7 araç için motor hacmi, silindir düzeni, aşırı besleme, güç/tork eğrileri, şanzıman oranları, lastik ölçüleri, ağırlık dağılımı, 0–100, son hız. `auditCatalogAgainstPhysics()` katalog ile 240 Hz fizik spec'ini karşılaştırır (6/6 test).
+  2. **Çarpışma (`P1`–`P3`):** Eski daire yaklaşımı yerine OBB SAT/MTV çözücü. Gerçek temas yaması hesaplandı (normal ekseni **ve** teğet üzerinde projeksiyon) — bu olmadan kaldıraç kolu sıfır çıkıyor ve PIT dönüşü imkânsız oluyordu. Kütle paylaşımı, sekme katsayısı, lastik sürtünmesi, 3 gövde çoklu temas.
+  3. **Hasar (`D1`–`D3`):** 10 panel (kaput, ön/arka tampon, kapılar ×2, çamurluklar ×2, tavan, ön cam). Eşik aşımında parça kopuyor (kaput 9 m/s, tampon 11, çamurluk 13, kapı 15, cam 8.5), motor sağlığı gücü ve sürtünmeyi etkiliyor, motor ölünce araç sürünerek gidiyor.
+  4. **Görsel hasar (`D2`):** Vertex deformasyonuyla ezilme, fırlayan parça fiziği (yerçekimi + sekme), motor dumanı, cam kırılması. Kapı/kaput mesh'leri ayrı panel olarak eklendi, hasar aldıkça görünür oluyor.
+  5. **Ses (`A1`–`A6`):** `engine-worklet.js` tamamen yeniden yazıldı — silindir ateşleme darbe dizisi, egzoz banka gecikmesi, susturucu haznesi, kuyruk borusu dalga kılavuzu, emme Helmholtz, supap tıkırtısı, turbo spool/flutter/BOV/wastegate, overrun patlamaları. Lastik sesi iki sabit bant-geçiren yerine kayma hızına bağlı cıyaklama + kazıma + gürültü katmanlarına ayrıldı. Tümü saf TS modelde test edildi (9 test).
+  6. **HUD (`R5`–`R6`):** FPS / Çizim / Karo / Bina satırı kaldırıldı (yalnız tanılama modalinde). Yerine yalnızca hasar alınınca görünen ince bir hasar çubuğu + araç künyesi geldi.
+  7. **Kapı animasyonu (`K1`):** Sürücü kapısı 0.42 sn'de 1.12 rad açılır, 0.30 sn bekler, 0.36 sn'de kapanır.
+  8. **NPC hasarı (`V1`–`V2`):** Çarpılan NPC aracın gövdesi ezilir ve boyası kir rengine kayar.
+  9. **Kalıcı hafıza:** `docs/memory/STATE.md` eklendi — her sürümde güncellenecek tek doğruluk kaynağı.
+- **Sonuç:** 104/104 test, `tsc`/`eslint`/`vite build` temiz.
+- **Sonraki İlk Adım:** CI'da APK üret, `v0.9.0` release'i yayınla, `main`'e fast-forward, ardından Play Store metinleri.
