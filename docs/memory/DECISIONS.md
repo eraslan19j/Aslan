@@ -229,3 +229,35 @@ Her önemli teknik, ürün veya politika kararı burada tarih ve kanıtla kayıt
   Yeni platform/dizin eklenirse `sync-version.mjs` ve `version.test.ts` birlikte güncellenir.
 - **Sonuç [ölçüldü]:** `--check` önce 2 uyumsuzluğu yakaladı (exit 1), sync sonrası 11 hedef eşit
   (exit 0). CI annotation: `[SURUM] versionName=0.10.1 versionCode=13`.
+
+---
+
+### ADR-021 — Üçgen Bütçesi Serbest; Darboğaz CPU ve Dolgu (Cihaz Ölçümü)
+
+- **Tarih:** 2026-11-18 · **Durum:** Kabul · **Kanıt:** POCO X7 Pro, Mali-G720 MC7, Android 16
+- **Yöntem:** `v0.10.1` yoğunluk merdiveni, tek APK, 4 seviye, butonla geçiş.
+  Her seviyede 60 kare ısınma atlandı, 300 kare penceresi, `Performance` sayaçları.
+- **Ölçüm [ölçüldü]:**
+
+| Seviye | Geometri | Render (gölge dahil) | ms | FPS |
+|---|---|---|---|---|
+| L0 Boş | 3.4k | 11.3k | 8.58 | 116.5 |
+| L1 Mahalle | 15.5k | 47.4k | 8.93 | 112.0 |
+| L2 Yoğun | 88.9k | 267.4k | 8.94 | 111.9 |
+| L3 Hedef | 210.2k | 630.7k | **9.04** | **110.6** |
+
+- **Türetilen sabitler:**
+  - 619k ek üçgen ⇒ **+0.46 ms** ⇒ **0.00074 ms / 1.000 üçgen**
+  - `render/geo` oranı her seviyede **≈ 3.00x** → 2 gölge split + 1 ana geçiş doğrulandı
+  - 60 FPS'e kalan bütçe: **7.63 ms** ⇒ teorik **+10.3M üçgen**
+- **Yorum:** **Üçgen sayısı bu oyunun darboğazı değildir.** Hedef dünyanın binası
+  ~2.600 adet ≈ 50k–150k üçgen; ölçülen tavanın **1/50'si**. Bina sayısını,
+  detay seviyesini veya prop yoğunluğunu üçgen kaygısıyla kısmak **yanlış olur**.
+- **Asıl kısıtlar (ölçülmedi, sıradaki test):**
+  1. **CPU** — GDScript döngüleri, NPC güncellemeleri, trafik mantığı
+  2. **Dolgu (fill rate)** — saydam cam, doku, gölge geçişleri
+  3. **Gölge maliyeti** — `render/geo = 3x` bunu zaten gösteriyor
+- **Yasaklanan çıkarım:** "Mobil olduğu için düşük poligon" varsayımı bu cihazda **geçersiz**.
+  GTA VI hissi için geometri değil, **materyal + ışık + dolgu** bütçesi yönetilir.
+- **Sonuç:** Faz 1'de LOD eşikleri üçgen tasarrufu için değil, **draw call ve CPU** için konur.
+  LOD0 60 m / LOD1 140 m / LOD2 300 m mesafe eşikleri korunur ama gerekçesi değişir.

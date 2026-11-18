@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/perf_probe.gd" id="1_perf"]
+[ext_resource type="Script" path="res://scripts/stress_probe.gd" id="3_stress"]
 [ext_resource type="Script" path="res://scripts/prototype_world.gd" id="2_world"]
 
 [sub_resource type="Environment" id="Environment_1"]
@@ -42,6 +43,9 @@ far = 400.0
 
 [node name="PrototypeWorld" type="Node3D" parent="."]
 script = ExtResource("2_world")
+
+[node name="StressProbe" type="Node" parent="."]
+script = ExtResource("3_stress")
 
 [node name="PerfProbe" type="Node" parent="."]
 script = ExtResource("1_perf")
