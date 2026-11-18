@@ -113,7 +113,7 @@ import {
 import { HudOverlay } from './ui/HudOverlay';
 import { MinimapRenderer } from './ui/MinimapRenderer';
 
-const APP_VERSION = '0.10.1';
+const APP_VERSION = '0.11.0';
 
 interface ActiveRegionRuntime {
   meta: RegionRegistryEntry;

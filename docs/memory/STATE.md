@@ -8,7 +8,7 @@
 | Alan | Durum |
 |---|---|
 | Sürüm (web) | `v0.10.0` (kararlı, `main` ile senkron) — tek sürüm kaynağı `version.json` |
-| Sürüm (Godot) | **v0.10.1** — yoğunluk merdiveni prototipi, APK **25 MB** (`prototype-20261118-171520`) |
+| Sürüm (Godot) | **v0.11.0** — dolgu/CPU stres testi + tek araç tanımı, APK **25 MB** (`prototype-20261118-180205`) |
 | Test sayısı | **127 test / 24 dosya** (hepsi yeşil) |
 | Hedef motor | **Godot 4.7.2** (ADR-011) — geçiş Faz 0.5 kanıt prototipiyle başladı |
 | Kapılar | `tsc --noEmit` ✅ · `eslint .` ✅ · `vitest run` ✅ · `vite build` ✅ · CI smoke + görsel QA + soak ✅ · APK ✅ |
@@ -79,17 +79,21 @@ Mali-G720 MC7 | mobile(vulkan)
 
 Tek APK'da 4 seviye, butonlarla geçiş. Seviye değişince sayaç + ısınma sıfırlanır.
 
-| Seviye | Bina | Araç | Üçgen | Amaç |
-|---|---|---|---|---|
-| L0 Boş | 12 | 8 | ~2.400 | v1 referansı |
-| L1 Mahalle | 150 | 40 | ~25.000 | gerçeğin 1/24'ü |
-| L2 Yoğun | 600 | 100 | ~120.000 | 1/5'i |
-| L3 Hedef | 1.400 | 200 | ~500.000 | hedefe yakın |
+**ÖLÇÜLDÜ (POCO X7 Pro, 2026-11-18):**
 
-**Karar noktası:** hangi seviyede FPS < 30?
-- L3'te bile ≥ 30 → Faz 1'e geç (Godot taşıyor)
-- L2'de düşüyor → karo/streaming zorunlu
-- L1'de düşüyor → motor seçimi yanlış, Filament/C++
+| Seviye | Geometri | Render | ms | FPS |
+|---|---|---|---|---|
+| L0 Boş | 3.4k | 11.3k | 8.58 | 116.5 |
+| L1 Mahalle | 15.5k | 47.4k | 8.93 | 112.0 |
+| L2 Yoğun | 88.9k | 267.4k | 8.94 | 111.9 |
+| **L3 Hedef** | **210.2k** | **630.7k** | **9.04** | **110.6** |
+
+**Türetilen sabit:** 619k ek üçgen = **+0.46 ms** ⇒ `0.00074 ms / 1000 üçgen`
+⇒ **üçgen serbest**. Hedef dünya ~50k üçgen, tavanın 1/50'si.
+`render/geo = 3.00x` her seviyede sabit ⇒ 2 gölge split + 1 ana geçiş doğrulandı.
+
+**K5 ⚠️ nedeni:** L0 bile 116 FPS = 120 Hz tavanı. GPU zorlanmadı; darboğaz
+üçgen değil. Sıradaki test: **dolgu** + **CPU** (v0.11.0 StressProbe).
 
 ### v1 ekran görüntüsünden yakalanan hatalar (v0.10.1'de düzeltildi)
 

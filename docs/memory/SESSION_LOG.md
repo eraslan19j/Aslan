@@ -172,3 +172,38 @@
 
 - **Sonuç:** tsc ✅ eslint ✅ 127 test ✅ workflows 7/7 ✅ sync 11 hedef ✅
   Godot CI ✅ (1 m 25 s) · Android APK ✅
+
+---
+
+## Oturum 8 — 2026-11-18 (v0.11.0 — üçgen testi bitti, dolgu/CPU testi + tek araç tanımı)
+
+- **Yoğunluk merdiveni ölçüldü [ölçüldü]** — POCO X7 Pro, Mali-G720 MC7:
+
+| Seviye | Geometri | Render | ms | FPS |
+|---|---|---|---|---|
+| L0 Boş | 3.4k | 11.3k | 8.58 | 116.5 |
+| L1 Mahalle | 15.5k | 47.4k | 8.93 | 112.0 |
+| L2 Yoğun | 88.9k | 267.4k | 8.94 | 111.9 |
+| L3 Hedef | 210.2k | 630.7k | 9.04 | **110.6** |
+
+- **Sonuç:** 619k ek üçgen = **+0.46 ms** ⇒ `0.00074 ms/1000 tri` ⇒ **üçgen serbest**.
+  Hedef dünya ~50k tri, tavanın 1/50'si. `render/geo = 3.00x` sabit ⇒ gölge teşhisi doğru.
+  **Ama L0 bile 116 FPS** = 120 Hz tavanı ⇒ asıl darboğaz üçgen değil. → **ADR-021**
+
+- **v0.11.0 StressProbe:** dolgu 0–12 tam ekran saydam katman, CPU 0–2000k işlem/kare,
+  gölge aç/kapa. Ölçümler rapora `stress` alanı olarak girer.
+
+- **v0.11.0 VehicleDef — TEK ARAÇ TANIMI:** 10 noktalı yan profil (tampon/kaput/ön cam/
+  tavan/arka cam/bagaj), ayrı saydam cam yüzeyi, 4 tekerlek (dingil 1.42/−1.38 m),
+  4.42×1.82×1.18 m, clearcoat boya. Oyuncu + 200 NPC **aynı fonksiyondan**.
+
+- **Bulunan gerçek hata:** `material_override` tüm yüzeyleri tek materyale çeviriyor ve
+  camı öldürüyordu — eski oyundaki `trafficGlassMat` opak hatasının **birebir aynısı (H1)**.
+  Kaldırıldı; materyaller mesh yüzeylerinde.
+
+- **Gölge bulgusu [kaynak/API]:** `directional_shadow_mode`, `shadow_blur`,
+  `soft_shadow_filter_quality` **proje ayarı** — `_ready()`'de değiştirmek etkisiz.
+  `project.godot`'a taşındı. `depth_prepass` + FXAA eklendi (z-fighting).
+
+- **Sonuç:** tsc ✅ workflows 7/7 ✅ 11 hedef ✅ 127 test ✅ GDScript check ✅
+  Godot CI 1m6s ✅ · APK 0.11.0 (14) ✅

@@ -159,6 +159,13 @@ func _renderer_name() -> String:
 			return RenderingServer.get_current_rendering_method()
 
 
+func _stress_info() -> Dictionary:
+	var n := get_parent().get_node_or_null("StressProbe")
+	if n != null and n.has_method("get_stress"):
+		return n.get_stress()
+	return {}
+
+
 func _device_info() -> Dictionary:
 	return {
 		"app": ProjectSettings.get_setting("application/config/name", "?"),
@@ -186,6 +193,7 @@ func _emit_log() -> void:
 	var payload := {
 		"kind": "perf_sample",
 		"device": _device_info(),
+		"stress": _stress_info(),
 		"fps": snappedf(s.fps, 0.1),
 		"mean_ms": snappedf(s.mean_ms, 0.01),
 		"p95_ms": snappedf(s.p95_ms, 0.01),
@@ -203,6 +211,7 @@ func _copy_report() -> void:
 	var payload := {
 		"kind": "perf_report",
 		"device": _device_info(),
+		"stress": _stress_info(),
 		"stats": {
 			"fps": snappedf(s.fps, 0.1),
 			"mean_ms": snappedf(s.mean_ms, 0.01),
@@ -213,6 +222,7 @@ func _copy_report() -> void:
 			"triangles": s.triangles,
 			"objects": s.objects,
 		},
+		"level": _last_level,
 		"sample_frames": _frame_ms.size(),
 	}
 	var text := JSON.stringify(payload, "  ")
