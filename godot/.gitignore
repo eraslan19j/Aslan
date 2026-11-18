@@ -1,0 +1,12 @@
+# Godot 4 — üretilen dosyalar (asla commit edilmez)
+.godot/
+*.translation
+export_credentials.cfg
+
+# Export çıktıları
+build/
+*.apk
+*.aab
+
+# Android Gradle build (gradle_build=true kullanılırsa)
+android/

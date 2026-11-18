@@ -149,3 +149,62 @@ Her önemli teknik, ürün veya politika kararı burada tarih ve kanıtla kayıt
   2. **Yükseklik zenginleştirme:** OSM2World (MIT, `tordanik/OSM2World`) ile OSM'den gerçek `height` / `levels` / `roof:height` çıkarılır; eksikler Copernicus DSM (30 m) ile ölçülür.
   3. **Kabul kriteri (CI'da zorunlu):** `inferred` oranı **< %20**, yol taşması **< %2**, terrain dışı bina **0**, min bina genişliği **≥ 2,5 m**.
 - **Sonuç:** H2a (konum) sorun yok; H2b (yükseklik), H2c (Esenler hizasızlığı), H2d (terrain dışı) düzeltilecek.
+
+---
+
+### ADR-017 — Godot Derleme Hattı: `godot-ci` İmajı Yerine Doğrudan SDK Kurulumu
+
+- **Tarih:** 2026-11-18 · **Durum:** Kabul (CI'da ölçümle doğrulandı)
+- **Bağlam:** Faz 0.5 prototipi için GitHub Actions'ta Godot 4.7.2 APK'sı üretilmesi gerekiyordu.
+  Yaygın çözüm `abarichello/godot-ci` imajı (MIT, tag `4.7.2-stable`). Ancak imaj
+  **`platforms;android-33` + `ndk;25.2.9519653`** ile geliyor — Play'in 16 KB sayfa şartı için
+  **yetersiz** (16 KB desteği NDK r28+'ta). Ölçülen risk R11 buydu.
+- **Değerlendirilen seçenekler:**
+  1. `godot-ci` imajı + `sdkmanager` ile üstüne API 36 + NDK 29 kur.
+  2. İmaj kullanmadan, `ubuntu-24.04` üzerinde SDK/NDK/Godot'u kendimiz kurmak.
+- **Karar:** **Seçenek 2.** Gerekçe: imajın içindeki eski SDK/NDK ile yeni kurulanın yol çakışması
+  yaratma olasılığı var; ayrıca imaj sürümü Godot sürümüne bağlı (4.7.2 pinlendiğinde imaj da pinlenmeli).
+  Doğrudan kurulumda her katman açıkça pinlenir: Godot `4.7.2`, API `36`, build-tools `36.0.0`, NDK `29.0.14206865`.
+- **Uygulama notu:** `android-actions/setup-android@v3` de kullanılmadı — v17+ varsayılan
+  `cmdline-tools 15859902` indirmesi Ubuntu 24.04'te başarısız oldu (ölçüldü, run `44331862653`).
+  Yerine cmdline-tools `11076708` doğrudan indiriliyor.
+- **Sonuç [ölçüldü]:** CI run `44340587460` yeşil. K3 targetSdk **36**, K4 **2 `.so` hepsi `align=0x4000`**,
+  K7 **25 MB**. Soğuk ~13 dk, sıcak ~5 dk 40 sn (template cache ile).
+- **Bedeli:** workflow ~130 satır daha uzun; SDK indirmesi her koşuda ~1 dk.
+  Karşılığında derleme tekrar üretilebilir ve 16 KB şartı garanti.
+
+---
+
+### ADR-018 — Workflow YAML'ini Test Eden Otomatik Denetim
+
+- **Tarih:** 2026-11-18 · **Durum:** Kabul
+- **Bağlam:** `godot-build.yml`'e release notlarını `gh release create --notes "..."` içine inline yazdım.
+  Markdown bloklarının girintisi kayboldu, YAML bozuldu. GitHub Actions koşuyu **hiç başlatmadı**
+  (`jobs: total_count 0`); yalnızca `conclusion: failure` göründü, hiçbir hata mesajı yoktu.
+  Teşhis için 3 ayrı CI koşusu harcandı.
+- **Karar:** `scripts/check-workflows.mjs` yazılır ve `npm test` zincirine girer.
+  - 7 workflow dosyasını `yaml` paketiyle ayrıştırır.
+  - `on` / `jobs` / `steps` yapısını denetler (run veya uses zorunlu, ikisi birden olamaz).
+  - Ayrıştırma hatasında **hatalı satırı bağlamıyla** yazdırır.
+- **Kural:** Workflow içinde çok satırlı metin (release notları, uzun `echo`) **inline yazılmaz**;
+  dosyaya konur ve `--notes-file` gibi bir parametreyle referans verilir.
+- **Sonuç [ölçüldü]:** `node scripts/check-workflows.mjs` → 7/7 geçerli.
+  `src/core/workflows.test.ts` 2 test bu denetimi `npm test`'e bağlar.
+  Bu hata sınıfı bir daha CI koşusu harcamadan yakalanır.
+
+---
+
+### ADR-019 — APK Ölçümlerinin CI Annotation'ı Olarak Yayınlanması
+
+- **Tarih:** 2026-11-18 · **Durum:** Kabul
+- **Bağlam:** Geliştirme ortamından APK indirme denendi, **iki yol da başarısız**:
+  - Release asset → `release-assets.githubusercontent.com` (OpenSSL `SSL_ERROR_SYSCALL`)
+  - Actions artifact → `productionresultssa8.blob.core.windows.net` (EOF)
+  Ayrıca `gh run view --log-failed` bu depoda EOF döndürüyor; adım logları okunamıyor.
+- **Karar:** APK hakkındaki tüm doğrulanabilir ölçümler **check-run annotation** olarak yayınlanır.
+  Annotation'lar `api.github.com` üzerinden okunabildiği için erişim sorunu yok.
+  Yayınlananlar: `K7-APK-BOYUT` (MB + bayt), `K3-targetSdk` (target + min), `K4-16KB`
+  (her `.so` adı + boyut + hizalama), `PAKET` (applicationId), `ABI`.
+  Hata durumunda export logunun son satırları `ERR`/`CTX`/`TAIL` başlıklarıyla annotation'a taşınır.
+- **Sonuç:** Kullanıcı release'i kendi ağından indirebilir (engel yalnızca bu ortama özgü);
+  ajan ise APK'nın Play şartlarını karşıladığını annotation'lardan **ölçümle** doğrular.

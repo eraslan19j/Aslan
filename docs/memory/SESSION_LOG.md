@@ -71,3 +71,62 @@
   5. **Kararlılık:** headless CI ~1 FPS'te çalıştığı için kapı koreografisi 8 saniyeye uzuyordu → animasyon gerçek zamana bağlandı, `rawDt > 0.4` olursa atlanıyor.
 - **Sonuç:** 123/123 test, tüm kapılar yeşil, CI smoke + visual QA + soak geçti. `v0.9.1` yayınlandı, APK `main`'de `releases/` altında.
 - **Not:** GitHub Pages deploy iş akışı `Setup Pages` adımında düşüyor (repo ayarı gerekiyor) — oyun dağıtımını etkilemiyor.
+
+---
+
+## Oturum 6 — 2026-11-18 (v0.10.0 sürüm birleştirme + Faz 0.5 Godot kanıt prototipi)
+
+- **Hedef:** (a) A→I araştırma raporunun ilk somut adımı: sürüm numaralarını tek kaynağa indirmek. (b) Faz 0.5: Godot 4.7.2 boş projesinden telefona kurulabilir APK üretip performansı ölçmek.
+
+### Bölüm 1 — Faz 0 sürüm birleştirme (`feat/g0-version-unify`, PR #8, squash)
+
+- **Sorun [ölçüldü]:** sürüm **6 farklı yerde** tutuluyor ve ayrışmıştı:
+  `package.json` 0.8.0 · `src/main.ts` 0.8.0 · `build.gradle` code 11/0.9.1 ·
+  `README` v0.9.1 · `strings.ts` milestoneTag v0.9.1 ama **aboutSubtitle v0.8.0**.
+  Telefondaki APK'nın hangi koddan geldiği belirlenemiyordu.
+- **Çözüm:** `version.json` tek kaynak · `scripts/sync-version.mjs` (9 hedef, `--check`) ·
+  `src/core/version.test.ts` (2 test) · CI'da `Version single-source check` adımı.
+- **Sonuç:** 5 dosya senkronize. `tsc` ✅ `eslint` ✅ **125 test** ✅ `vite build` ✅ build'de eski sürüm kalıntısı **0**.
+  CI (12 dk 27 sn) + Android APK (2 dk 17 sn) yeşil → squash birleşti.
+
+### Bölüm 2 — Faz 0.5 Godot kanıt prototipi (`feat/g1-phase05`)
+
+- **Kural:** bu bir oyun değil, **ölçüm aracı**. Kabul kriterleri K1–K8.
+- **Yazılanlar:** `godot/project.godot` (Mobile/Vulkan, 2048² gölge) · `scenes/main.tscn` ·
+  `scripts/prototype_world.gd` (200×200 m zemin, 12 bina MultiMesh, 8 NPC araç MultiMesh, 1 oyuncu araç —
+  **aynı mesh ve materyal**, K8 ön kanıtı) · `scripts/perf_probe.gd` (ortalama/p95/p99/1% low,
+  draw call, üçgen, GPU; 60 kare ısınma atlanır; 3 parmak dokunma → panoya rapor).
+- **CI:** `.github/workflows/godot-build.yml` — ayrı workflow + `paths` filtresi → mevcut web CI'ı tetiklenmiyor.
+- **5 gerçek engel ve kök nedenleri:**
+  1. `Setup Android SDK` düştü → `android-actions/setup-android` v17+ varsayılan `cmdline-tools 15859902`
+     Ubuntu 24.04'te başarısız. Çözüm: cmdline-tools `11076708` doğrudan indirildi.
+  2. Export "configuration errors" → **ETC2/ASTC kapalı**. Kaynak doğrulaması:
+     `editor/import/resource_importer_texture_settings.cpp:47-53`. Çözüm: `import_etc2_astc=true`.
+  3. `SCRIPT ERROR: Cannot infer the type of "p95"` → `Array.duplicate()` dönüş tipi çıkarılamıyor.
+     Çözüm: `var sorted: Array[float]`, `var p95: float`.
+  4. `Could not find release keystore` → kaynak: `export_plugin.cpp:2227-2232` + `export_plugin.h:47-52`.
+     İlk yazdığım `package/release_keystore_path` anahtarları **uydurmaydı, yanlıştı**;
+     doğrusu `keystore/release` veya `GODOT_ANDROID_KEYSTORE_RELEASE_PATH` ortam değişkeni.
+  5. **Workflow hiç başlamadı** (`jobs: total_count 0`) → release notları inline yazılınca YAML girintisi
+     bozuldu. GitHub "failure" dedi ama **hiçbir hata mesajı vermedi**. Çözüm: `--notes-file` +
+     `scripts/check-workflows.mjs` (7 workflow dosyasını ayrıştırır, hatalı satırı bağlamıyla yazdırır) +
+     `src/core/workflows.test.ts` (2 test) + `npm test` zincirine `workflows:check`.
+- **Ölçülen kapılar [ölçüldü]** — CI run `44340587460`, annotation'lardan okundu:
+  | K | Ölçülen |
+  |---|---|
+  | K1 | APK üretildi ✅ |
+  | K3 | targetSdk **36** ✅ |
+  | K4 | **2 `.so`**, ikisi de `align=0x4000` (`libc++_shared.so` 1342 KB, `libgodot_android.so` 69448 KB) ✅ |
+  | K7 | **25 MB** (26,546,665 B), eşik 120 MB ✅ |
+  | ABI | **arm64-v8a** ✅ |
+  | Paket | `com.istanbulstreets.prototype` |
+- **Süre:** soğuk ~13 dk (template indirme dahil), sıcak **~5 dk 40 sn** (template cache).
+- **Kullanıcıya bırakılan:** K2 (açılıyor mu), K5 (FPS ≥ 30), K6 (renderer `mobile(vulkan)`), K8 (tek araç hattı görsel).
+  Release `prototype-20261118-154839` → `prototype.apk`.
+- **Kısıt notu:** APK'yı bu ortamdan indirmek denendi, **başarısız** —
+  release asset `release-assets.githubusercontent.com` (SSL_ERROR_SYSCALL),
+  artifact `productionresultssa8.blob.core.windows.net` (EOF). Bu yüzden tüm ölçüm değerleri
+  CI annotation'ı olarak yayınlanıyor; kullanıcı release'i kendi ağından indirebilir.
+- **Sonuç:** 127/127 test (24 dosya), `tsc` ✅ `eslint` ✅ `workflows:check` ✅.
+- **Sonraki İlk Adım:** kullanıcı telefonda K2/K5/K6/K8 ölçsün. K5 ≥ 30 ise Faz 1 (`feat/g2-vehicle-pipeline`);
+  değilse profil düşür → hâlâ altındaysa Filament/C++ yoluna geç.

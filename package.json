@@ -10,14 +10,15 @@
     "version:sync": "node scripts/sync-version.mjs",
     "version:check": "node scripts/sync-version.mjs --check",
     "lint": "eslint .",
-    "test": "npm run version:check && vitest run",
+    "test": "npm run version:check && npm run workflows:check && vitest run",
     "test:watch": "vitest",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "smoke": "node scripts/smoke.mjs",
     "qa:screens": "node scripts/screenshot.mjs",
     "soak": "node scripts/soak.mjs",
-    "cap:sync": "npx cap sync android"
+    "cap:sync": "npx cap sync android",
+    "workflows:check": "node scripts/check-workflows.mjs"
   },
   "dependencies": {
     "@capacitor/app": "8.1.2",
@@ -41,7 +42,8 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.73.0",
     "vite": "7.3.8",
-    "vitest": "5.1.0"
+    "vitest": "5.1.0",
+    "yaml": "^2.9.1"
   },
   "engines": {
     "node": ">=22.0.0"
