@@ -87,22 +87,44 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      # ---- R11 ÇÖZÜMÜ: imajın eski SDK/NDK'sının ÜSTÜNE güncel sürümleri kur ----
-      - name: Install Android SDK 36 + NDK 29 (16 KB page support)
+      # ---- Android SDK: setup-android@v3 yerine kendimiz kuruyoruz ----
+      # Neden: android-actions/setup-android v17+ varsayılan olarak
+      # cmdline-tools 15859902 indirmeye çalışıyor ve GitHub ubuntu-24.04
+      # imajında yol çakışması/eksik araç sorunu çıkarıyor (ilk denemede
+      # "Setup Android SDK" adımı başarısız oldu). Burada bilinen çalışan
+      # bir cmdline-tools sürümünü doğrudan indiriyoruz.
+      - name: Install Android cmdline-tools + SDK 36 + NDK 29
         run: |
           set -euo pipefail
+          export ANDROID_HOME="${HOME}/android-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+          CLT_URL="https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          echo "İndiriliyor: $CLT_URL"
+          curl -sSL --retry 3 -o /tmp/clt.zip "$CLT_URL"
+          unzip -q -o /tmp/clt.zip -d /tmp/clt
+          mv /tmp/clt/cmdline-tools "$ANDROID_HOME/cmdline-tools/latest"
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+
+          sdkmanager --version
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
+
+          # R11 ÇÖZÜMÜ: API 36 + 16 KB destekli NDK 29
           sdkmanager --install \
             "platforms;android-${ANDROID_COMPILE_SDK}" \
             "build-tools;${ANDROID_BUILD_TOOLS}" \
             "platform-tools" \
             "cmake;3.22.1" \
-            "ndk;${ANDROID_NDK}" 2>&1 | tail -20
-          echo "ANDROID_HOME=$ANDROID_HOME"
+            "ndk;${ANDROID_NDK}" 2>&1 | tail -25
+
+          echo "--- kurulan platformlar ---"
           ls "$ANDROID_HOME/platforms"
+          echo "--- kurulan NDK ---"
           ls "$ANDROID_HOME/ndk"
 
       # ---- Godot Android export ayarları (başsız) ----
