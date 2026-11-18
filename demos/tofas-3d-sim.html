@@ -1567,13 +1567,13 @@ const CAR = {
   TRACK: CFG.TRACK,
   nose: 2.115,          // z of the front bumper face
   tail: -2.255,         // z of the rear bumper face
-  sillH: 0.175,         // bottom of the painted body
-  beltH: 0.95,          // window sill
-  scuttleH: 0.88,       // base of the windscreen
-  bonnetH: 0.885,       // bonnet at the scuttle
-  bonnetNoseH: 0.80,    // bonnet at the nose (it slopes down)
-  deckH: 0.93,          // boot lid
-  roofH: 1.36,
+  sillH: 0.155,         // bottom of the painted body — lower, more modern
+  beltH: 0.97,          // window sill — a higher beltline reads newer
+  scuttleH: 0.90,       // base of the windscreen
+  bonnetH: 0.905,       // bonnet at the scuttle
+  bonnetNoseH: 0.78,    // a longer, flatter, lower nose
+  deckH: 0.96,          // boot lid, with a small lip
+  roofH: 1.345,         // slightly lower roof — the greenhouse is shallower
   archR: 0.375,         // wheel arch radius — must clear a 0.305 m tyre
 };
 
@@ -1794,9 +1794,11 @@ function paneGeometry(corners) {
 [-1, 1].forEach((side) => {
   /* one long side pane from the A-pillar to the C-pillar, split by a thin
      B-pillar so it reads as two doors */
+  /* a more raked screen: the header rail moves back, which both reads more
+     modern and gives the glass a shallower, faster angle */
   const fwd = paneGeometry([
-    [0.585, Y_BELT],
-    [0.605, Y_ROOF - 0.030],
+    [0.600, Y_BELT],
+    [0.470, Y_ROOF - 0.030],
     [-0.145, Y_ROOF - 0.026],
     [-0.145, Y_BELT],
   ]);
@@ -3536,6 +3538,12 @@ function syncCarMesh() {
   carRoot.position.copy(V.pos);
   carRoot.quaternion.copy(V.quat);
 
+  /* carVisual carries only the visual accents below (shift jolt, squat, roll)
+     on top of the suspension pose.  Nothing else writes it, so it MUST be
+     reset here — using `+=` without this wound the body up 328° of pitch. */
+  carVisual.position.set(0, 0, 0);
+  carVisual.rotation.set(0, 0, 0);
+
   for (let i = 0; i < 4; i++) {
     const w = wheels[i], vis = wheelVisuals[i];
 
@@ -3548,7 +3556,49 @@ function syncCarMesh() {
     vis.group.position.set(w.def.x, Y_HUB - (w.hang - STATIC_HANG), w.def.z);
     vis.steer.rotation.y = w.def.front ? V.steer : 0;
     vis.spin.rotation.x = w.angle;
+
+    /* ── wheel animation beyond spin ─────────────────────────────────────
+       Real wheels do three things this model can show cheaply: they deflect
+       under load, they tuck in under cornering camber, and they lean with
+       body roll.  None of them are free in the physics, all are free here. */
+    const defl = clamp(w.deflection / CFG.STATIC_DEFL, 0, 2);
+    /* a little negative camber under load, like a MacPherson strut */
+    vis.group.rotation.z = (w.def.side || 1) * -0.035 * (defl - 1);
+    /* and the tyre squashes: a few per cent is all it takes to read */
+    const squash = 1 - clamp((defl - 1) * 0.035, -0.02, 0.05);
+    vis.group.scale.set(1, squash, 1 + (1 - squash) * 0.6);
   }
+
+  /* ── gearshift jolt ────────────────────────────────────────────────────
+     A torque converter shifts smoothly, but not invisibly: the whole body
+     rocks on its springs for a couple of hundred milliseconds.  Driven off
+     shiftTimer so it is free and always in sync with the actual shift. */
+  if (V.shiftTimer > 0) {
+    const p = V.shiftTimer / CFG.SHIFT_TIME;         // 1 → 0 over the shift
+    /* one clean impulse, decaying: sin(πp) peaks mid-shift */
+    const jolt = Math.sin(p * Math.PI) * 0.012;
+    carVisual.rotation.x += jolt * (V.gear > 1 ? 1 : -1);
+    carVisual.position.y -= jolt * 0.35;
+  }
+
+  /* ── torque twist ──────────────────────────────────────────────────────
+     A rear-drive car squats on its springs under power: the nose lifts and the
+     tail sits.  Scaled by drive force so it only happens when the tyres are
+     actually working, and it fades out the moment the throttle closes. */
+  const squat = clamp(V.driveForce / 5000, -0.5, 1) * 0.010;
+  carVisual.rotation.x += squat;
+  carVisual.position.y -= squat * 0.22;
+
+  /* ── body roll under cornering ─────────────────────────────────────────
+     The suspension already rolls the body in the physics; this adds the small
+     extra lean a stiff-shelled road car shows and ties it to lateral g. */
+  /* lateral acceleration in g: yaw rate × forward speed / 9.81 */
+  const latAcc = Math.abs(V.angVel.y * V.speed) / 9.81;
+  /* sign: turning left (+yaw) rolls the body to the right */
+  const rollDir = V.angVel.y * Math.sign(V.speed) > 0 ? 1 : -1;
+  /* 2.6° at 1 g, capped at 4° — the angle a stiff road car actually shows */
+  const roll = rollDir * Math.min(latAcc * 0.045, 0.070);
+  carVisual.rotation.z += roll;
 }
 
 
