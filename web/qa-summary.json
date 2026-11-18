@@ -1,9 +1,9 @@
 {
-  "generatedAtIso": "2026-11-18T17:55:00.884Z",
+  "generatedAtIso": "2026-11-18T18:45:16.341Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 15,
   "totalErrors": 0,
-  "regressionWarnings": 0,
+  "regressionWarnings": 1,
   "hudWarnings": 0,
   "screenshots": [
     {
@@ -15,17 +15,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 130,
-        "triangles": 355351,
+        "drawCalls": 129,
+        "triangles": 355315,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 903,
-      "brightFrac": 0.4019,
+      "uniqueColors": 898,
+      "brightFrac": 0.401,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 1.08,
+        "diffPct": 1.25,
         "warning": false
       },
       "errors": []
@@ -39,17 +39,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "medium",
         "timeOfDay": "day",
-        "drawCalls": 106,
-        "triangles": 260936,
+        "drawCalls": 107,
+        "triangles": 260960,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 991,
+      "uniqueColors": 993,
       "brightFrac": 0.3412,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -68,12 +68,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 1371,
+      "uniqueColors": 1367,
       "brightFrac": 0.4143,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.02,
+        "diffPct": 0.05,
         "warning": false
       },
       "errors": []
@@ -92,12 +92,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 1465,
+      "uniqueColors": 1468,
       "brightFrac": 0.1056,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -116,12 +116,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 779,
+      "uniqueColors": 782,
       "brightFrac": 0.4723,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0,
+        "diffPct": 0.03,
         "warning": false
       },
       "errors": []
@@ -140,7 +140,7 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 796,
+      "uniqueColors": 797,
       "brightFrac": 0.4227,
       "hudIssues": [],
       "regression": {
@@ -160,17 +160,17 @@
         "qualityTier": "high",
         "timeOfDay": "day",
         "drawCalls": 132,
-        "triangles": 360889,
+        "triangles": 360877,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 841,
-      "brightFrac": 0.3311,
+      "uniqueColors": 847,
+      "brightFrac": 0.3323,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.04,
-        "warning": false
+        "diffPct": 6.26,
+        "warning": true
       },
       "errors": []
     },
@@ -188,12 +188,12 @@
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 570,
+      "uniqueColors": 565,
       "brightFrac": 0.0468,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.27,
+        "diffPct": 0.46,
         "warning": false
       },
       "errors": []
@@ -208,16 +208,16 @@
         "qualityTier": "high",
         "timeOfDay": "sunset",
         "drawCalls": 130,
-        "triangles": 355349,
+        "triangles": 355337,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 1238,
+      "uniqueColors": 1240,
       "brightFrac": 0.0844,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.43,
+        "diffPct": 3.12,
         "warning": false
       },
       "errors": []
@@ -232,11 +232,11 @@
         "qualityTier": "high",
         "timeOfDay": "day",
         "drawCalls": 133,
-        "triangles": 260818,
+        "triangles": 260722,
         "loadedTiles": 24,
         "activeBuildings": 2811
       },
-      "uniqueColors": 853,
+      "uniqueColors": 852,
       "brightFrac": 0.841,
       "hudIssues": [],
       "regression": {
@@ -260,12 +260,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 832,
+      "uniqueColors": 836,
       "brightFrac": 0.8207,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -284,12 +284,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 1337,
-      "brightFrac": 0.7781,
+      "uniqueColors": 1340,
+      "brightFrac": 0.7782,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0.02,
         "warning": false
       },
       "errors": []
@@ -327,12 +327,12 @@
         "regionId": "fatih-sultanahmet-eminonu",
         "qualityTier": "low",
         "timeOfDay": "day",
-        "drawCalls": 85,
-        "triangles": 157333,
+        "drawCalls": 86,
+        "triangles": 157369,
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 730,
+      "uniqueColors": 728,
       "brightFrac": 0.8567,
       "hudIssues": [],
       "regression": {
@@ -356,12 +356,12 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 801,
+      "uniqueColors": 800,
       "brightFrac": 0.8156,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0,
+        "diffPct": 0.01,
         "warning": false
       },
       "errors": []
