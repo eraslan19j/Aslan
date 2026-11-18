@@ -202,15 +202,34 @@ jobs:
 
           if [ "$RC" -ne 0 ]; then
             # Log API'si bu depoda EOF döndüğü için hatayı annotation'a taşı.
-            echo "::error::Godot export başarısız (çıkış $RC)"
+            echo "::error::Godot export başarısız (çıkış $RC) — log $(wc -l < /tmp/export.log) satır"
+            # 1) Doğrudan hata/uyarı satırları
             N=0
             while IFS= read -r LINE; do
               N=$((N + 1))
-              [ "$N" -gt 40 ] && break
+              [ "$N" -gt 30 ] && break
               CLEAN=$(printf '%s' "$LINE" | sed 's/%/%25/g; s/\r//g')
-              [ -z "$CLEAN" ] && continue
-              echo "::error title=export-log::$CLEAN"
-            done < <(tail -40 /tmp/export.log)
+              echo "::error title=ERR::$CLEAN"
+            done < <(grep -iE "error|fatal|fail|missing|cannot|unable|not found|no such|denied|exception|invalid" /tmp/export.log | head -30)
+
+            # 2) İlgili bağlam satırları
+            N=0
+            while IFS= read -r LINE; do
+              N=$((N + 1))
+              [ "$N" -gt 20 ] && break
+              CLEAN=$(printf '%s' "$LINE" | sed 's/%/%25/g; s/\r//g')
+              echo "::error title=CTX::$CLEAN"
+            done < <(grep -iE "template|keystore|android_sdk|gradle|\.aar|export|sdk_path" /tmp/export.log | tail -20)
+
+            # 3) Son 8 satır
+            N=0
+            while IFS= read -r LINE; do
+              N=$((N + 1))
+              [ "$N" -gt 8 ] && break
+              CLEAN=$(printf '%s' "$LINE" | sed 's/%/%25/g; s/\r//g')
+              echo "::error title=TAIL::$CLEAN"
+            done < <(tail -8 /tmp/export.log)
+
             exit 1
           fi
           ls -la ../build/android/
