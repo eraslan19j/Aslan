@@ -7,10 +7,11 @@
 
 | Alan | Durum |
 |---|---|
-| Sürüm | `v0.9.1` — "Hasar & Ses" (panel hasarı, katmanlı ses, kapı senkronlu biniş, tamirci ekonomisi) |
+| Sürüm | `v0.9.1` (kararlı, `main` ile senkron) — "Hasar & Ses" (panel hasarı, katmanlı ses, kapı senkronlu biniş, tamirci ekonomisi) |
 | Son yeşil sürüm | **`v0.9.1`** — APK **7,291,837 B**, `main`'de `releases/istanbul-streets-latest-debug.apk` |
 | Test sayısı | **123 test / 22 dosya** (hepsi yeşil) |
-| Kapılar | `tsc --noEmit` ✅ · `eslint .` ✅ · `vitest run` ✅ · `vite build` ✅ |
+| Kapılar | `tsc --noEmit` ✅ · `eslint .` ✅ · `vitest run` ✅ · `vite build` ✅ · CI smoke + görsel QA + soak ✅ · APK ✅ |
+| `main` | `22c311b` — dal ile senkron; `releases/istanbul-streets-latest-debug.apk` (7,291,869 B) |
 | Platform | Capacitor 8, Android API 36, dikey→yatay `sensorLandscape`, offline |
 | Hedef | Google Play (AAB), TR/EN arayüz |
 
