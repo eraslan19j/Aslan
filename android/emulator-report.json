@@ -1,12 +1,12 @@
 {
-  "generatedAtIso": "2026-11-18T11:57:16.408Z",
+  "generatedAtIso": "2026-11-18T12:15:36.332Z",
   "note": "Android x86_64 KVM emulator (SwiftShader GPU) validates layout, landscape, cutout, touch input, Back key, and crash-free launch — NOT real-device FPS.",
   "appAliveAfterBack": true,
   "fatalCount": 0,
   "anrCount": 0,
   "chromiumErrorCount": 0,
   "bootLines": [
-    "11-18 11:56:52.568 I/Capacitor/Console( 3250): File: https://localhost/assets/index-C_8Yjm4Z.js - Line 38 - Msg: ISTANBUL_BOOT {\"version\":\"0.8.0\",\"regionId\":\"esenler-namik-kemal\",\"qualityTier\":\"low\",\"drivingMode\":\"street\",\"transmissionMode\":\"auto\",\"steeringMode\":\"buttons\",\"touchUi\":true,\"nativeHw\":{\"cpuCores\":2,\"sdkInt\":34,\"manufacturer\":\"Google\",\"model\":\"sdk_gphone64_x86_64\",\"totalRamMb\":2979,\"availRamMb\":1700,\"lowMemory\":false,\"audioSampleRate\":48000,\"audioFramesPerBuffer\":1088,\"refreshRateHz\":60,\"gameMode\":\"standard\"},\"viewport\":\"866x412\",\"canvas\":\"866x412\",\"glError\":0,\"gpu\":{\"renderer\":\"Android Emulator OpenGL ES Translator (Google SwiftShader)\",\"vendor\":\"Google (Google Inc.)\"}}"
+    "11-18 12:15:14.115 I/Capacitor/Console( 3318): File: https://localhost/assets/index-C_8Yjm4Z.js - Line 38 - Msg: ISTANBUL_BOOT {\"version\":\"0.8.0\",\"regionId\":\"esenler-namik-kemal\",\"qualityTier\":\"low\",\"drivingMode\":\"street\",\"transmissionMode\":\"auto\",\"steeringMode\":\"buttons\",\"touchUi\":true,\"nativeHw\":{\"cpuCores\":2,\"sdkInt\":34,\"manufacturer\":\"Google\",\"model\":\"sdk_gphone64_x86_64\",\"totalRamMb\":2979,\"availRamMb\":1694,\"lowMemory\":false,\"audioSampleRate\":48000,\"audioFramesPerBuffer\":1088,\"refreshRateHz\":60,\"gameMode\":\"standard\"},\"viewport\":\"866x412\",\"canvas\":\"866x412\",\"glError\":0,\"gpu\":{\"renderer\":\"Android Emulator OpenGL ES Translator (Google SwiftShader)\",\"vendor\":\"Google (Google Inc.)\"}}"
   ],
   "fatals": [],
   "anrs": [],
@@ -26,7 +26,7 @@
       "width": 2400,
       "height": 1080,
       "isLandscape": true,
-      "uniqueColors": 479,
+      "uniqueColors": 477,
       "brightFrac": 0.0276,
       "centerBrightFrac": 0
     },
