@@ -8,7 +8,7 @@
 | Alan | Durum |
 |---|---|
 | Sürüm (web) | `v0.10.0` (kararlı, `main` ile senkron) — tek sürüm kaynağı `version.json` |
-| Sürüm (Godot) | Faz 0.5 prototipi — **`prototype-20261118-154839`** release'i, APK **26,546,665 B (25 MB)** |
+| Sürüm (Godot) | **v0.10.1** — yoğunluk merdiveni prototipi, APK **25 MB** (`prototype-20261118-171520`) |
 | Test sayısı | **127 test / 24 dosya** (hepsi yeşil) |
 | Hedef motor | **Godot 4.7.2** (ADR-011) — geçiş Faz 0.5 kanıt prototipiyle başladı |
 | Kapılar | `tsc --noEmit` ✅ · `eslint .` ✅ · `vitest run` ✅ · `vite build` ✅ · CI smoke + görsel QA + soak ✅ · APK ✅ |
@@ -55,14 +55,48 @@ Tahminleri ölçüme çeviren aşama. **Bu bir oyun değil, ölçüm aracı.**
 | — | ABI | arm64-v8a | **arm64-v8a** | ✅ |
 | — | Paket adı | — | `com.istanbulstreets.prototype` | ✅ |
 
-### Kullanıcı cihazında ölçülecek
+### Kullanıcı cihazında ÖLÇÜLDÜ (v1, 2026-11-18) [ölçüldü]
 
-| # | Kriter | Eşik | Nasıl |
-|---|---|---|---|
-| K2 | Uygulama açılıyor | açılmalı | APK'yı kur, aç |
-| K5 | Ortalama FPS | **≥ 30** | ekranın sol üstündeki sayaç |
-| K6 | Renderer | `mobile(vulkan)` | sayaçta yazar |
-| K8 | Tek araç hattı | aynı görünmeli | oyuncu vs NPC araçları |
+POCO X7 Pro · Mali-G720 MC7 · Android 16
+
+```
+113.0 FPS | 8.85 ms (p95 11.49) | draw 12 | tri 2.1k
+Mali-G720 MC7 | mobile(vulkan)
+```
+
+| # | Kriter | Eşik | Ölçülen | Durum |
+|---|---|---|---|---|
+| K2 | Uygulama açılıyor | açılmalı | evet | ✅ |
+| K5 | Ortalama FPS | ≥ 30 | **113.0** | ⚠️ tavan |
+| K6 | Renderer | `mobile(vulkan)` | **mobile(vulkan)** | ✅ |
+| K8 | Tek araç hattı | aynı görünmeli | sarı araçlar aynı | ✅ |
+
+> **⚠️ K5 ölçümü tavan değerine takıldı.** POCO X7 Pro 120 Hz; 113 FPS = 8.85 ms ≈
+> ekran tavanı (8.33 ms). Sahne 362 üçgendi (koddan sayıldı). Hedef dünya ~600.000
+> üçgen ⇒ **1.657 kat** fark. Bu ölçüm GPU'nun ne kadar yükte olduğunu göstermiyor.
+
+### v2 — Yoğunluk merdiveni (v0.10.1)
+
+Tek APK'da 4 seviye, butonlarla geçiş. Seviye değişince sayaç + ısınma sıfırlanır.
+
+| Seviye | Bina | Araç | Üçgen | Amaç |
+|---|---|---|---|---|
+| L0 Boş | 12 | 8 | ~2.400 | v1 referansı |
+| L1 Mahalle | 150 | 40 | ~25.000 | gerçeğin 1/24'ü |
+| L2 Yoğun | 600 | 100 | ~120.000 | 1/5'i |
+| L3 Hedef | 1.400 | 200 | ~500.000 | hedefe yakın |
+
+**Karar noktası:** hangi seviyede FPS < 30?
+- L3'te bile ≥ 30 → Faz 1'e geç (Godot taşıyor)
+- L2'de düşüyor → karo/streaming zorunlu
+- L1'de düşüyor → motor seçimi yanlış, Filament/C++
+
+### v1 ekran görüntüsünden yakalanan hatalar (v0.10.1'de düzeltildi)
+
+1. **Gölge tırtıklanması** — bina kenarlarında zikzak. Sebep: 180 m mesafe + 4 split PSSM.
+   Düzeltme: 90 m, 2 split, bias 0.02/0.8, blur 1.6, filtre kalitesi 3.
+2. **Cam saydamlığı** — v1'de cam proje ayarına bağlıydı. Eski oyundaki `trafficGlassMat`
+   opak hatasının (H1) aynısı. Artık materyal kendi `TRANSPARENCY_ALPHA`'sını taşıyor.
 
 ### Süre ölçümü [ölçüldü]
 

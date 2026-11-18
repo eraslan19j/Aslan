@@ -169,6 +169,38 @@ jobs:
           set -euo pipefail
           "$GODOT_BIN_DIR/godot" --headless --path . --import 2>&1 | tail -30
 
+      # GDScript sözdizimi/tip denetimi — export'tan ÖNCE.
+      # Export sırasında parse hatası çıkarsa log okumak zor oluyor;
+      # burada doğrudan annotation olarak yayınlıyoruz.
+      - name: GDScript parse check
+        working-directory: godot
+        run: |
+          set -uo pipefail
+          set +e
+          "$GODOT_BIN_DIR/godot" --headless --path . --check-only \
+            --script res://scripts/perf_probe.gd > /tmp/chk1.log 2>&1
+          RC1=$?
+          "$GODOT_BIN_DIR/godot" --headless --path . --check-only \
+            --script res://scripts/prototype_world.gd > /tmp/chk2.log 2>&1
+          RC2=$?
+          set -e
+          echo "perf_probe rc=$RC1"
+          cat /tmp/chk1.log
+          echo "---"
+          echo "prototype_world rc=$RC2"
+          cat /tmp/chk2.log
+          for f in /tmp/chk1.log /tmp/chk2.log; do
+            while IFS= read -r L; do
+              [ -z "$L" ] && continue
+              echo "::warning title=GDScript::$L"
+            done < <(grep -iE "error|parse|invalid" "$f" | head -10)
+          done
+          if [ "$RC1" -ne 0 ] || [ "$RC2" -ne 0 ]; then
+            echo "::error::GDScript denetimi başarısız (rc=$RC1/$RC2)"
+            exit 1
+          fi
+          echo "✅ GDScript denetimi temiz"
+
       - name: Godot export APK (headless)
         working-directory: godot
         # Kanıt [kaynak kod incelendi] platform/android/export/export_plugin.h:47-52
@@ -301,10 +333,17 @@ jobs:
             echo "::warning::minSdk ${MINSDK} Play asgarisi 24'ün altında"
           fi
 
-          # Faz 0 kanıtı: sürüm birleştirmesi APK'ya indi mi
-          if [ "$VNAME" != "0.10.0" ]; then
-            echo "::warning::versionName ${VNAME}, version.json'daki 0.10.0 ile uyuşmuyor"
+          # Faz 0 kanıtı: APK sürümü version.json ile AYNI olmalı.
+          # 2026-11-19'da bu kontrol yoktu: proje 0.10.1, APK 0.10.0 çıktı
+          # (godot/export_presets.cfg senkron edilmemişti). Artık HATA.
+          EXPECTED=$(node -p "require('./version.json').version" 2>/dev/null || echo "?")
+          EXPECTED_CODE=$(node -p "require('./version.json').versionCode" 2>/dev/null || echo "?")
+          echo "beklenen: ${EXPECTED} (code ${EXPECTED_CODE}) — APK: ${VNAME} (code ${VCODE})"
+          if [ "$VNAME" != "$EXPECTED" ] || [ "$VCODE" != "$EXPECTED_CODE" ]; then
+            echo "::error title=SURUM-UYUSMUYOR::APK ${VNAME}(${VCODE}) != version.json ${EXPECTED}(${EXPECTED_CODE}) — version:sync çalıştır"
+            exit 1
           fi
+          echo "✅ Sürüm eşleşiyor: ${VNAME} (code ${VCODE})"
 
           if [ "$TARGET" != "36" ]; then
             echo "::error::K3 BAŞARISIZ — targetSdk ${TARGET}, beklenen 36"

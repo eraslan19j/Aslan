@@ -4,7 +4,7 @@ Gerçek İstanbul harita ve yükseklik verileriyle %100 çevrimdışı çalışa
 
 - **Paket Adı:** `com.istanbulstreets.game`
 - **Hedef Platformlar:** Android 16 (API 36, minSdk 24, `sensorLandscape`) + Web Demosu
-- **Mevcut Sürüm:** **`v0.10.0` "Hasar & Ses"** — GTA-tarzı 10 panelli araç hasarı (ezilme, kopan parça, cam kırılması, motor dumanı), OBB↔OBB araba çarpışması (araçlar artık birbirine girmiyor), tamamen yeniden yazılmış katmanlı motor/egzoz/turbo sesi, kayma hızına bağlı 3 katmanlı lastik sesi, kapı senkronlu biniş animasyonu, tamirci ekonomisi ve sade oyun HUD'u.
+- **Mevcut Sürüm:** **`v0.10.1` "Hasar & Ses"** — GTA-tarzı 10 panelli araç hasarı (ezilme, kopan parça, cam kırılması, motor dumanı), OBB↔OBB araba çarpışması (araçlar artık birbirine girmiyor), tamamen yeniden yazılmış katmanlı motor/egzoz/turbo sesi, kayma hızına bağlı 3 katmanlı lastik sesi, kapı senkronlu biniş animasyonu, tamirci ekonomisi ve sade oyun HUD'u.
 - **Oynanabilir APK:** [`releases/istanbul-streets-latest-debug.apk`](releases/istanbul-streets-latest-debug.apk) — her etiketli sürümde otomatik güncellenir.
 - **Planlar:** [`docs/plans/V090_ROADMAP.md`](docs/plans/V090_ROADMAP.md) (tamamlandı) · [`docs/plans/V100_PLAN.md`](docs/plans/V100_PLAN.md) (sıradaki) · [`docs/plans/VEHICLE_SPECS_V090.md`](docs/plans/VEHICLE_SPECS_V090.md) (7 aracın tam teknik künyesi)
 - **Proje hafızası:** [`docs/memory/STATE.md`](docs/memory/STATE.md) — her sürümde güncellenen tek doğruluk kaynağı.

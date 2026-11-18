@@ -1,29 +1,48 @@
-## Faz 0.5 Kanıt Prototipi
+## Faz 0.5 — Yoğunluk Merdiveni (v2)
 
-Godot 4.7.2 + Mobile (Vulkan) renderer. Bu bir oyun değil, **ölçüm aracı**.
+Godot 4.7.2 + Mobile (Vulkan). Bu bir oyun değil, **ölçüm aracı**.
 
-### Telefona kurulum
-1. Aşağıdaki `prototype.apk` dosyasını indirin.
-2. Telefonda açın; "bilinmeyen kaynaklara izin ver" uyarısını onaylayın.
-3. Uygulama açılınca ekranın sol üstünde canlı sayaç görünür.
+### Neden v2?
+v1 sahnesi **362 üçgen**di ve telefonunda **113 FPS** verdi.
+POCO X7 Pro 120 Hz olduğu için 113 FPS = **8.85 ms ≈ ekran tavanı**.
+Yani GPU'nun ne kadar gücü kaldığını göremedik — o ölçüm bir şey kanıtlamıyor.
 
-### Ölçülecek kriterler
-| # | Soru | Eşik |
+v2 tek APK'da **4 yoğunluk seviyesi** sunar. Butonlarla geçilir.
+
+| Seviye | Üçgen | Ne |
 |---|---|---|
-| **K2** | Uygulama açıldı mı? | açılmalı |
-| **K5** | Ortalama FPS | **≥ 30** |
-| **K6** | Renderer adı (ekranda yazar) | `mobile(vulkan)` |
-| **K8** | Oyuncu aracı ile NPC'ler aynı görünüyor mu? | aynı |
+| **L0 Boş** | ~2.400 | v1 referansı (zemin + 12 bina + 9 araç) |
+| **L1 Mahalle** | ~25.000 | 150 bina, 40 araç, cam açık |
+| **L2 Yoğun** | ~120.000 | 600 bina, 100 araç, daha yüksek detay |
+| **L3 Hedef** | ~500.000 | 1.400 bina, 200 araç — gerçek hedefe yakın |
 
-### Raporu kopyalama
-Ekrana **3 parmakla** aynı anda dokunun. Rapor panoya kopyalanır ve
-konsola yazılır. Sonra panele yapıştırıp gönderin.
+### Ne yapmalısın
+1. APK'yı kur, aç.
+2. **Her seviyeye sırayla bas.** Her seferinde **10 saniye bekle**
+   (sayaç "ısınıyor…" yazısından çıkıp sayı göstermeye başlayınca).
+3. Her seviyede ekrana **3 parmak** dokun → o seviyenin raporu panoya kopyalanır.
+4. 4 raporu da buraya yapıştır.
 
-Rapor içeriği: cihaz modeli, GPU adı, renderer, FPS, ortalama/p95/p99
-kare süresi, 1% low FPS, draw call, üçgen sayısı.
+Sayaçta göreceksin:
+```
+SEVİYE: L2 Yogun — 120.0k üçgen
+113.0 FPS | 8.85 ms (p95 11.49) | draw 12 | tri 120.0k
+Mali-G720 MC7 | mobile(vulkan)
+```
+
+### Kritik soru
+**Hangi seviyede FPS 30'un altına düşüyor?**
+- **L3'te bile ≥ 30** → Godot rahat taşıyor, Faz 1'e doğrudan geçilir.
+- **L2'de düşüyor** → gerçek dünya 1.2 km²'yi karo/streaming ile küçültmek gerekir.
+- **L1'de düşüyor** → motor seçimi yanlış, Filament/C++ değerlendirilir.
+
+### v2'de düzeltilenler
+- **Gölge tırtıklanması** (v1 ekran görüntüsünde bina kenarlarında zikzak):
+  mesafe 180 m → **90 m**, 4 split → **2 split**, bias yumuşatıldı, blur 1.6.
+- **Cam saydamlığı:** v1'de `trafficGlassMat` proje ayarına bağlıydı ve opak
+  görünüyordu (eski oyundaki H1 hatasının aynısı). Artık materyal kendi
+  `TRANSPARENCY_ALPHA` ayarını taşıyor — proje ayarından bağımsız.
 
 ### Notlar
-- İlk 60 kare ısınma sayılır ve **ölçüme dahil edilmez** (shader derleme).
+- İlk 60 kare ısınma sayılır, ölçüme dahil edilmez. Seviye değişince sayaç sıfırlanır.
 - Değerler Godot `Performance` sayaçlarından okunur, uydurulmaz.
-- Sahne: 200×200 m zemin, 12 bina (MultiMesh), 8 NPC araç (MultiMesh),
-  1 oyuncu araç — hepsi tek material.

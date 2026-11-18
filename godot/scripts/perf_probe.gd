@@ -19,11 +19,15 @@ const WARMUP_FRAMES := 60
 const LOG_INTERVAL_SEC := 5.0
 const SAMPLE_WINDOW := 300  # son 300 kare (5 sn @ 60fps)
 
+var _warmup_done := false
+
 var _frame_ms: Array[float] = []
 var _frames_seen := 0
 var _log_timer := 0.0
 var _label: Label
+var _level_tag: Label
 var _touch_count := 0
+var _last_level := ""
 
 
 func _ready() -> void:
@@ -32,8 +36,16 @@ func _ready() -> void:
 	canvas.name = "ProbeUI"
 	add_child(canvas)
 
+	_level_tag = Label.new()
+	_level_tag.position = Vector2(24, 18)
+	_level_tag.add_theme_font_size_override("font_size", 22)
+	_level_tag.add_theme_color_override("font_color", Color(0.55, 1.0, 0.6))
+	_level_tag.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	_level_tag.add_theme_constant_override("outline_size", 6)
+	canvas.add_child(_level_tag)
+
 	_label = Label.new()
-	_label.position = Vector2(24, 18)
+	_label.position = Vector2(24, 44)
 	_label.add_theme_font_size_override("font_size", 22)
 	_label.add_theme_color_override("font_color", Color(1, 1, 0.4))
 	_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
@@ -57,9 +69,11 @@ func _process(delta: float) -> void:
 	var ms := delta * 1000.0
 
 	# Isınma periyodunu atla (ilk kareler shader derlemesi içerir)
-	if _frames_seen <= WARMUP_FRAMES:
-		_label.text = "ısınıyor… %d/%d" % [_frames_seen, WARMUP_FRAMES]
-		return
+	if not _warmup_done:
+		if _frames_seen <= WARMUP_FRAMES:
+			_label.text = "ısınıyor… %d/%d" % [_frames_seen, WARMUP_FRAMES]
+			return
+		_warmup_done = true
 
 	_frame_ms.append(ms)
 	if _frame_ms.size() > SAMPLE_WINDOW:
@@ -70,6 +84,18 @@ func _process(delta: float) -> void:
 		_log_timer = 0.0
 		_emit_log()
 
+	if _level_tag != null:
+		var world := get_parent().get_node_or_null("PrototypeWorld")
+		if world != null and world.has_method("get_level_name"):
+			var lname: String = world.get_level_name()
+			var tris: int = world.get_tri_total()
+			_level_tag.text = "SEVİYE: %s — %s üçgen" % [lname, _fmt(tris)]
+			# seviye değişince ölçümü sıfırla (ısınma yeniden)
+			if lname != _last_level:
+				_last_level = lname
+				_frame_ms.clear()
+				_frames_seen = 0
+				_warmup_done = false
 	_label.text = _summary_line()
 
 
@@ -192,3 +218,11 @@ func _copy_report() -> void:
 	var text := JSON.stringify(payload, "  ")
 	DisplayServer.clipboard_set(text)
 	print("[PerfProbe] REPORT_COPIED ", text)
+
+
+func _fmt(n: int) -> String:
+	if n >= 1000000:
+		return "%.1fM" % (float(n) / 1000000.0)
+	if n >= 1000:
+		return "%.1fk" % (float(n) / 1000.0)
+	return str(n)

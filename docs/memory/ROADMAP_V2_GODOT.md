@@ -73,10 +73,14 @@
 | K4 | 16 KB hiza | tüm `.so` `0x4000` | **2 `.so`**, ikisi de `align=0x4000` | ✅ |
 | K7 | APK boyutu | < 120 MB | **25 MB** | ✅ |
 | — | ABI | arm64-v8a | **arm64-v8a** | ✅ |
-| K2 | Telefonda açılıyor | açılmalı | **ölçülmedi** | ⏳ |
-| K5 | FPS | ≥ 30 | **ölçülmedi** | ⏳ |
-| K6 | Renderer | `mobile(vulkan)` | **ölçülmedi** | ⏳ |
-| K8 | Tek araç hattı | aynı görünmeli | **ölçülmedi** | ⏳ |
+| K2 | Telefonda açılıyor | açılmalı | **evet** (POCO X7 Pro) | ✅ |
+| K5 | FPS | ≥ 30 | **113.0** (8.85 ms) — ⚠️ 120 Hz tavanına takıldı | ⚠️ |
+| K6 | Renderer | `mobile(vulkan)` | **mobile(vulkan)** | ✅ |
+| K8 | Tek araç hattı | aynı görünmeli | sarı araçlar aynı görünüm | ✅ |
+
+> **K5 neden ⚠️:** sahne yalnız 362 üçgendi; 113 FPS = 8.85 ms ≈ 120 Hz ekran tavanı.
+> GPU'nun kalan gücü ölçülemedi. **v0.10.1 yoğunluk merdiveni** (L0 ~2.4k → L3 ~500k üçgen)
+> bu boşluğu kapatır. Karar L1/L2/L3 sonuçlarına göre verilecek.
 
 **R11 (godot-ci imajı eski SDK/NDK) artık geçersiz:** imaj hiç kullanılmıyor,
 SDK/NDK doğrudan kuruluyor (ADR-017). Ölçümle doğrulandı.
