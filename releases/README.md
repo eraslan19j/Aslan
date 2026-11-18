@@ -5,4 +5,4 @@ Eski sürümlerin APK'ları GitHub Releases sayfasında ve `git log -- releases/
 
 | Sürüm | Tarih | Boyut |
 |---|---|---|
-| v0.9.1 | 2026-11-18 | 7291837 bayt |
+| v0.9.1 | 2026-11-18 | 7291869 bayt |
