@@ -1606,9 +1606,22 @@ async function bootstrap(): Promise<void> {
     sound.updateVehicleAudio(audioPacket);
 
     // v0.9.0: door swing choreography + visible crash damage, then clear one-shot queues.
-    stepDoorAnimation(Math.min(rawDt, 0.05));
-    if (boardingInProgress && door.phase === 'boarding') {
+    // The door beat is *cosmetic*, so it follows real time (capped) instead of the
+    // physics-clamped dt — otherwise a stuttering device would take 8 s to open a door.
+    const animDt = Math.min(rawDt, 0.5);
+    if (boardingInProgress && rawDt > 0.4) {
+      // The device stalled: skip the choreography rather than leaving the player
+      // standing next to a half-open door.
+      runtime.scene.setBoarding(false);
       completeBoarding();
+      door.phase = 'closed';
+      door.angle = 0;
+      runtime.scene.setPlayerDoorAngle('left', 0);
+    } else {
+      stepDoorAnimation(animDt);
+      if (boardingInProgress && door.phase === 'boarding') {
+        completeBoarding();
+      }
     }
     runtime.scene.syncPlayerDamage(
       vehicleDamage,
@@ -1616,7 +1629,7 @@ async function bootstrap(): Promise<void> {
       playerVehicle.y,
       playerVehicle.z,
       playerVehicle.heading,
-      Math.min(rawDt, 0.05),
+      Math.min(rawDt, 0.1),
     );
     consumeDamageEvents(vehicleDamage);
 
