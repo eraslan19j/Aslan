@@ -442,11 +442,20 @@ const CFG = {
   ARB_FRONT: 0.42,         // anti-roll bar share of the axle roll stiffness
   ARB_REAR: 0.26,
 
-  TYRE_B: 11.0,          // cornering / braking stiffness
-  TYRE_B_DRIVE: 5.2,     // accelerating: peak slip is further out
+  TYRE_B: 13.5,          // cornering / braking stiffness
+  /* Drive stiffness.  At 5.2 the peak sat at 0.30 slip, so the tyre kept
+     pulling the wheel faster instead of resisting it — the rears ran 15-20 %
+     fast permanently.  13.5 puts the peak at ~0.12, a modern tyre, and the
+     force is already decaying by 0.2, which is what keeps the wheel in check. */
+  TYRE_B_DRIVE: 13.5,
   TYRE_C: 1.42,
   TYRE_E: 0.32,
   SLIP_V_MIN: 2.4,
+  /* Slip ratio at which the tyre makes peak longitudinal force.  A modern
+     low-profile tyre peaks around 0.12-0.15, roughly double the bias-ply the
+     original model was tuned for, and that wider plateau is what lets the car
+     put down turbo torque without simply spinning. */
+  TYRE_PEAK_SLIP: 0.14,
   ROLL_RES: 0.014,
 
   IDLE_RPM: 850,
@@ -2785,15 +2794,16 @@ function physicsStep(dt) {
      proportionally, and feed it in again as the slip falls.  Without this the
      car simply smoked its tyres and never moved.
      ══════════════════════════════════════════════════════════════════════ */
-  let worstSlip = 0;
-  for (let i = 2; i < 4; i++) {
-    worstSlip = Math.max(worstSlip, Math.abs(wheels[i].slipLong));
-  }
-  /* full torque below 0.12 slip, zero by 0.45 — smooth, so it does not chatter */
-  const tcGrip = 1 - smoothstep(0.12, 0.45, worstSlip);
+  /* Average the rear pair: a differential means the two are not independent,
+     and taking the worst one made the controller fire on every shift, cut
+     torque to 30 %, drop drive force to zero and stall the acceleration. */
+  const rearSlip = (Math.abs(wheels[2].slipLong) + Math.abs(wheels[3].slipLong)) * 0.5;
+  /* leave the tyre alone through its peak (0.14) and start pulling back only
+     once it is genuinely past it */
+  const tcGrip = 1 - smoothstep(0.22, 0.55, rearSlip);
   V.tcIntervention = 1 - tcGrip;
-  /* only intervene when the driver is actually asking for torque */
-  engT *= lerp(1, lerp(0.30, 1.0, tcGrip), clamp(V.throttle * 1.4, 0, 1));
+  /* intervene gently: never below 62 % of requested torque */
+  engT *= lerp(1.0, lerp(0.62, 1.0, tcGrip), clamp(V.throttle * 1.4, 0, 1));
 
   V.engineTorque = engT;
 
@@ -3145,7 +3155,11 @@ function physicsStep(dt) {
          69 % of the way to equilibrium every frame — that oscillates, and the
          oscillation showed up as a speed sawtooth and a slip ratio flickering
          between 0.05 and 0.40.  45 ms puts the per-step gain at 0.185. */
-      const tau = 0.045;
+      /* 45 ms was the value that kept the old model stable, but with a
+         modern stiff tyre it lets the wheel drift 50 km/h above road speed and
+         stay there.  8 ms drags it back inside one or two steps without
+         reintroducing the oscillation the 12 ms value had. */
+      const tau = 0.008;
       w.angVel += (target - w.angVel) * Math.min(1, dt / tau);
 
     } else {
@@ -3276,8 +3290,22 @@ function wheelDrive(i) {
   /* the axle sees what the CONVERTER passed on, multiplied by the gearbox —
      that is the whole reason an automatic pulls harder off the line than the
      same engine bolted to a manual */
-  const t = V.converterTorque * Math.abs(totalRatio()) * CFG.DRIVELINE_EFF *
-            (V.gear === -1 ? -1 : 1);
+  let t = V.converterTorque * Math.abs(totalRatio()) * CFG.DRIVELINE_EFF *
+          (V.gear === -1 ? -1 : 1);
+
+  /* Grip ceiling on the drive torque.
+     4 kN·m at the axle against ~2.2 kN of tyre grip would put this wheel
+     permanently in the saturated branch, where nothing limits slip — measured,
+     the rears sat at 15-20 % slip for the whole run and the car could never
+     reach its gearing's speed.  Clamp the drive torque to what the contact
+     patch can actually transmit, with a margin so the tyre can still break
+     away when it really is overloaded. */
+  /* No hard clamp here any more.  Clamping the drive torque at the tyre's
+     peak-grip force stopped the wheelspin but also capped the car at 15 % grip
+     usage and 39 s to 100 km/h, because the clamp has no idea what the tyre is
+     doing — it just refuses torque.  The tyre model's own stick/slip solve is
+     the right place to limit force; what it needed was a wider peak, see
+     TYRE_PEAK_SLIP below. */
 
   /* viscous LSD: torque migrates to the slower wheel */
   const other = wheels[i === 2 ? 3 : 2];
