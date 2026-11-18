@@ -272,22 +272,40 @@ jobs:
           echo "aapt2: $AAPT2"
           "$AAPT2" dump badging build/android/prototype.apk > /tmp/badging.txt || true
           grep -E "package:|sdkVersion|targetSdkVersion" /tmp/badging.txt || true
-          TARGET=$(grep -oP "targetSdkVersion:'\K[0-9]+" /tmp/badging.txt || echo "0")
           # ÖLÇÜLDÜ (run 44342368277 badging çıktısı):
-          #   targetSdkVersion:'36'
-          #   minSdkVersion:'24'
-          #   package: name='...' versionCode='12' versionName='0.10.0' compileSdkVersion='36'
-          # NOT: aapt2 "sdkVersion:" değil "minSdkVersion:" yazıyor — eski regex bu yüzden tutmuyordu.
-          MINSDK=$(grep -oP "minSdkVersion:'\\K[0-9]+" /tmp/badging.txt | head -1 || true)
-          [ -z "$MINSDK" ] && MINSDK="okunamadi"
+          #   targetSdkVersion:'36'   minSdkVersion:'24'   compileSdkVersion='36'
+          #   package: name='com.istanbulstreets.prototype' versionCode='12' versionName='0.10.0'
+          # NOT: aapt2 "sdkVersion:" değil "minSdkVersion:" yazar.
+          TARGET=$(sed -n "s/^targetSdkVersion:'\([0-9]*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          MINSDK=$(sed -n "s/^minSdkVersion:'\([0-9]*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          PKG=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          VCODE=$(sed -n "s/^package:.*versionCode='\([0-9]*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          VNAME=$(sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+          ABI=$(sed -n "s/^native-code: '\([^']*\)'.*/\1/p" /tmp/badging.txt | head -1)
+
+          TARGET=${TARGET:-0}
+          MINSDK=${MINSDK:-okunamadi}
+          PKG=${PKG:-okunamadi}
+          VCODE=${VCODE:-?}
+          VNAME=${VNAME:-?}
+          ABI=${ABI:-?}
+
           echo "targetSdkVersion=${TARGET}" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice title=K3-targetSdk::targetSdk=${TARGET} minSdk=${MINSDK}"
-
-          VCODE=$(grep -oP "versionCode='\\K[0-9]+" /tmp/badging.txt | head -1 || echo "?")
-          VNAME=$(grep -oP "versionName='\\K[^']+" /tmp/badging.txt | head -1 || echo "?")
           echo "::notice title=PAKET::${PKG}"
           echo "::notice title=SURUM::versionName=${VNAME} versionCode=${VCODE}"
           echo "::notice title=ABI::${ABI}"
+
+          # Play asgarisi: targetSdk 36, minSdk 24
+          if [ "$MINSDK" != "okunamadi" ] && [ "$MINSDK" -lt 24 ] 2>/dev/null; then
+            echo "::warning::minSdk ${MINSDK} Play asgarisi 24'ün altında"
+          fi
+
+          # Faz 0 kanıtı: sürüm birleştirmesi APK'ya indi mi
+          if [ "$VNAME" != "0.10.0" ]; then
+            echo "::warning::versionName ${VNAME}, version.json'daki 0.10.0 ile uyuşmuyor"
+          fi
+
           if [ "$TARGET" != "36" ]; then
             echo "::error::K3 BAŞARISIZ — targetSdk ${TARGET}, beklenen 36"
             exit 1
