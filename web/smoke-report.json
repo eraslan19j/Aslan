@@ -13,10 +13,10 @@
     "transmissionMode": "auto",
     "crashCount": 0,
     "perf": {
-      "fps": 29.690855900694842,
-      "frameMs": 186.92596903308572,
-      "drawCalls": 130,
-      "triangles": 355291,
+      "fps": 35.74824312157288,
+      "frameMs": 206.06086659783494,
+      "drawCalls": 129,
+      "triangles": 355267,
       "geometries": 101,
       "textures": 13,
       "pixelRatio": 1,
@@ -32,7 +32,7 @@
   "drivingModeToggleOk": true,
   "transmissionToggleOk": true,
   "audioToggleOk": true,
-  "walkDist": 1.33,
+  "walkDist": 2.07,
   "driveDist": 2.52,
   "driveSpeedKph": 31,
   "driveGear": "1",
@@ -45,7 +45,7 @@
   "qualityToggleOk": true,
   "hasAttributions": true,
   "pauseToggleOk": true,
-  "uniqueColors": 845,
+  "uniqueColors": 843,
   "brightFrac": 0.3039,
   "errors": []
 }
