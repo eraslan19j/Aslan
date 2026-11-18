@@ -78,9 +78,18 @@
 | K6 | Renderer | `mobile(vulkan)` | **mobile(vulkan)** | ✅ |
 | K8 | Tek araç hattı | aynı görünmeli | sarı araçlar aynı görünüm | ✅ |
 
-> **K5 neden ⚠️:** sahne yalnız 362 üçgendi; 113 FPS = 8.85 ms ≈ 120 Hz ekran tavanı.
-> GPU'nun kalan gücü ölçülemedi. **v0.10.1 yoğunluk merdiveni** (L0 ~2.4k → L3 ~500k üçgen)
-> bu boşluğu kapatır. Karar L1/L2/L3 sonuçlarına göre verilecek.
+> **K5 ⚠️ ÇÖZÜLDÜ (v0.10.1 yoğunluk merdiveni, [ölçüldü]):**
+>
+> | Seviye | Geometri | Render | ms | FPS |
+> |---|---|---|---|---|
+> | L0 | 3.4k | 11.3k | 8.58 | 116.5 |
+> | L1 | 15.5k | 47.4k | 8.93 | 112.0 |
+> | L2 | 88.9k | 267.4k | 8.94 | 111.9 |
+> | L3 | 210.2k | 630.7k | **9.04** | **110.6** |
+>
+> **619k ek üçgen = +0.46 ms** ⇒ üçgen **serbest**. Hedef dünya (~50k tri) tavanın 1/50'si.
+> **Ama L0 da 120 Hz tavanında** ⇒ darboğaz üçgen değil. Sıradaki test: **dolgu + CPU**
+> (v0.11.0 StressProbe). → ADR-021
 
 **R11 (godot-ci imajı eski SDK/NDK) artık geçersiz:** imaj hiç kullanılmıyor,
 SDK/NDK doğrudan kuruluyor (ADR-017). Ölçümle doğrulandı.
