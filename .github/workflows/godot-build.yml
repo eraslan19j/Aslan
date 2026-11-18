@@ -250,6 +250,7 @@ jobs:
           BYTES=$(stat -c%s "$APK")
           MB=$((BYTES / 1024 / 1024))
           echo "APK: ${MB} MB (${BYTES} bayt)"
+          echo "::notice title=K7-APK-BOYUT::${MB} MB (${BYTES} bayt)"
           echo "apk_mb=${MB}" >> "$GITHUB_STEP_SUMMARY"
           echo "apk_bytes=${BYTES}" >> "$GITHUB_STEP_SUMMARY"
           if [ "$MB" -ge 120 ]; then
@@ -273,6 +274,7 @@ jobs:
             exit 1
           fi
           echo "✅ K3 geçti — targetSdk 36"
+          echo "::notice title=K3-targetSdk::${TARGET}"
 
       # ---- K4: 16 KB sayfa hizalaması ----
       - name: 'K4 — 16 KB page alignment (all .so in APK)'
@@ -306,6 +308,7 @@ jobs:
             exit 1
           fi
           echo "✅ K4 geçti — ${COUNT} kütüphane, tümü 16 KB hizalı"
+          echo "::notice title=K4-16KB::${COUNT} .so, tümü 16 KB hizalı"
 
       # ---- Artifact ----
       - name: Upload APK
