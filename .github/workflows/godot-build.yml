@@ -140,30 +140,22 @@ jobs:
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US" > /dev/null
           keytool -list -keystore "$KS" -storepass android | tail -3
+
+          # Android export "release keystore" istiyor; aynı dosyayı release
+          # olarak da kullanıyoruz (CI test APK'sı, Play'e yüklenmeyecek).
+          RELEASE_KS="$HOME/release.keystore"
+          rm -f "$RELEASE_KS"
+          keytool -genkeypair -v \
+            -keystore "$RELEASE_KS" \
+            -storepass android -keypass android \
+            -alias release \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Prototype Release,O=IstanbulStreets,C=TR" > /dev/null
+          keytool -list -keystore "$RELEASE_KS" -storepass android | tail -2
+
           echo "KEYSTORE_PATH=$KS" >> "$GITHUB_ENV"
-          ls -la "$KS"
-
-      - name: Configure Godot editor settings
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.config/godot
-
-          # Godot sürüm dosya adını kendisi belirler; 4.x için olası adları yaz.
-          for NAME in editor_settings-4.7.tres editor_settings-4.tres editor_settings-4.6.tres editor_settings-4.5.tres; do
-            CFG="$HOME/.config/godot/$NAME"
-            {
-              printf '%s\n' '[gd_resource type="EditorSettings" format=3]'
-              printf '%s\n' ''
-              printf '%s\n' '[resource]'
-              printf 'export/android/android_sdk_path = "%s"\n' "${ANDROID_HOME}"
-              printf 'export/android/java_sdk_path = "%s"\n' "${JAVA_HOME}"
-              printf 'export/android/debug_keystore = "%s"\n' "${KEYSTORE_PATH}"
-              printf '%s\n' 'export/android/debug_keystore_user = "androiddebugkey"'
-              printf '%s\n' 'export/android/debug_keystore_pass = "android"'
-            } > "$CFG"
-          done
-          echo "--- yazılan ayar dosyası örneği ---"
-          cat "$HOME/.config/godot/editor_settings-4.7.tres"
+          echo "RELEASE_KEYSTORE_PATH=$RELEASE_KS" >> "$GITHUB_ENV"
+          ls -la "$KS" "$RELEASE_KS"
 
       # ---- Import + export ----
       - name: Godot import (headless)
@@ -174,9 +166,24 @@ jobs:
 
       - name: Godot export APK (headless)
         working-directory: godot
+        # Kanıt [kaynak kod incelendi] platform/android/export/export_plugin.h:47-52
+        #   GODOT_ANDROID_KEYSTORE_RELEASE_PATH / _USER / _PASSWORD
+        #   GODOT_ANDROID_KEYSTORE_DEBUG_PATH  / _USER / _PASSWORD
+        # Preset'te boş bırakılıp CI'da doldurulur; sır dosyada tutulmaz.
         run: |
           set -uo pipefail
           mkdir -p ../build/android
+
+          # Keystore yolları GITHUB_ENV'den geliyor; export alt sürecine
+          # Godot'un kendi ortam değişken adlarıyla aktarılır.
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$KEYSTORE_PATH"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RELEASE_KEYSTORE_PATH"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_USER=release
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android
+          echo "debug keystore:   $GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+          echo "release keystore: $GODOT_ANDROID_KEYSTORE_RELEASE_PATH"
           echo "--- şablonlar ---"
           ls -la ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/ | grep -i android || echo "ANDROID ŞABLONU YOK"
           echo

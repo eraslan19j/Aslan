@@ -90,22 +90,24 @@ func _stats() -> Dictionary:
 			"gpu": _gpu_name(), "renderer": _renderer_name(),
 		}
 
-	var sorted := _frame_ms.duplicate()
+	var sorted: Array[float] = _frame_ms.duplicate()
 	sorted.sort()
 	var total := 0.0
-	for v in _frame_ms:
+	for v: float in _frame_ms:
 		total += v
 	var mean := total / float(n)
 
-	var p95 := sorted[mini(int(float(n) * 0.95), n - 1)]
-	var p99 := sorted[mini(int(float(n) * 0.99), n - 1)]
+	var i95: int = mini(int(float(n) * 0.95), n - 1)
+	var i99: int = mini(int(float(n) * 0.99), n - 1)
+	var p95: float = sorted[i95]
+	var p99: float = sorted[i99]
 
 	return {
 		"fps": 1000.0 / mean if mean > 0.0 else 0.0,
 		"mean_ms": mean,
 		"p95_ms": p95,
 		"p99_ms": p99,
-		"min_fps": 1000.0 / sorted[n - 1] if sorted[n - 1] > 0.0 else 0.0,
+		"min_fps": (1000.0 / sorted[n - 1]) if sorted[n - 1] > 0.0 else 0.0,
 		"draw_calls": int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
 		"triangles": int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)),
 		"objects": int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
