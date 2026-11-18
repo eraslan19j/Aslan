@@ -273,21 +273,20 @@ jobs:
           "$AAPT2" dump badging build/android/prototype.apk > /tmp/badging.txt || true
           grep -E "package:|sdkVersion|targetSdkVersion" /tmp/badging.txt || true
           TARGET=$(grep -oP "targetSdkVersion:'\K[0-9]+" /tmp/badging.txt || echo "0")
-          # aapt2 badging biçimi: sdkVersion:'24'  (bazı sürümlerde targetSdkVersion önce gelir)
-          MINSDK=$(grep -oP "sdkVersion:'\K[0-9]+" /tmp/badging.txt | head -1 || true)
-          [ -z "$MINSDK" ] && MINSDK=$(sed -n "s/.*minSdkVersion=\('\)\?\([0-9]\+\).*/\2/p" /tmp/badging.txt | head -1)
+          # ÖLÇÜLDÜ (run 44342368277 badging çıktısı):
+          #   targetSdkVersion:'36'
+          #   minSdkVersion:'24'
+          #   package: name='...' versionCode='12' versionName='0.10.0' compileSdkVersion='36'
+          # NOT: aapt2 "sdkVersion:" değil "minSdkVersion:" yazıyor — eski regex bu yüzden tutmuyordu.
+          MINSDK=$(grep -oP "minSdkVersion:'\\K[0-9]+" /tmp/badging.txt | head -1 || true)
           [ -z "$MINSDK" ] && MINSDK="okunamadi"
-          PKG=$(grep -oP "^package: name='\K[^']+" /tmp/badging.txt || echo "?")
-          ABI=$(grep -oP "native-code: '\K[^']+" /tmp/badging.txt || echo "?")
           echo "targetSdkVersion=${TARGET}" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice title=K3-targetSdk::targetSdk=${TARGET} minSdk=${MINSDK}"
-          # badging biçimini teşhis için yayınla (ilk 6 satır)
-          N=0
-          while IFS= read -r L; do
-            N=$((N + 1)); [ "$N" -gt 6 ] && break
-            echo "::notice title=BADGING::$L"
-          done < /tmp/badging.txt
+
+          VCODE=$(grep -oP "versionCode='\\K[0-9]+" /tmp/badging.txt | head -1 || echo "?")
+          VNAME=$(grep -oP "versionName='\\K[^']+" /tmp/badging.txt | head -1 || echo "?")
           echo "::notice title=PAKET::${PKG}"
+          echo "::notice title=SURUM::versionName=${VNAME} versionCode=${VCODE}"
           echo "::notice title=ABI::${ABI}"
           if [ "$TARGET" != "36" ]; then
             echo "::error::K3 BAŞARISIZ — targetSdk ${TARGET}, beklenen 36"
