@@ -1639,6 +1639,16 @@ const matHeadlamp = new THREE.MeshPhysicalMaterial({
   emissive: 0x4a4438, emissiveIntensity: 0.35, clearcoat: 1.0,
 });
 const matAmber  = new THREE.MeshPhysicalMaterial({ color: 0xc4701a, roughness: 0.22, clearcoat: 0.7 });
+/* lamp glass: nearly clear, very glossy, a trace of blue — this is what makes
+   a headlamp catch the sky rather than sit there as a grey rectangle */
+const matGlassLamp = new THREE.MeshPhysicalMaterial({
+  color: 0xdde8f2, roughness: 0.02, metalness: 0.0,
+  transmission: 0.55, thickness: 0.05, ior: 1.5,
+  clearcoat: 1.0, clearcoatRoughness: 0.02,
+  envMapIntensity: 2.6,
+  transparent: true, opacity: 0.62,
+});
+
 const matTailLens = new THREE.MeshPhysicalMaterial({
   color: 0x8b1d14, roughness: 0.15,
   emissive: 0x2a0704, emissiveIntensity: 0.22, clearcoat: 0.8,
@@ -2006,7 +2016,7 @@ const doorGroups = [];
   /* the silhouette closes the nose at Z_NOSE - 0.045; sit the fascia just
      proud of that or the grille and lamps end up inside the shell */
   /* the bevel now reaches Z_NOSE - 0.046 at the nose; sit the fascia proud */
-  const gz = Z_NOSE + 0.004;
+  const gz = Z_NOSE - 0.020;
   const gy = Y_SCUTTLE - 0.175;
 
   /* the grille opening: a wide black recess with horizontal chrome slats */
@@ -2036,7 +2046,7 @@ const headlights = [];
   const bezelGeo = new THREE.BoxGeometry(0.355, 0.172, 0.012);
   const y = Y_SCUTTLE - 0.175;
   /* same as the grille — on the nose, not behind it */
-  const z = Z_NOSE - 0.004;
+  const z = Z_NOSE - 0.026;
 
   [-1, 1].forEach((side) => {
     const bez = new THREE.Mesh(bezelGeo, matChrome);
@@ -2047,6 +2057,35 @@ const headlights = [];
     lens.position.set(side * 0.575, y, z + 0.014);
     carVisual.add(lens);
     headlights.push(lens);
+
+    /* ── the lens itself ────────────────────────────────────────────────
+       A flat plate reads as a sticker.  Crowning it — a very shallow
+       spherical cap, 6 mm of dome across 325 mm — gives the glass a curved
+       surface, which is what produces the swept highlight a real lamp shows
+       and what makes it look like it is set into the panel. */
+    const crownGeo = new THREE.SphereGeometry(1, 18, 8, 0, Math.PI * 2, 0, Math.PI * 0.30);
+    crownGeo.scale(0.168, 0.070, 0.030);
+    crownGeo.rotateX(Math.PI / 2);
+    crownGeo.rotateZ(-Math.PI / 2);
+    const crown = new THREE.Mesh(crownGeo, matGlassLamp);
+    crown.position.set(side * 0.575, y, z + 0.030);
+    crown.scale.x = lensGeo.parameters.width > 0 ? 1 : 1;
+    carVisual.add(crown);
+
+    /* the reflector dish behind the glass, so the lamp has depth when lit */
+    const dishGeo = new THREE.CylinderGeometry(0.030, 0.044, 0.022, 14);
+    dishGeo.rotateZ(Math.PI / 2);
+    const dish = new THREE.Mesh(dishGeo, matChrome);
+    dish.position.set(side * 0.575, y, z + 0.008);
+    carVisual.add(dish);
+
+    /* a bright rim where glass meets bezel — a hairline that catches light */
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.092, 0.005, 5, 20), matChrome);
+    rim.position.set(side * 0.575, y, z + 0.026);
+    rim.rotation.y = Math.PI / 2;
+    rim.scale.set(1.75, 0.86, 1);
+    carVisual.add(rim);
 
     /* the indicator sits outboard of the lamp, on the corner of the wing */
     /* below the lamp on the wing corner, not inboard beside it */
