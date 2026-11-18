@@ -56,6 +56,7 @@ import {
   pickPanelForContact,
   repairCostTry,
   repairVehicleDamage,
+  REPAIR_SHOPS,
   updateVehicleCondition,
   vehicleConditionPercent,
   type VehicleDamageState,
@@ -1633,6 +1634,7 @@ async function bootstrap(): Promise<void> {
         vehicleZ: playerVehicle.z,
         traffic: runtime.traffic.getAgents(),
         sanctuaries: runtime.manifest.sanctuaryZones,
+        repairShops: REPAIR_SHOPS,
         timeSec: elapsedSec,
       });
     }

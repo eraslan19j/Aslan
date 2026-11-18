@@ -24,6 +24,8 @@ export interface MinimapFrameState {
   traffic: readonly TrafficAgent[];
   sanctuaries: readonly SanctuaryZone[];
   timeSec: number;
+  /** v0.9.0 (D4) — repair garage pins. */
+  repairShops?: readonly { x: number; z: number }[];
 }
 
 /**
@@ -213,6 +215,26 @@ export class MinimapRenderer {
       ctx.arc(cx + sx, cy + sy, rPx, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+    }
+
+    // v0.9.0 (D4) — repair garages (wrench pins)
+    if (state.repairShops) {
+      ctx.save();
+      for (const shop of state.repairShops) {
+        const dx = shop.x - px;
+        const dz = shop.z - pz;
+        const sx = (dx * rightX + dz * rightZ) * scale;
+        const sy = -(dx * fwdX + dz * fwdZ) * scale;
+        if (sx * sx + sy * sy > radius * radius) continue;
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.92)';
+        ctx.beginPath();
+        ctx.arc(cx + sx, cy + sy, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(24, 24, 27, 0.85)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     // Live AI traffic dots
