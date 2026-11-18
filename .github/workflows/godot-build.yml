@@ -1,0 +1,234 @@
+name: Godot Prototype APK (Phase 0.5)
+
+# Faz 0.5 kanıt prototipi — K1..K8 kabul kriterleri
+# Sadece godot/ altı veya bu workflow değişince çalışır; web CI'ı tetiklemez.
+#
+# Ölçülen riskler (bkz. ROADMAP_V2_GODOT.md):
+#   R11 — barichello/godot-ci imajında NDK 25 / API 33 var (16 KB için YETERSİZ)
+#         -> bu workflow sdkmanager ile android-36 + ndk 29'u ÜSTÜNE kurar
+#   K3  — targetSdk 36 doğrulaması (aapt2 dump badging)
+#   K4  — 16 KB sayfa hizalaması (llvm-readelf: Align 0x4000)
+#   K7  — APK boyutu < 120 MB
+
+on:
+  push:
+    branches: [main, 'feat/**', 'arena/**']
+    paths:
+      - 'godot/**'
+      - '.github/workflows/godot-build.yml'
+  pull_request:
+    paths:
+      - 'godot/**'
+      - '.github/workflows/godot-build.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: godot-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: '4.7.2'
+  GODOT_BIN_DIR: '${{ github.workspace }}/.godot-bin'
+  ANDROID_COMPILE_SDK: '36'
+  ANDROID_BUILD_TOOLS: '36.0.0'
+  ANDROID_NDK: '29.0.14206865'
+
+jobs:
+  build-apk:
+    name: Export APK + Play gate checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Disk durumu (öncesi)
+        run: df -h /
+
+      # ---- Godot 4.7.2 başsız editör (GitHub Release; dl.google.com gerekmez) ----
+      - name: Fetch Godot editor
+        run: |
+          set -euo pipefail
+          mkdir -p "$GODOT_BIN_DIR"
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          echo "İndiriliyor: $URL"
+          curl -sSL --retry 3 -o /tmp/godot.zip "$URL"
+          unzip -q -o /tmp/godot.zip -d "$GODOT_BIN_DIR"
+          chmod +x "$GODOT_BIN_DIR"/Godot_v*
+          mv "$GODOT_BIN_DIR"/Godot_v* "$GODOT_BIN_DIR"/godot
+          "$GODOT_BIN_DIR"/godot --version
+
+      # ---- Export templates (1.2 GB tpz) ----
+      - name: Cache export templates
+        id: tpl-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-templates-${{ env.GODOT_VERSION }}-v1
+
+      - name: Fetch export templates
+        if: steps.tpl-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          URL="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          echo "İndiriliyor: $URL (~1.2 GB)"
+          curl -sSL --retry 3 -o /tmp/templates.tpz "$URL"
+          mkdir -p ~/.local/share/godot/export_templates
+          unzip -q -o /tmp/templates.tpz -d /tmp/tpl
+          # tpz içinde 'templates/' klasörü var -> sürüm adıyla taşınmalı
+          mv /tmp/tpl/templates ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          ls -la ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable | head -5
+
+      # ---- Java 17 + Android SDK ----
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ---- R11 ÇÖZÜMÜ: imajın eski SDK/NDK'sının ÜSTÜNE güncel sürümleri kur ----
+      - name: Install Android SDK 36 + NDK 29 (16 KB page support)
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager --install \
+            "platforms;android-${ANDROID_COMPILE_SDK}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" \
+            "platform-tools" \
+            "cmake;3.22.1" \
+            "ndk;${ANDROID_NDK}" 2>&1 | tail -20
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms"
+          ls "$ANDROID_HOME/ndk"
+
+      # ---- Godot Android export ayarları (başsız) ----
+      - name: Configure Godot editor settings
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.config/godot
+          CFG=~/.config/godot/editor_settings-4.7.tres
+          {
+            echo '[gd_resource type="EditorSettings" format=3]'
+            echo ''
+            echo '[resource]'
+            echo "export/android/android_sdk_path = \"${ANDROID_HOME}\""
+            echo "export/android/java_sdk_path = \"${JAVA_HOME}\""
+            echo 'export/android/debug_keystore = ""'
+            echo 'export/android/debug_keystore_user = "androiddebugkey"'
+            echo 'export/android/debug_keystore_pass = "android"'
+          } > "$CFG"
+          cat "$CFG"
+
+      # ---- Import + export ----
+      - name: Godot import (headless)
+        working-directory: godot
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN_DIR/godot" --headless --path . --import 2>&1 | tail -30
+
+      - name: Godot export APK (headless)
+        working-directory: godot
+        run: |
+          set -euo pipefail
+          mkdir -p ../build/android
+          "$GODOT_BIN_DIR/godot" --headless --path . \
+            --export-debug "Android" ../build/android/prototype.apk 2>&1 | tail -40
+          ls -la ../build/android/
+
+      # ---- K7: boyut ----
+      - name: 'K7 — APK size < 120 MB'
+        run: |
+          set -euo pipefail
+          APK=build/android/prototype.apk
+          test -f "$APK" || { echo "::error::APK üretilmedi"; exit 1; }
+          BYTES=$(stat -c%s "$APK")
+          MB=$((BYTES / 1024 / 1024))
+          echo "APK: ${MB} MB (${BYTES} bayt)"
+          echo "apk_mb=${MB}" >> "$GITHUB_STEP_SUMMARY"
+          echo "apk_bytes=${BYTES}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$MB" -ge 120 ]; then
+            echo "::error::K7 BAŞARISIZ — APK ${MB} MB, eşik 120 MB"
+            exit 1
+          fi
+          echo "✅ K7 geçti — ${MB} MB"
+
+      # ---- K3: targetSdk 36 ----
+      - name: 'K3 — targetSdk = 36'
+        run: |
+          set -euo pipefail
+          AAPT2=$(ls "$ANDROID_HOME"/build-tools/*/aapt2 | tail -1)
+          echo "aapt2: $AAPT2"
+          "$AAPT2" dump badging build/android/prototype.apk > /tmp/badging.txt || true
+          grep -E "package:|sdkVersion|targetSdkVersion" /tmp/badging.txt || true
+          TARGET=$(grep -oP "targetSdkVersion:'\K[0-9]+" /tmp/badging.txt || echo "0")
+          echo "targetSdkVersion=${TARGET}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$TARGET" != "36" ]; then
+            echo "::error::K3 BAŞARISIZ — targetSdk ${TARGET}, beklenen 36"
+            exit 1
+          fi
+          echo "✅ K3 geçti — targetSdk 36"
+
+      # ---- K4: 16 KB sayfa hizalaması ----
+      - name: 'K4 — 16 KB page alignment (all .so in APK)'
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/apk-libs && cd /tmp/apk-libs
+          unzip -q -o "$GITHUB_WORKSPACE/build/android/prototype.apk" 'lib/*' || true
+          READELF=$(find "$ANDROID_HOME"/ndk/*/toolchains/llvm/prebuilt/linux-x86_64/bin -name llvm-readelf | head -1)
+          echo "llvm-readelf: $READELF"
+          FAIL=0
+          COUNT=0
+          while IFS= read -r so; do
+            COUNT=$((COUNT + 1))
+            ALIGN=$(LC_ALL=C "$READELF" -l "$so" | awk '/LOAD/{print $NF}' | sort -u | tr '\n' ',')
+            echo "$(basename "$so"): LOAD align = $ALIGN"
+            case "$ALIGN" in
+              *0x4000*) : ;;   # 16 KB
+              *0x10000*) : ;;  # 64 KB
+              *)
+                echo "::error::16 KB DEĞİL -> $so ($ALIGN)"
+                FAIL=1
+                ;;
+            esac
+          done < <(find . -name '*.so' -type f)
+          echo "so_count=${COUNT}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::warning::APK içinde .so bulunamadı — export template beklenenden farklı olabilir"
+          fi
+          if [ "$FAIL" -ne 0 ]; then
+            echo "::error::K4 BAŞARISIZ — 16 KB hizalı olmayan kütüphane var"
+            exit 1
+          fi
+          echo "✅ K4 geçti — ${COUNT} kütüphane, tümü 16 KB hizalı"
+
+      # ---- Artifact ----
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-prototype-apk-${{ github.run_id }}
+          path: build/android/prototype.apk
+          retention-days: 14
+
+      - name: Disk durumu (sonrası)
+        if: always()
+        run: df -h /
+
+      - name: Özet
+        if: always()
+        run: |
+          {
+            echo "## Godot Prototype APK (Faz 0.5)"
+            echo ""
+            echo "| Kriter | Durum |"
+            echo "|---|---|"
+            echo "| K1 APK üretildi | bu iş akışı |"
+            echo "| K3 targetSdk 36 | yukarıdaki adım |"
+            echo "| K4 16 KB hizalı | yukarıdaki adım |"
+            echo "| K7 < 120 MB | yukarıdaki adım |"
+            echo ""
+            echo "**K2/K5/K6/K8 kullanıcı cihazında ölçülecek.**"
+          } >> "$GITHUB_STEP_SUMMARY"
