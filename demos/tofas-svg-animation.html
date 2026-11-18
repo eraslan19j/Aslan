@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tofaş Şahin — 2D SVG Animasyon</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0a0e1a; }
+  #scene { display: block; width: 100%; height: 100%; }
+  #hint {
+    position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    font: 500 11px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: #f6d9a8; opacity: .34; pointer-events: none; user-select: none;
+    text-shadow: 0 1px 6px #000; white-space: nowrap;
+    transition: opacity .5s ease;
+  }
+  body.sped #hint { opacity: 0; }
+</style>
+</head>
+<body>
+
+<svg id="scene" viewBox="0 0 1200 675" preserveAspectRatio="xMidYMid slice"
+     xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+
+  <!-- ════════════════════════════ DEFS ════════════════════════════ -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#0e1428"/>
+      <stop offset="0.28" stop-color="#222c58"/>
+      <stop offset="0.50" stop-color="#4e3f73"/>
+      <stop offset="0.67" stop-color="#8d5568"/>
+      <stop offset="0.80" stop-color="#c4735e"/>
+      <stop offset="0.91" stop-color="#e39a68"/>
+      <stop offset="1"    stop-color="#f2c089"/>
+    </linearGradient>
+
+    <radialGradient id="sunGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"    stop-color="#ffe6b8" stop-opacity="0.85"/>
+      <stop offset="0.28" stop-color="#ffbf72" stop-opacity="0.42"/>
+      <stop offset="0.62" stop-color="#ff9a5c" stop-opacity="0.14"/>
+      <stop offset="1"    stop-color="#ff8a4c" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="farHill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a4168"/>
+      <stop offset="1" stop-color="#37304f"/>
+    </linearGradient>
+
+    <linearGradient id="nearHill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2c2744"/>
+      <stop offset="1" stop-color="#1e1a30"/>
+    </linearGradient>
+
+    <linearGradient id="verge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2438"/>
+      <stop offset="1" stop-color="#221d2f"/>
+    </linearGradient>
+
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#2b2b3c"/>
+      <stop offset="0.10" stop-color="#24232f"/>
+      <stop offset="0.55" stop-color="#1b1a24"/>
+      <stop offset="1"    stop-color="#131219"/>
+    </linearGradient>
+
+    <!-- body paint: warm ivory catching the low sun -->
+    <linearGradient id="paint" x1="0" y1="0" x2="0.15" y2="1">
+      <stop offset="0"    stop-color="#fbf0d6"/>
+      <stop offset="0.28" stop-color="#f0e0bd"/>
+      <stop offset="0.62" stop-color="#ddc79c"/>
+      <stop offset="0.85" stop-color="#c2a97c"/>
+      <stop offset="1"    stop-color="#a08a60"/>
+    </linearGradient>
+
+    <linearGradient id="paintLow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#a58e63" stop-opacity="0"/>
+      <stop offset="1"   stop-color="#6d5c3d" stop-opacity="0.55"/>
+    </linearGradient>
+
+    <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#ffffff"/>
+      <stop offset="0.32" stop-color="#dbe4ee"/>
+      <stop offset="0.52" stop-color="#9aa6b4"/>
+      <stop offset="0.72" stop-color="#e7eef6"/>
+      <stop offset="1"    stop-color="#8b96a4"/>
+    </linearGradient>
+
+    <linearGradient id="steel" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0"   stop-color="#cfd6de"/>
+      <stop offset="0.5" stop-color="#a9b2bd"/>
+      <stop offset="1"   stop-color="#78818d"/>
+    </linearGradient>
+
+    <radialGradient id="tire" cx="0.38" cy="0.32" r="0.82">
+      <stop offset="0"    stop-color="#3a3d46"/>
+      <stop offset="0.55" stop-color="#20222a"/>
+      <stop offset="1"    stop-color="#0d0e13"/>
+    </radialGradient>
+
+    <linearGradient id="glass" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0"   stop-color="#6e7f9c"/>
+      <stop offset="0.4" stop-color="#3d4a63"/>
+      <stop offset="1"   stop-color="#232b3d"/>
+    </linearGradient>
+
+    <linearGradient id="beamGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0"   stop-color="#ffe2a8" stop-opacity="0.45"/>
+      <stop offset="0.55" stop-color="#ffd493" stop-opacity="0.14"/>
+      <stop offset="1"   stop-color="#ffc985" stop-opacity="0"/>
+    </linearGradient>
+
+    <radialGradient id="roadGlow">
+      <stop offset="0"   stop-color="#ffd193" stop-opacity="0.20"/>
+      <stop offset="1"   stop-color="#ffd193" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="tailGlow">
+      <stop offset="0"   stop-color="#ff5a44" stop-opacity="0.55"/>
+      <stop offset="1"   stop-color="#ff5a44" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="treeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f3530"/>
+      <stop offset="1" stop-color="#122220"/>
+    </linearGradient>
+
+    <linearGradient id="vignette" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"    stop-color="#000" stop-opacity="0.42"/>
+      <stop offset="0.35" stop-color="#000" stop-opacity="0"/>
+      <stop offset="0.78" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1"    stop-color="#000" stop-opacity="0.55"/>
+    </linearGradient>
+
+    <radialGradient id="vigEdge" cx="0.5" cy="0.48" r="0.72">
+      <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1"    stop-color="#000" stop-opacity="0.38"/>
+    </radialGradient>
+
+    <filter id="blurSoft" x="-30%" y="-60%" width="160%" height="220%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+    <filter id="blurTiny" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.6"/>
+    </filter>
+
+    <!-- scrolling background paths (tiled by <use>) -->
+    <path id="pFar" d="M 0 468 L 0 420
+      C 30 420 55 386 120 384
+      C 190 382 215 416 280 418
+      C 345 420 370 384 435 382
+      C 500 380 525 414 590 416
+      C 655 418 680 384 745 382
+      C 810 380 835 414 900 416
+      C 965 418 990 386 1055 384
+      C 1110 382 1170 416 1200 420
+      L 1200 468 Z"/>
+
+    <path id="pNear" d="M 0 468 L 0 444
+      C 40 444 60 424 120 421
+      C 185 418 205 436 265 437
+      C 325 438 350 420 410 418
+      C 470 416 490 434 550 435
+      C 610 436 635 420 695 418
+      C 755 416 775 434 835 435
+      C 895 436 920 421 980 419
+      C 1040 417 1060 434 1120 436
+      C 1160 437 1185 442 1200 444
+      L 1200 468 Z"/>
+  </defs>
+
+  <!-- ════════════════════════════ SKY ════════════════════════════ -->
+  <rect x="0" y="0" width="1200" height="470" fill="url(#sky)"/>
+
+  <!-- stars, only in the darkest band -->
+  <g id="stars" opacity="0.55"></g>
+
+  <!-- sun -->
+  <g id="sun">
+    <circle cx="878" cy="360" r="240" fill="url(#sunGlow)"/>
+    <circle cx="878" cy="360" r="42" fill="#ffd9a1" opacity="0.95"/>
+    <circle cx="878" cy="360" r="42" fill="#fff2d4" opacity="0.35"/>
+  </g>
+
+  <!-- clouds -->
+  <g id="clouds" opacity="0.5"></g>
+
+  <!-- birds -->
+  <g id="birds"></g>
+
+  <!-- ════════════════════════════ LANDSCAPE ════════════════════════════ -->
+  <g id="layerFar">
+    <g class="tile"><use href="#pFar" fill="url(#farHill)"/></g>
+    <g class="tile"><use href="#pFar" fill="url(#farHill)"/></g>
+  </g>
+
+  <g id="layerNear">
+    <g class="tile"><use href="#pNear" fill="url(#nearHill)"/></g>
+    <g class="tile"><use href="#pNear" fill="url(#nearHill)"/></g>
+  </g>
+
+  <!-- houses, cypresses, poles: built in JS into this tile and its clone -->
+  <g id="layerMid"></g>
+
+  <!-- ════════════════════════════ ROAD ════════════════════════════ -->
+  <rect x="0" y="468" width="1200" height="30" fill="url(#verge)"/>
+  <rect x="0" y="496" width="1200" height="179" fill="url(#road)"/>
+  <rect x="0" y="496" width="1200" height="3" fill="#3a3448" opacity="0.7"/>
+
+  <!-- asphalt sheen near the horizon -->
+  <rect x="0" y="499" width="1200" height="26" fill="#ffb877" opacity="0.05"/>
+
+  <!-- far lane dashes (slow) -->
+  <line id="dashFar" x1="-60" y1="536" x2="1260" y2="536"
+        stroke="#c9b78f" stroke-width="3.5" stroke-dasharray="34 62" opacity="0.30"/>
+
+  <!-- near lane dashes (fast) -->
+  <line id="dashNear" x1="-60" y1="646" x2="1260" y2="646"
+        stroke="#e0cfa4" stroke-width="6" stroke-dasharray="54 78" opacity="0.42"/>
+
+  <!-- near verge: grass tufts and stones, scrolls fastest -->
+  <g id="layerVerge"></g>
+
+  <!-- ════════════════════════════ CAR ════════════════════════════ -->
+  <g id="carRoot" transform="translate(420,588)">
+
+    <!-- ground shadow -->
+    <ellipse id="carShadow" cx="0" cy="6" rx="212" ry="14" fill="#05060a"
+             opacity="0.55" filter="url(#blurSoft)"/>
+
+    <!-- headlight pool on the tarmac -->
+    <ellipse id="roadPool" cx="300" cy="14" rx="185" ry="28" fill="url(#roadGlow)" opacity="0.9"/>
+
+    <g id="carBob">
+
+      <!-- headlight beam -->
+      <path id="beam" d="M 186 -62 L 560 -168 L 610 46 L 186 -38 Z"
+            fill="url(#beamGrad)" opacity="0.20"/>
+
+      <!-- tail glow -->
+      <ellipse cx="-196" cy="-52" rx="26" ry="15" fill="url(#tailGlow)"/>
+
+      <!-- ── body: three-box sedan, rocker → beltline → roof ── -->
+      <path id="bodyPath" d="M -192 -30
+        L -192 -88
+        L -188 -92
+        L -172 -95
+        L -100 -100
+        L -64 -140
+        L 12 -140
+        L 48 -100
+        L 172 -96
+        L 186 -92
+        L 192 -84
+        L 192 -40
+        L 126 -40
+        A 31 31 0 0 0 64 -40
+        L -64 -40
+        A 31 31 0 0 0 -126 -40
+        Z" fill="url(#paint)"/>
+
+      <!-- arch cavities: dark recesses so the tyre sits inside a wheel well
+           instead of floating on a body-coloured disc -->
+      <circle cx="95"  cy="-30" r="29.5" fill="#0f1016"/>
+      <circle cx="-95" cy="-30" r="29.5" fill="#0f1016"/>
+
+      <!-- ── wheels ON TOP of the body: the arch cut-outs are real
+               holes, so a wheel drawn behind them would show its top half
+               inside the engine bay.  Drawing after the paint makes the
+               arch read correctly. ── -->
+      <g class="wheel" data-cx="95"  data-cy="-30"></g>
+      <g class="wheel" data-cx="-95" data-cy="-30"></g>
+
+      <!-- flanks shading: darker towards the rocker -->
+      <path d="M -192 -40 L -192 -68 L 192 -50 L 192 -40
+               L 126 -40 A 31 31 0 0 0 64 -40 L -64 -40
+               A 31 31 0 0 0 -126 -40 Z" fill="url(#paintLow)" opacity="0.5"/>
+
+      <!-- sun rim on the roofline and the shoulder -->
+      <path d="M -64 -140 L 12 -140" stroke="#ffe6b8" stroke-width="2.4"
+            fill="none" opacity="0.8" stroke-linecap="round"/>
+      <path d="M 48 -101 L 168 -97 Q 186 -95 188 -84" stroke="#ffe0ad"
+            stroke-width="1.8" fill="none" opacity="0.45" stroke-linecap="round"/>
+      <path d="M -100 -101 L -166 -99" stroke="#ffe0ad"
+            stroke-width="1.6" fill="none" opacity="0.3" stroke-linecap="round"/>
+
+      <!-- ── glasshouse ── -->
+      <!-- front door + windscreen -->
+      <path d="M 44 -103 L 14 -136 L -10 -136 L -10 -103 Z" fill="url(#glass)"/>
+      <!-- rear door + backlight -->
+      <path d="M -14 -103 L -14 -136 L -60 -136 L -90 -103 Z" fill="url(#glass)"/>
+
+      <!-- glass reflections -->
+      <path d="M 40 -106 L 15 -132 L 2 -132 L 22 -106 Z" fill="#cfe0f5" opacity="0.16"/>
+      <path d="M -18 -106 L -18 -132 L -30 -132 L -40 -106 Z" fill="#cfe0f5" opacity="0.10"/>
+
+      <!-- pillars -->
+      <path d="M 44 -103 L 14 -136 M -10 -103 L -10 -136
+               M -14 -103 L -14 -136 M -90 -103 L -60 -136"
+            stroke="#b9a479" stroke-width="2" fill="none" opacity="0.85"/>
+      <!-- beltline under the glass -->
+      <path d="M 48 -101 L -100 -101" stroke="#8f7c53" stroke-width="1.4" opacity="0.5"/>
+
+      <!-- B-pillar -->
+      <rect x="-15" y="-136" width="7" height="33" fill="#2a2a35" opacity="0.9"/>
+
+      <!-- chrome beltline strip -->
+      <path d="M -170 -93 L 182 -89" stroke="url(#chrome)" stroke-width="2.2"
+            fill="none" opacity="0.85" stroke-linecap="round"/>
+      <!-- rocker chrome -->
+      <path d="M -146 -44 L 146 -44" stroke="#cbd4de" stroke-width="1.8"
+            fill="none" opacity="0.3" stroke-linecap="round"/>
+
+      <!-- door shut lines -->
+      <path d="M -96 -100 L -96 -41 M 46 -100 L 46 -41 M 112 -96 L 112 -41"
+            stroke="#a08a5e" stroke-width="1.3" opacity="0.6"/>
+
+      <!-- door handles -->
+      <rect x="-34" y="-88" width="13" height="4" rx="2" fill="url(#chrome)"/>
+      <rect x="8"   y="-88" width="13" height="4" rx="2" fill="url(#chrome)"/>
+
+      <!-- mirror -->
+      <path d="M 50 -104 L 43 -108 L 40 -100 L 48 -101 Z" fill="#c8b287" opacity="0.9"/>
+      <rect x="49" y="-110" width="11" height="7" rx="2.5" fill="url(#chrome)"/>
+
+      <!-- front: rectangular headlight, indicator, grille slot -->
+      <rect x="176" y="-88" width="15" height="14" rx="2" fill="#ffedc2"/>
+      <rect x="176" y="-88" width="15" height="14" rx="2" fill="none"
+            stroke="#c9b388" stroke-width="1.3"/>
+      <ellipse cx="183.5" cy="-81" rx="9" ry="6" fill="#fff8e2" opacity="0.5"
+               filter="url(#blurTiny)"/>
+      <rect x="190" y="-72" width="5" height="7" rx="2" fill="#f0a23c"/>
+      <rect x="184" y="-64" width="10" height="5" rx="2" fill="#1b1c24" opacity="0.85"/>
+
+      <!-- rear: tail lamp cluster -->
+      <rect x="-192" y="-86" width="13" height="15" rx="2" fill="#c8402f"/>
+      <rect x="-192" y="-86" width="13" height="15" rx="2" fill="none"
+            stroke="#8d6f4a" stroke-width="1.2"/>
+      <rect x="-192" y="-81" width="13" height="5" fill="#f26a4e" opacity="0.85"/>
+      <rect x="-190" y="-63" width="10" height="5" rx="2" fill="#1b1c24" opacity="0.8"/>
+
+      <!-- bumpers -->
+      <path d="M 188 -54 L 208 -52 Q 212 -51 212 -47 L 212 -40 Q 212 -37 208 -37
+               L 188 -39 Z" fill="url(#steel)" opacity="0.95"/>
+      <path d="M -188 -54 L -208 -52 Q -212 -51 -212 -47 L -212 -40 Q -212 -37 -208 -37
+               L -188 -39 Z" fill="url(#steel)" opacity="0.95"/>
+      <rect x="189" y="-49" width="22" height="3.4" rx="1.6" fill="#15161c" opacity="0.75"/>
+      <rect x="-211" y="-49" width="22" height="3.4" rx="1.6" fill="#15161c" opacity="0.75"/>
+
+      <!-- exhaust tip -->
+      <rect x="-212" y="-35" width="14" height="5" rx="2.5" fill="#4a4d57"/>
+      <rect x="-212" y="-35" width="4" height="5" rx="2" fill="#14151b"/>
+
+      <!-- fender arch lips -->
+      <path d="M 64 -40 A 31 31 0 0 1 126 -40" stroke="#7d6a48" stroke-width="2"
+            fill="none" opacity="0.55"/>
+      <path d="M -64 -40 A 31 31 0 0 1 -126 -40" stroke="#7d6a48" stroke-width="2"
+            fill="none" opacity="0.55"/>
+    </g>
+  </g>
+
+  <!-- ════════════════════════════ FX ════════════════════════════ -->
+  <g id="puffs"></g>
+  <g id="dust"></g>
+  <g id="streaks"></g>
+
+  <!-- ════════════════════════════ GRADE ════════════════════════════ -->
+  <rect x="0" y="0" width="1200" height="675" fill="url(#vignette)" pointer-events="none"/>
+  <rect x="0" y="0" width="1200" height="675" fill="url(#vigEdge)" pointer-events="none"/>
+</svg>
+
+<div id="hint">basılı tut &nbsp;→&nbsp; hızlan</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ══════════════════════════════════════════════════════════════════════
+     CONSTANTS
+     ══════════════════════════════════════════════════════════════════════ */
+  const NS        = 'http://www.w3.org/2000/svg';
+  const W         = 1200;          // tile width / viewBox width
+  const HORIZON   = 468;
+  const CAR_X     = 420;
+  const CAR_Y     = 588;
+  const WHEEL_R   = 30;
+  const CRUISE    = 250;           // px per second at rest
+  const BOOST     = 780;           // px per second while held
+
+  /* ══════════════════════════════════════════════════════════════════════
+     HELPERS
+     ══════════════════════════════════════════════════════════════════════ */
+  const $  = (id) => document.getElementById(id);
+  const mk = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  const rand = (a, b) => a + Math.random() * (b - a);
+
+  /* ══════════════════════════════════════════════════════════════════════
+     STAR FIELD  —  a handful of faint points in the dark upper band
+     ══════════════════════════════════════════════════════════════════════ */
+  (function stars() {
+    const g = $('stars');
+    for (let i = 0; i < 70; i++) {
+      const y = rand(6, 200);
+      const r = y < 110 ? rand(0.6, 1.5) : rand(0.5, 1.0);
+      g.appendChild(mk('circle', {
+        cx: rand(0, W).toFixed(1),
+        cy: y.toFixed(1),
+        r: r.toFixed(2),
+        fill: '#dfe8ff',
+        opacity: (1 - y / 240).toFixed(2)
+      }));
+    }
+  })();
+
+  /* ══════════════════════════════════════════════════════════════════════
+     CLOUDS  —  long low streaks lit from below by the sun
+     ══════════════════════════════════════════════════════════════════════ */
+  const clouds = (function () {
+    const g = $('clouds');
+    const list = [];
+    const defs = [
+      { x:  90, y: 150, w: 300, h: 26, o: 0.30 },
+      { x: 520, y: 210, w: 380, h: 20, o: 0.22 },
+      { x: 860, y: 118, w: 250, h: 16, o: 0.26 },
+      { x: 300, y: 286, w: 430, h: 14, o: 0.18 }
+    ];
+    defs.forEach((c, i) => {
+      const grp = mk('g', { opacity: c.o });
+      grp.appendChild(mk('ellipse', {
+        cx: 0, cy: 0, rx: c.w * 0.5, ry: c.h,
+        fill: i % 2 ? '#e7a578' : '#f0b98c'
+      }));
+      grp.appendChild(mk('ellipse', {
+        cx: c.w * 0.18, cy: -c.h * 0.45, rx: c.w * 0.3, ry: c.h * 0.85,
+        fill: '#c98a75', opacity: 0.55
+      }));
+      grp.setAttribute('transform', 'translate(' + c.x + ',' + c.y + ')');
+      g.appendChild(grp);
+      list.push({ el: grp, x: c.x, y: c.y, v: 3 + i * 1.6, w: c.w });
+    });
+    return list;
+  })();
+
+  /* ══════════════════════════════════════════════════════════════════════
+     BIRDS
+     ══════════════════════════════════════════════════════════════════════ */
+  const birds = (function () {
+    const g = $('birds');
+    const list = [];
+    const seed = [
+      { x: 300, y: 190, s: 1.0, v: 9 },
+      { x: 356, y: 168, s: 0.8, v: 11 },
+      { x: 262, y: 214, s: 0.7, v: 8 }
+    ];
+    seed.forEach(b => {
+      const grp = mk('g', { opacity: 0.55 });
+      grp.appendChild(mk('path', {
+        d: 'M -9 0 Q -4 -6 0 0 Q 4 -6 9 0',
+        fill: 'none', stroke: '#1b1c2e', 'stroke-width': 1.6,
+        'stroke-linecap': 'round'
+      }));
+      const inner = grp.firstChild;
+      g.appendChild(grp);
+      list.push({ el: grp, wing: inner, x: b.x, y: b.y, s: b.s, v: b.v, ph: Math.random() * 6 });
+    });
+    return list;
+  })();
+
+  /* ══════════════════════════════════════════════════════════════════════
+     MIDGROUND PROPS  —  cypresses, houses, telegraph poles
+     Built once into a tile, then cloned so the strip wraps seamlessly.
+     ══════════════════════════════════════════════════════════════════════ */
+  function cypress(x, h) {
+    const g = mk('g', { transform: 'translate(' + x + ',' + HORIZON + ')' });
+    g.appendChild(mk('rect', { x: -1.6, y: -h * 0.12, width: 3.2, height: h * 0.12, fill: '#141a1e' }));
+    const d = 'M 0 ' + (-h) +
+      ' C ' + (h * 0.14) + ' ' + (-h * 0.62) +
+      ' ' + (h * 0.16) + ' ' + (-h * 0.22) +
+      ' ' + (h * 0.09) + ' 0' +
+      ' L ' + (-h * 0.09) + ' 0' +
+      ' C ' + (-h * 0.16) + ' ' + (-h * 0.22) +
+      ' ' + (-h * 0.14) + ' ' + (-h * 0.62) + ' 0 ' + (-h) + ' Z';
+    g.appendChild(mk('path', { d: d, fill: 'url(#treeGrad)' }));
+    return g;
+  }
+
+  function house(x, w, h, lit) {
+    const g = mk('g', { transform: 'translate(' + x + ',' + HORIZON + ')' });
+    g.appendChild(mk('rect', {
+      x: -w / 2, y: -h, width: w, height: h, fill: '#b8a98f', opacity: 0.92
+    }));
+    g.appendChild(mk('rect', {
+      x: -w / 2, y: -h, width: w, height: h * 0.28, fill: '#7a6d59', opacity: 0.45
+    }));
+    // roof
+    g.appendChild(mk('path', {
+      d: 'M ' + (-w / 2 - 7) + ' ' + (-h) +
+         ' L 0 ' + (-h - w * 0.30) +
+         ' L ' + (w / 2 + 7) + ' ' + (-h) + ' Z',
+      fill: '#8f4a3a'
+    }));
+    g.appendChild(mk('path', {
+      d: 'M ' + (-w / 2 - 7) + ' ' + (-h) + ' L 0 ' + (-h - w * 0.30) + ' L ' + (w * 0.06) + ' ' + (-h) + ' Z',
+      fill: '#a85c45', opacity: 0.7
+    }));
+    // chimney
+    g.appendChild(mk('rect', {
+      x: w * 0.22, y: -h - w * 0.22, width: 6, height: 14, fill: '#6d3b31'
+    }));
+    // windows
+    const wy = -h * 0.62;
+    [-0.24, 0.20].forEach((fx, i) => {
+      const on = lit && i === 0;
+      g.appendChild(mk('rect', {
+        x: w * fx, y: wy, width: w * 0.16, height: h * 0.30,
+        fill: on ? '#ffca7a' : '#4a4258', opacity: on ? 0.95 : 0.75
+      }));
+      if (on) {
+        g.appendChild(mk('rect', {
+          x: w * fx - 4, y: wy - 3, width: w * 0.16 + 8, height: h * 0.30 + 6,
+          fill: '#ffca7a', opacity: 0.14, filter: 'url(#blurTiny)'
+        }));
+      }
+    });
+    // door
+    g.appendChild(mk('rect', {
+      x: -w * 0.05, y: -h * 0.34, width: 7, height: h * 0.34, fill: '#40382f'
+    }));
+    return g;
+  }
+
+  function pole(x, h) {
+    const g = mk('g', { transform: 'translate(' + x + ',' + HORIZON + ')' });
+    g.appendChild(mk('rect', { x: -1.8, y: -h, width: 3.6, height: h, fill: '#221e2b' }));
+    [-h * 0.92, -h * 0.78].forEach((by, i) => {
+      const arm = i === 0 ? 26 : 19;
+      g.appendChild(mk('rect', { x: -arm, y: by, width: arm * 2, height: 2.6, fill: '#221e2b' }));
+      [-arm + 5, arm - 5].forEach(px => {
+        g.appendChild(mk('rect', { x: px - 1.2, y: by - 4, width: 2.4, height: 4, fill: '#2e2839' }));
+      });
+    });
+    return g;
+  }
+
+  const PROPS = [
+    { t: 'cy', x: 55,  h: 122 },
+    { t: 'ho', x: 148, w: 86, h: 50, lit: true },
+    { t: 'po', x: 268, h: 132 },
+    { t: 'cy', x: 330, h: 96 },
+    { t: 'ho', x: 432, w: 68, h: 42, lit: false },
+    { t: 'cy', x: 512, h: 132 },
+    { t: 'po', x: 604, h: 126 },
+    { t: 'cy', x: 672, h: 88 },
+    { t: 'ho', x: 782, w: 96, h: 56, lit: true },
+    { t: 'cy', x: 878, h: 108 },
+    { t: 'po', x: 946, h: 136 },
+    { t: 'cy', x: 1018, h: 124 },
+    { t: 'ho', x: 1112, w: 74, h: 46, lit: false }
+  ];
+
+  const midTiles = (function () {
+    const layer = $('layerMid');
+    const makeTile = () => {
+      const g = mk('g', {});
+      PROPS.forEach(p => {
+        if (p.t === 'cy') g.appendChild(cypress(p.x, p.h));
+        else if (p.t === 'ho') g.appendChild(house(p.x, p.w, p.h, p.lit));
+        else g.appendChild(pole(p.x, p.h));
+      });
+      return g;
+    };
+    const a = makeTile(), b = makeTile();
+    layer.appendChild(a);
+    layer.appendChild(b);
+    return [a, b];
+  })();
+
+  /* ══════════════════════════════════════════════════════════════════════
+     NEAR VERGE  —  tufts of grass and stones, fastest layer
+     ══════════════════════════════════════════════════════════════════════ */
+  const vergeTiles = (function () {
+    const layer = $('layerVerge');
+    const makeTile = () => {
+      const g = mk('g', {});
+      for (let i = 0; i < 26; i++) {
+        const x = (i / 26) * W + rand(-14, 14);
+        const y = 470 + rand(2, 26);
+        const hh = rand(6, 15) * (1 - (y - 470) / 40);
+        const grp = mk('g', { transform: 'translate(' + x.toFixed(1) + ',' + y.toFixed(1) + ')' });
+        for (let b = -2; b <= 2; b++) {
+          grp.appendChild(mk('path', {
+            d: 'M 0 0 Q ' + (b * 2.4) + ' ' + (-hh * 0.6) + ' ' + (b * 4.6) + ' ' + (-hh),
+            stroke: '#2f3f36', 'stroke-width': 1.5, fill: 'none',
+            'stroke-linecap': 'round', opacity: 0.9 - (y - 470) / 60
+          }));
+        }
+        g.appendChild(grp);
+      }
+      for (let i = 0; i < 7; i++) {
+        g.appendChild(mk('ellipse', {
+          cx: rand(0, W).toFixed(1), cy: rand(484, 500).toFixed(1),
+          rx: rand(3, 8).toFixed(1), ry: rand(1.6, 3).toFixed(1),
+          fill: '#3a3348', opacity: 0.7
+        }));
+      }
+      return g;
+    };
+    const a = makeTile(), b = makeTile();
+    layer.appendChild(a);
+    layer.appendChild(b);
+    return [a, b];
+  })();
+
+  /* ══════════════════════════════════════════════════════════════════════
+     WHEELS  —  tyre, steel rim, chrome hubcap with rotating slots
+     ══════════════════════════════════════════════════════════════════════ */
+  const wheels = (function () {
+    const out = [];
+    document.querySelectorAll('.wheel').forEach((g, idx) => {
+      const cx = +g.dataset.cx, cy = +g.dataset.cy;
+
+      g.appendChild(mk('circle', { cx, cy, r: WHEEL_R, fill: 'url(#tire)' }));
+      g.appendChild(mk('circle', {
+        cx, cy, r: WHEEL_R - 0.8, fill: 'none', stroke: '#0a0b0f', 'stroke-width': 1.4
+      }));
+      g.appendChild(mk('circle', {
+        cx, cy, r: WHEEL_R * 0.80, fill: 'none', stroke: '#33363f',
+        'stroke-width': 2.2, opacity: 0.85
+      }));
+
+      // everything inside here spins
+      const spin = mk('g', {});
+      spin.appendChild(mk('circle', { cx, cy, r: 20.5, fill: 'url(#steel)' }));
+      spin.appendChild(mk('circle', {
+        cx, cy, r: 20.5, fill: 'none', stroke: '#6f7885', 'stroke-width': 1.1, opacity: 0.8
+      }));
+      spin.appendChild(mk('circle', { cx, cy, r: 13.5, fill: 'url(#chrome)' }));
+      spin.appendChild(mk('circle', {
+        cx, cy, r: 13.5, fill: 'none', stroke: '#ffffff', 'stroke-width': 0.9, opacity: 0.55
+      }));
+
+      // six hubcap slots
+      for (let s = 0; s < 6; s++) {
+        const a = (s / 6) * Math.PI * 2;
+        spin.appendChild(mk('rect', {
+          x: (cx + Math.cos(a) * 7.4 - 1.9).toFixed(2),
+          y: (cy + Math.sin(a) * 7.4 - 3.6).toFixed(2),
+          width: 3.8, height: 7.2, rx: 1.9,
+          fill: '#5d6673', opacity: 0.85,
+          transform: 'rotate(' + (s * 60) + ' ' + (cx + Math.cos(a) * 7.4).toFixed(2) +
+                     ' ' + (cy + Math.sin(a) * 7.4).toFixed(2) + ')'
+        }));
+      }
+
+      spin.appendChild(mk('circle', { cx, cy, r: 4.4, fill: '#f2f6fb' }));
+      spin.appendChild(mk('circle', { cx, cy, r: 1.9, fill: '#8b95a2' }));
+
+      g.appendChild(spin);
+      out.push({ spin, cx, cy, ang: idx * 37 });
+    });
+    return out;
+  })();
+
+  /* ══════════════════════════════════════════════════════════════════════
+     SPEED STREAKS
+     ══════════════════════════════════════════════════════════════════════ */
+  const streaks = (function () {
+    const g = $('streaks');
+    const list = [];
+    for (let i = 0; i < 14; i++) {
+      const l = mk('line', {
+        x1: 0, y1: 0, x2: 0, y2: 0,
+        stroke: '#ffd9a8', 'stroke-width': 1.4,
+        'stroke-linecap': 'round', opacity: 0
+      });
+      g.appendChild(l);
+      list.push({
+        el: l, x: rand(0, W), y: rand(430, 660),
+        len: rand(18, 60), sp: rand(0.8, 1.9), o: rand(0.05, 0.20)
+      });
+    }
+    return list;
+  })();
+
+  /* ══════════════════════════════════════════════════════════════════════
+     STATE
+     ══════════════════════════════════════════════════════════════════════ */
+  let scroll      = 0;
+  let speed       = CRUISE;
+  let targetSpeed = CRUISE;
+  let boost       = false;
+  let t           = 0;
+  let last        = 0;
+  let puffTimer   = 0;
+  let dustTimer   = 0;
+
+  const el = {
+    carBob:  $('carBob'),
+    shadow:  $('carShadow'),
+    dashFar: $('dashFar'),
+    dashNear:$('dashNear'),
+    puffs:   $('puffs'),
+    dust:    $('dust'),
+    beam:    $('beam'),
+    sun:     $('sun')
+  };
+
+  const farTiles   = Array.from(document.querySelectorAll('#layerFar .tile'));
+  const nearTiles  = Array.from(document.querySelectorAll('#layerNear .tile'));
+  const FAR_FACTOR = 0.10;
+  const NEAR_FACTOR= 0.28;
+  const MID_FACTOR = 1.0;
+  const VERGE_FACTOR = 1.35;
+
+  const puffs = [];
+  const dusts = [];
+
+  /* ══════════════════════════════════════════════════════════════════════
+     INPUT  —  hold to accelerate
+     ══════════════════════════════════════════════════════════════════════ */
+  const press = () => { boost = true; document.body.classList.add('sped'); };
+  const release = () => { boost = false; document.body.classList.remove('sped'); };
+
+  window.addEventListener('pointerdown', press);
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', release);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      e.preventDefault(); press();
+    }
+  });
+  window.addEventListener('keyup', release);
+  window.addEventListener('blur', release);
+
+  /* ══════════════════════════════════════════════════════════════════════
+     EMITTERS
+     ══════════════════════════════════════════════════════════════════════ */
+  function emitPuff() {
+    const c = mk('circle', {
+      cx: 0, cy: 0, r: 3,
+      fill: '#cfd6e2', opacity: 0.05
+    });
+    el.puffs.appendChild(c);
+    puffs.push({
+      el: c,
+      x: CAR_X - 200 + rand(-3, 3),
+      y: CAR_Y - 22 + rand(-2, 2),
+      r: rand(2.5, 5),
+      a: 0.20,
+      vx: -rand(18, 40),
+      vy: -rand(14, 26)
+    });
+  }
+
+  function emitDust() {
+    const c = mk('circle', {
+      cx: 0, cy: 0, r: 3, fill: '#8c7f66', opacity: 0
+    });
+    el.dust.appendChild(c);
+    dusts.push({
+      el: c,
+      x: CAR_X - 110 + rand(-8, 8),
+      y: CAR_Y - 2 + rand(-3, 3),
+      r: rand(3, 7),
+      a: 0.22,
+      vx: -rand(40, 90),
+      vy: -rand(4, 18)
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     FRAME
+     ══════════════════════════════════════════════════════════════════════ */
+  function frame(now) {
+    if (!last) last = now;
+    let dt = (now - last) / 1000;
+    last = now;
+    if (dt > 0.1) dt = 0.1;          // tab was backgrounded
+    if (dt <= 0) dt = 1 / 60;
+    t += dt;
+
+    // ── speed easing ──────────────────────────────────────────────────
+    targetSpeed = boost ? BOOST : CRUISE;
+    speed += (targetSpeed - speed) * Math.min(1, dt * 2.4);
+    scroll += speed * dt;
+
+
+    // ── parallax layers ───────────────────────────────────────────────
+    const place = (tiles, factor) => {
+      const off = -((scroll * factor) % W);
+      tiles.forEach((g, i) => g.setAttribute('transform', 'translate(' + (off + i * W) + ',0)'));
+    };
+    place(farTiles, FAR_FACTOR);
+    place(nearTiles, NEAR_FACTOR);
+    place(vergeTiles, VERGE_FACTOR);
+    place(midTiles, MID_FACTOR);
+
+    // ── road markings ─────────────────────────────────────────────────
+    el.dashFar.setAttribute('stroke-dashoffset', (-scroll * 0.85) % 96);
+    el.dashNear.setAttribute('stroke-dashoffset', (-scroll * 1.25) % 132);
+
+    // ── wheels ────────────────────────────────────────────────────────
+    const omega = (speed / WHEEL_R) * 180 / Math.PI;    // deg per second
+    wheels.forEach(w => {
+      w.ang += omega * dt;
+      w.spin.setAttribute('transform', 'rotate(' + w.ang.toFixed(2) + ' ' + w.cx + ' ' + w.cy + ')');
+    });
+
+    // ── body bob: two frequencies so it never looks like a sine wave ──
+    const amp = 0.55 + (speed / BOOST) * 1.1;
+    const bob   = Math.sin(t * 7.4) * amp + Math.sin(t * 12.9 + 1.7) * amp * 0.45;
+    const pitch = Math.sin(t * 6.1 + 0.6) * (0.32 + speed / BOOST * 0.45);
+    el.carBob.setAttribute('transform',
+      'translate(0,' + bob.toFixed(2) + ') rotate(' + pitch.toFixed(2) + ' 0 -60)');
+
+    // shadow responds to the bob
+    el.shadow.setAttribute('ry', (15 - bob * 0.8).toFixed(2));
+    el.shadow.setAttribute('opacity', (0.55 - bob * 0.04).toFixed(3));
+
+    // headlight beam breathes very slightly
+    el.beam.setAttribute('opacity', (0.17 + Math.sin(t * 2.1) * 0.02).toFixed(3));
+
+    // ── clouds ────────────────────────────────────────────────────────
+    clouds.forEach(c => {
+      c.x -= (c.v + speed * 0.02) * dt;
+      if (c.x < -c.w * 0.8) c.x = W + c.w * 0.8;
+      c.el.setAttribute('transform', 'translate(' + c.x.toFixed(1) + ',' + c.y + ')');
+    });
+
+    // ── birds ─────────────────────────────────────────────────────────
+    birds.forEach(b => {
+      b.x -= (b.v + speed * 0.06) * dt;
+      if (b.x < -40) b.x = W + 40;
+      const flap = Math.sin(t * 7 + b.ph);
+      b.el.setAttribute('transform',
+        'translate(' + b.x.toFixed(1) + ',' + (b.y + Math.sin(t * 1.4 + b.ph) * 5).toFixed(1) + ') ' +
+        'scale(' + b.s.toFixed(2) + ',' + (b.s * (0.55 + Math.abs(flap) * 0.75)).toFixed(2) + ')');
+    });
+
+    // ── puffs ─────────────────────────────────────────────────────────
+    puffTimer -= dt;
+    if (puffTimer <= 0) {
+      emitPuff();
+      puffTimer = 0.13 + Math.random() * 0.09;
+    }
+    for (let i = puffs.length - 1; i >= 0; i--) {
+      const p = puffs[i];
+      p.x += p.vx * dt - speed * dt * 0.55;
+      p.y += p.vy * dt;
+      p.r += 11 * dt;
+      p.a -= 0.42 * dt;
+      if (p.a <= 0) {
+        p.el.remove();
+        puffs.splice(i, 1);
+        continue;
+      }
+      p.el.setAttribute('cx', p.x.toFixed(1));
+      p.el.setAttribute('cy', p.y.toFixed(1));
+      p.el.setAttribute('r', p.r.toFixed(2));
+      p.el.setAttribute('opacity', p.a.toFixed(3));
+    }
+
+    // ── dust behind the rear tyre ─────────────────────────────────────
+    dustTimer -= dt;
+    if (dustTimer <= 0 && speed > 420) {
+      emitDust();
+      dustTimer = 0.05;
+    }
+    for (let i = dusts.length - 1; i >= 0; i--) {
+      const d = dusts[i];
+      d.x += d.vx * dt - speed * dt * 0.75;
+      d.y += d.vy * dt;
+      d.r += 15 * dt;
+      d.a -= 1.35 * dt;
+      if (d.a <= 0) {
+        d.el.remove();
+        dusts.splice(i, 1);
+        continue;
+      }
+      d.el.setAttribute('cx', d.x.toFixed(1));
+      d.el.setAttribute('cy', d.y.toFixed(1));
+      d.el.setAttribute('r', d.r.toFixed(2));
+      d.el.setAttribute('opacity', d.a.toFixed(3));
+    }
+
+    // ── streak intensity follows speed ────────────────────────────────
+    const sNorm = Math.max(0, (speed - CRUISE) / (BOOST - CRUISE));
+    streaks.forEach(s => {
+      s.x -= (speed * s.sp * 1.5) * dt;
+      if (s.x < -80) { s.x = W + rand(0, 160); s.y = rand(430, 665); }
+      s.el.setAttribute('x1', s.x.toFixed(1));
+      s.el.setAttribute('y1', s.y.toFixed(1));
+      s.el.setAttribute('x2', (s.x + s.len).toFixed(1));
+      s.el.setAttribute('y2', s.y.toFixed(1));
+      s.el.setAttribute('opacity', (sNorm * s.o).toFixed(3));
+    });
+
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
