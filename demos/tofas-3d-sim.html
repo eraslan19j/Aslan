@@ -1847,18 +1847,23 @@ const doorGroups = [];
 {
   const DOOR_H = Y_BELT - Y_SILL;          // sill to belt
   const DOOR_Y = Y_SILL + DOOR_H * 0.5;
-  const dx = HALF_W - 0.012;
+  /* A door skin is a 24 mm panel laid ON the shell, not a plank beside it.
+     dx is the panel centre, so half its thickness must not overhang the
+     body — the old HALF_W - 0.012 put the outer face at 0.825, 5.8 cm clear
+     of the 0.767 m shell. */
+  const DOOR_T = 0.024;
+  const dx = BODY_W / 2 - DOOR_T / 2 + 0.004;
 
   [-1, 1].forEach((side) => {
     /* front door */
-    const f = new THREE.Mesh(new THREE.BoxGeometry(0.024, DOOR_H, 1.03), matPaint);
+    const f = new THREE.Mesh(new THREE.BoxGeometry(DOOR_T, DOOR_H, 1.03), matPaint);
     f.position.set(side * dx, DOOR_Y, 0.075);
     f.castShadow = true;
     carVisual.add(f);
     doorGroups.push(f);
 
     /* rear door */
-    const r = new THREE.Mesh(new THREE.BoxGeometry(0.024, DOOR_H, 0.96), matPaint);
+    const r = new THREE.Mesh(new THREE.BoxGeometry(DOOR_T, DOOR_H, 0.96), matPaint);
     r.position.set(side * dx, DOOR_Y, -0.955);
     r.castShadow = true;
     carVisual.add(r);
@@ -1981,18 +1986,21 @@ const headlights = [];
 /* TAIL LIGHTS — wide horizontal clusters, as on the real car */
 const taillights = [];
 {
-  const lensGeo  = new THREE.BoxGeometry(0.395, 0.150, 0.026);
-  const bezelGeo = new THREE.BoxGeometry(0.425, 0.176, 0.012);
-  const y = Y_DECK - 0.130;
-  const z = Z_TAIL + 0.062;
+  /* The rear panel closes at Z_TAIL + 0.09; these used to float 4.5 cm behind
+     it.  Sit the cluster on the face and let it stand 9 mm proud. */
+  const REAR_FACE = Z_TAIL + 0.090;
+  const lensGeo  = new THREE.BoxGeometry(0.470, 0.185, 0.026);
+  const bezelGeo = new THREE.BoxGeometry(0.500, 0.208, 0.014);
+  const y = Y_DECK - 0.185;
+  const z = REAR_FACE + 0.012;
 
   [-1, 1].forEach((side) => {
     const bez = new THREE.Mesh(bezelGeo, matTrim);
-    bez.position.set(side * 0.510, y, z + 0.004);
+    bez.position.set(side * 0.505, y, z - 0.005);
     carVisual.add(bez);
 
     const lens = new THREE.Mesh(lensGeo, matTailLens.clone());
-    lens.position.set(side * 0.510, y, z - 0.012);
+    lens.position.set(side * 0.505, y, z + 0.006);
     carVisual.add(lens);
     taillights.push(lens);
   });
@@ -2001,13 +2009,13 @@ const taillights = [];
   [-1, 1].forEach((side) => {
     const r = new THREE.Mesh(new THREE.BoxGeometry(0.105, 0.075, 0.024),
       new THREE.MeshStandardMaterial({ color: 0xcfcfc8, roughness: 0.32 }));
-    r.position.set(side * 0.165, y, z - 0.008);
+    r.position.set(side * 0.175, y, z + 0.004);
     carVisual.add(r);
   });
 
   /* the boot-lid trim strip that joins the two clusters */
   const bar = new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.045, 0.014), matTrim);
-  bar.position.set(0, y, z - 0.006);
+  bar.position.set(0, y, z - 0.002);
   carVisual.add(bar);
 
   /* number plate recess */
@@ -2224,10 +2232,12 @@ function buildWheel() {
   /* lathe axis is Y; a wheel needs its axis along X (the axle), so turn it
      90° about Z.  That puts the circular face in the YZ plane — right — and
      the tyre width along X. */
-  /* profile is (radius, halfWidth); a wheel needs radius in YZ and width on
-     X, so rotate about X — rotating about Z put the radius across the car and
-     every tyre came out as a disc lying against the body. */
-  tyreGeo.rotateX(Math.PI / 2);
+  /* The profile is (radius, halfWidth), so the lathe already has its circular
+     face in XZ and its width on Y.  A wheel needs the axis on X (the axle),
+     which is Y→X: a rotation about Z.  Verified against the bounding box —
+     rotateZ gives 0.19 × 0.61 × 0.61, rotateX gives 0.61 × 0.61 × 0.19 and
+     puts the radius across the car. */
+  tyreGeo.rotateZ(Math.PI / 2);
   const tyre = new THREE.Mesh(tyreGeo, matRubber);
   tyre.castShadow = true;
   spin.add(tyre);
@@ -2244,8 +2254,8 @@ function buildWheel() {
 
   /* ── steel rim: a shallow dish, painted black ────────────────────────── */
   const rimGeo = new THREE.CylinderGeometry(rIn * 0.995, rIn * 0.995, WHEEL_W * 0.86, 20, 1, true);
-  /* axis Y → X, radius stays in YZ: a wheel, not a disc on the car's flank */
-  rimGeo.rotateX(Math.PI / 2);
+  /* cylinder axis Y → X (same reasoning as the tyre) */
+  rimGeo.rotateZ(Math.PI / 2);
   const rim = new THREE.Mesh(rimGeo, matSteel);
   spin.add(rim);
 
@@ -2265,7 +2275,9 @@ function buildWheel() {
   const capR = rIn * 0.685;
   const capGeo = new THREE.SphereGeometry(capR, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42);
   capGeo.rotateZ(-Math.PI / 2);          // dome points along +X
-  capGeo.scale(1, 1, 1);
+  /* squashed along the axle: a deep cap reached x = 0.902, making the hubcap
+     the widest point on the whole car — wider than the mirrors */
+  capGeo.scale(0.42, 1, 1);
   const cap = new THREE.Mesh(capGeo, matChrome);
   cap.position.x = WHEEL_W * 0.415;
   spin.add(cap);
@@ -2387,8 +2399,10 @@ const HARD_Y = 0.10;              // suspension top mounts, body space
      the mount sits HARD_Y above the CoM
    so at rest the mount is MOUNT_STATIC above the wheel centre, and the
    spring's free length is exactly that plus the design deflection. */
-const MOUNT_STATIC = HARD_Y + CFG.COM_Y;                       // 0.35 m
-const FREE_LEN = MOUNT_STATIC + CFG.STATIC_DEFL;               // 0.475 m
+const MOUNT_STATIC = HARD_Y + CFG.COM_Y;                       // 0.41 m
+const FREE_LEN = MOUNT_STATIC + CFG.STATIC_DEFL;               // 0.535 m
+/* the value `hang` takes at rest — the visual sync anchors its hub here */
+const STATIC_HANG = FREE_LEN - CFG.STATIC_DEFL;                // 0.41 m
 const MAX_DROOP = FREE_LEN + CFG.SUSP_TRAVEL;                  // 0.775 m
 
 const wheels = WHEEL_DEFS.map((def) => ({
@@ -3247,9 +3261,13 @@ function syncCarMesh() {
   for (let i = 0; i < 4; i++) {
     const w = wheels[i], vis = wheelVisuals[i];
 
-    /* the wheel centre hangs exactly where the raycast found the ground, so
-       the tyre always meets the surface and the body rides the suspension */
-    vis.group.position.set(w.def.x, HARD_Y - w.hang, w.def.z);
+    /* Anchor the hub to Y_HUB (the height the arches are cut for) and let the
+       suspension move it from there.  STATIC_HANG is the rest value of `hang`,
+       so at rest the offset is zero and the tyre sits exactly on the road;
+       under load it rises and in droop it falls, which is the travel the
+       physics already computed.  Placing it at HARD_Y - hang instead put the
+       hub at -0.31 against an arch cut for -0.25 and buried every tyre 6 cm. */
+    vis.group.position.set(w.def.x, Y_HUB - (w.hang - STATIC_HANG), w.def.z);
     vis.steer.rotation.y = w.def.front ? V.steer : 0;
     vis.spin.rotation.x = w.angle;
   }
