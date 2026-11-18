@@ -1,18 +1,20 @@
 # STATE.md — Güncel Durum (tek doğruluk kaynağı)
 
 > **Bu dosya her sürümde güncellenir.** Yeni bir oturuma başlayan ajan önce burayı okur.
-> Son güncelleme: **2026-11-18** · Sürüm: **v0.9.1** · Dal: `arena/868fe0be-aslan`
+> Son güncelleme: **2026-11-18** · Sürüm: **v0.10.0** · Dal: `feat/g1-phase05`
 
 ## 1. Şu An Neredeyiz?
 
 | Alan | Durum |
 |---|---|
-| Sürüm | `v0.9.1` (kararlı, `main` ile senkron) — "Hasar & Ses" (panel hasarı, katmanlı ses, kapı senkronlu biniş, tamirci ekonomisi) |
-| Son yeşil sürüm | **`v0.9.1`** — APK **7,291,837 B**, `main`'de `releases/istanbul-streets-latest-debug.apk` |
-| Test sayısı | **123 test / 22 dosya** (hepsi yeşil) |
+| Sürüm (web) | `v0.10.0` (kararlı, `main` ile senkron) — tek sürüm kaynağı `version.json` |
+| Sürüm (Godot) | Faz 0.5 prototipi — **`prototype-20261118-154839`** release'i, APK **26,546,665 B (25 MB)** |
+| Test sayısı | **127 test / 24 dosya** (hepsi yeşil) |
+| Hedef motor | **Godot 4.7.2** (ADR-011) — geçiş Faz 0.5 kanıt prototipiyle başladı |
 | Kapılar | `tsc --noEmit` ✅ · `eslint .` ✅ · `vitest run` ✅ · `vite build` ✅ · CI smoke + görsel QA + soak ✅ · APK ✅ |
-| `main` | `22c311b` — dal ile senkron; `releases/istanbul-streets-latest-debug.apk` (7,291,869 B) |
-| Platform | Capacitor 8, Android API 36, dikey→yatay `sensorLandscape`, offline |
+| `main` | `fbafa8f` — Faz 0 sürüm birleştirme birleşti (PR #8); dal senkron |
+| Platform (web) | Capacitor 8, Android API 36, yatay `sensorLandscape`, offline |
+| Platform (Godot) | Mobile (Vulkan) renderer, targetSdk 36, minSdk 24, arm64-v8a, 16 KB sayfa |
 | Hedef | Google Play (AAB), TR/EN arayüz |
 
 ## 2. v0.9.0'da Tamamlananlar
@@ -37,6 +39,49 @@
 | A7 | Nitro/turbo katmanları telefon hoparlörüne uygun (hiss + jet gövdesi + ıslık + wastegate) | `vehicleAudioModel.computeBoostAudio` |
 | D4 | Tamirci ekonomisi: 3 tamirci, `save.cash`'ten ödeme, arızalı araç 30 % hızla sürünür, minimap iğnesi | `vehicleDamage.ts` (`REPAIR_SHOPS`, `chargeRepair`), `MinimapRenderer` |
 | V1–V2 | NPC araçlarda göçme: gövde ezilmesi + kirli boya | `src/core/traffic.ts`, `RegionWorldScene.ts` |
+
+## 2b. Faz 0.5 — Kanıt Prototipi (2026-11-18)
+
+Tahminleri ölçüme çeviren aşama. **Bu bir oyun değil, ölçüm aracı.**
+
+### Ölçülen kapılar — CI'da otomatik [ölçüldü]
+
+| # | Kriter | Eşik | Ölçülen | Durum |
+|---|---|---|---|---|
+| K1 | CI'da APK üretimi | başarılı | run `44340587460` | ✅ |
+| K3 | targetSdk | 36 | **36** | ✅ |
+| K4 | 16 KB sayfa hizası | tüm `.so` 0x4000 | `libc++_shared.so` 1342 KB + `libgodot_android.so` 69448 KB, **ikisi de align=0x4000** | ✅ |
+| K7 | APK boyutu | < 120 MB | **25 MB** (26,546,665 B) | ✅ |
+| — | ABI | arm64-v8a | **arm64-v8a** | ✅ |
+| — | Paket adı | — | `com.istanbulstreets.prototype` | ✅ |
+
+### Kullanıcı cihazında ölçülecek
+
+| # | Kriter | Eşik | Nasıl |
+|---|---|---|---|
+| K2 | Uygulama açılıyor | açılmalı | APK'yı kur, aç |
+| K5 | Ortalama FPS | **≥ 30** | ekranın sol üstündeki sayaç |
+| K6 | Renderer | `mobile(vulkan)` | sayaçta yazar |
+| K8 | Tek araç hattı | aynı görünmeli | oyuncu vs NPC araçları |
+
+### Süre ölçümü [ölçüldü]
+
+- Soğuk derleme (template indirme dahil): **~13 dk**
+- Sıcak derleme (template cache): **~5 dk 40 sn**
+- Export template `.tpz` = 1.221 MB → `actions/cache` ile önbelleklenir
+
+### CI'da çözülen 5 gerçek engel
+
+| # | Engel | Kök neden | Çözüm |
+|---|---|---|---|
+| 1 | `Setup Android SDK` düştü | `android-actions/setup-android` v17+ varsayılan cmdline-tools 15859902 indirmesi Ubuntu 24.04'te başarısız | cmdline-tools `11076708` doğrudan indirilir |
+| 2 | Export "configuration errors" | ETC2/ASTC sıkıştırma kapalı | `textures/vram_compression/import_etc2_astc=true` |
+| 3 | GDScript parse error | `sorted := _frame_ms.duplicate()` tipi çıkarılamıyor | `var sorted: Array[float]`, `var p95: float` |
+| 4 | Code signing hatası | Release keystore yok | `GODOT_ANDROID_KEYSTORE_RELEASE_PATH` ortam değişkeni |
+| 5 | Workflow hiç başlamadı (`jobs: total_count 0`) | Release notları inline yazılınca YAML girintisi bozuldu | `--notes-file`, + `scripts/check-workflows.mjs` denetimi |
+
+**5. engel en tehlikelisiydi:** commit geçti, workflow "failure" dedi, hiçbir hata mesajı yoktu.
+Artık `npm test` her workflow dosyasını ayrıştırıp doğruluyor.
 
 ## 3. Kilitlenmiş Sözleşmeler (değiştirme!)
 

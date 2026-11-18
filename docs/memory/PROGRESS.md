@@ -1,6 +1,6 @@
 # PROGRESS.md — İlerleme ve Sıradaki Adımlar
 
-Son güncelleme: **2026-11-16** (Oturum 4 — `v0.9.0` Hasar & Ses: GTA-tarzı panel hasarı, OBB çarpışma, katmanlı motor/lastik sesi, HUD sadeleştirme, kapı animasyonu)
+Son güncelleme: **2026-11-18** (Oturum 5 — `v0.10.0` sürüm birleştirme + **Faz 0.5 Godot kanıt prototipi** ilk kez telefona kurulabilir APK üretti)
 
 > **Güncel sürüm özeti için önce [`STATE.md`](./STATE.md) oku.** Bu dosya yalnızca tarihsel aşama tablosudur.
 
@@ -18,13 +18,23 @@ Son güncelleme: **2026-11-16** (Oturum 4 — `v0.9.0` Hasar & Ses: GTA-tarzı p
 | **M6 Mağaza** | İkon 512×512, öne çıkan 1024×500, ekran görüntüleri, gizlilik politikası, Play Checklist, Termux imzalı AAB | ⚪ Bekliyor | `privacy.html`, `PLAY_CHECKLIST.md` ve telefon-odaklı Termux `USER_TASKS.md` hazır |
 | **v0.6.0–v0.8.0 (Sürüş Derinliği)** | 240 Hz Pacejka lastik modeli, 6 ileri şanzıman + debriyaj, turbo/BOV/backfire, CarX drift modu, 4 kamera, dokunmatik CarX HUD, soak testi | ✅ Tamamlandı | 67/67 test, 131 draw call, `v0.8.0` APK 7.27 MB |
 | **`v0.9.0` Hasar & Ses** | Araç kataloğu (7 araç, tam teknik künye), OBB↔OBB araba çarpışması, 10 panelli GTA-tarzı hasar (ezilme + kopan parça + duman + cam), hasarın fiziğe etkisi, kapı açma animasyonu, AudioWorklet motor/egzoz/turbo yeniden yazımı, 3 katmanlı lastik sesi, HUD sadeleştirme, NPC araç hasarı | ✅ Tamamlandı | 104/104 test, `tsc`/`eslint`/`build` temiz |
+| **`v0.10.0` Sürüm Birleştirme (Faz 0)** | Sürümün tek kaynaktan yönetilmesi; altı yerde ayrışmış sürümün birleştirilmesi | ✅ Tamamlandı | `version.json` tek kaynak, `scripts/sync-version.mjs` 9 hedef, CI'da `version:check` zorunlu. PR #8 squash ile birleşti. 125 test |
+| **Faz 0.5 Godot Kanıt Prototipi** | Tahminleri ölçüme çevirmek: Godot 4.7.2 boş proje → CI → APK → telefonda açılıyor → performans ölçümü | 🟡 CI tarafı ✅, telefon ölçümü bekliyor | CI run `44340587460` **yeşil**. K1 ✅ K3 ✅ (36) K4 ✅ (2 `.so`, align 0x4000) K7 ✅ (25 MB). Release `prototype-20261118-154839`. **K2/K5/K6/K8 kullanıcı cihazında ölçülecek** |
 | **M7+ Yeni Bölgeler** | Beyoğlu, Beşiktaş, Üsküdar + Kadıköy… | ⚪ Bekliyor | Çoklu bölge kayıt defteri (`src/core/world/regions.ts`) aktif ve testli |
 
 ## GitHub Issue Takibi
 - `#1` `[M0]`, `#2` `[M1]` ve `#3` `[M2]` teknik olarak tamamlandı (bkz. `KNOWN_ISSUES.md` — sandbox token'ı `gh issue close` iznine sahip değil).
 - `#4` `[M3]` – `#7` `[M6]` açık ve sırayla işlenecek.
 
-## Sıradaki 3 Adım (M3 İçin)
-1. **Gerçek Telefon `v0.2.1` Onayı:** Kullanıcı yeni `v0.2.1` APK'sını telefonunda test edip sürüş akıcılığı, görsel kalite ve FPS'i doğrulayacak.
-2. **M3 Yaya AI + Wanted 1–5 + Kurgusal Şehir Polisi:** Tepe Mahallesi sokaklarında kaldırım/yaya dolaşımı, trafik/yaya etkileşimi, 1–5 yıldız Wanted merdiveni, 10 ibadethane Güvenli Alanında otomatik silah/şiddet kilidi, 2B minimap (yollar + cami güvenli alanları + polisler) ve WASTED / BUSTED döngüsü.
-3. **M4 İstanbul Hissi & Ses:** Dinamik gün/gece döngüsü, Web Audio motor/trafik/ortam sesi, sokak detayları ve Fatih kıyı düzleştirmesi.
+## Sıradaki 3 Adım (Faz 0.5 kapanışı)
+
+1. **Telefon ölçümü (kullanıcı):** Release `prototype-20261118-154839` → `prototype.apk` indir, kur, aç.
+   Ekrandaki sayaçtan **FPS** oku; **3 parmakla dokunup** raporu kopyala ve panele yapıştır.
+   Ölçülecek: K2 (açılıyor mu), K5 (FPS ≥ 30), K6 (renderer `mobile(vulkan)`), K8 (oyuncu/NPC aracı aynı mı).
+2. **K5 sonucuna göre dallanma:**
+   - **≥ 30 FPS** → Faz 1'e geç: tek araç hattı (`VehicleDefinition`) + iç mekân.
+   - **< 30 FPS** → profil düşür (gölge 1024², MSAA kapat, fog kapat), yeniden ölç.
+     Hâlâ < 30 ise → Filament/C++ yoluna geç (ARCHITECTURE_V2 § karar ağacı).
+3. **Faz 1 (yalnız K5 yeşilse):** `feat/g2-vehicle-pipeline` dalı — tek araç tanımı,
+   aynı model+materyal+LOD+iç mekân kuralı, `replace_model()` yasak (grep testi V1–V4).
+

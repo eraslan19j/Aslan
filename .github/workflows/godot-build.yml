@@ -273,7 +273,10 @@ jobs:
           "$AAPT2" dump badging build/android/prototype.apk > /tmp/badging.txt || true
           grep -E "package:|sdkVersion|targetSdkVersion" /tmp/badging.txt || true
           TARGET=$(grep -oP "targetSdkVersion:'\K[0-9]+" /tmp/badging.txt || echo "0")
-          MINSDK=$(grep -oP "sdkVersion:'\K[0-9]+" /tmp/badging.txt || echo "?")
+          # aapt2 badging biçimi: sdkVersion:'24'  (bazı sürümlerde targetSdkVersion önce gelir)
+          MINSDK=$(grep -oP "sdkVersion:'\K[0-9]+" /tmp/badging.txt | head -1 || true)
+          [ -z "$MINSDK" ] && MINSDK=$(sed -n "s/.*minSdkVersion=\('\)\?\([0-9]\+\).*/\2/p" /tmp/badging.txt | head -1)
+          [ -z "$MINSDK" ] && MINSDK="okunamadi"
           PKG=$(grep -oP "^package: name='\K[^']+" /tmp/badging.txt || echo "?")
           ABI=$(grep -oP "native-code: '\K[^']+" /tmp/badging.txt || echo "?")
           echo "targetSdkVersion=${TARGET}" >> "$GITHUB_STEP_SUMMARY"

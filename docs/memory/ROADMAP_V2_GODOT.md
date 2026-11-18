@@ -49,6 +49,7 @@
 | **Kapı** | `tsc --noEmit && eslint . && vitest run && vite build` |
 | **"İlerleme yok"** | Sürümler eşitlenmeden Faz 0.5'e **geçilmez** |
 | **Risk** | Çok düşük |
+| **Durum** | ✅ **TAMAMLANDI** 2026-11-18 — PR #8 squash birleşti. `version.json` = `0.10.0`/code `12`, 9 hedef senkron, CI'da zorunlu adım. 125 test |
 
 **Neden önce bu?** Kullanıcının "telefonumdaki APK eski olabilir" şüphesi. Hangi kodun telefonda olduğu bilinmeden hiçbir ölçüm güvenilir değil.
 
@@ -60,7 +61,26 @@
 |---|---|
 | **Branch** | `feat/g1-phase05` |
 | **Hedef** | Boş Godot projesi → CI → APK → telefonda açılır → ölçüm |
-| **Süre** | 1,5–2 hafta |
+| **Süre** | 1,5–2 hafta (CI tarafı **1 günde** bitti) |
+| **Durum** | 🟡 **CI tarafı ✅** — run `44340587460` yeşil. **Telefon ölçümü bekliyor (K2/K5/K6/K8)** |
+
+### Ölçülen kapılar [ölçüldü — annotation'lardan]
+
+| K | Kriter | Eşik | Ölçülen | Durum |
+|---|---|---|---|---|
+| K1 | CI'da APK | — | üretildi | ✅ |
+| K3 | targetSdk | 36 | **36** | ✅ |
+| K4 | 16 KB hiza | tüm `.so` `0x4000` | **2 `.so`**, ikisi de `align=0x4000` | ✅ |
+| K7 | APK boyutu | < 120 MB | **25 MB** | ✅ |
+| — | ABI | arm64-v8a | **arm64-v8a** | ✅ |
+| K2 | Telefonda açılıyor | açılmalı | **ölçülmedi** | ⏳ |
+| K5 | FPS | ≥ 30 | **ölçülmedi** | ⏳ |
+| K6 | Renderer | `mobile(vulkan)` | **ölçülmedi** | ⏳ |
+| K8 | Tek araç hattı | aynı görünmeli | **ölçülmedi** | ⏳ |
+
+**R11 (godot-ci imajı eski SDK/NDK) artık geçersiz:** imaj hiç kullanılmıyor,
+SDK/NDK doğrudan kuruluyor (ADR-017). Ölçümle doğrulandı.
+**Süre:** soğuk ~13 dk, sıcak **~5 dk 40 sn** (export template cache ile).
 
 ### Alt adımlar
 
@@ -279,4 +299,4 @@
 | R8 | CI süresi/disk | Düşük | Orta | Cache + `paths:` filtresi |
 | R9 | Telif ihlali | Düşük | Kritik | `CREDITS.md` CI kontrolü |
 | R10 | Godot regresyonu | Orta | Orta | 4.7.2'ye sabitle |
-| **R11** | **CI imajı eski SDK/NDK** | **Yüksek** | **Yüksek** | `sdkmanager` ile üstüne kur + `readelf` |
+| **R11** | **CI imajı eski SDK/NDK** | ~~Yüksek~~ **BERTARAF** | Yüksek | ✅ 2026-11-18: imaj hiç kullanılmıyor, SDK/NDK doğrudan kuruluyor (ADR-017). `readelf` ölçümü: 2 `.so` hepsi `0x4000` |
