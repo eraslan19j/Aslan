@@ -1,5 +1,5 @@
 {
-  "generatedAtIso": "2026-11-18T13:55:14.486Z",
+  "generatedAtIso": "2026-11-18T13:57:57.575Z",
   "diffWarnThresholdPct": 6,
   "totalScreenshots": 15,
   "totalErrors": 0,
@@ -15,17 +15,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 131,
-        "triangles": 355375,
+        "drawCalls": 130,
+        "triangles": 355351,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 907,
-      "brightFrac": 0.4002,
+      "uniqueColors": 916,
+      "brightFrac": 0.402,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.6,
+        "diffPct": 1.32,
         "warning": false
       },
       "errors": []
@@ -39,12 +39,12 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "medium",
         "timeOfDay": "day",
-        "drawCalls": 107,
-        "triangles": 260960,
+        "drawCalls": 106,
+        "triangles": 260936,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 992,
+      "uniqueColors": 991,
       "brightFrac": 0.3413,
       "hudIssues": [],
       "regression": {
@@ -63,17 +63,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "medium",
         "timeOfDay": "day",
-        "drawCalls": 117,
-        "triangles": 270770,
+        "drawCalls": 116,
+        "triangles": 270746,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 1368,
+      "uniqueColors": 1366,
       "brightFrac": 0.4143,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.05,
+        "diffPct": 0.07,
         "warning": false
       },
       "errors": []
@@ -87,12 +87,12 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "medium",
         "timeOfDay": "night",
-        "drawCalls": 108,
-        "triangles": 260960,
+        "drawCalls": 107,
+        "triangles": 260936,
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 1468,
+      "uniqueColors": 1466,
       "brightFrac": 0.1056,
       "hudIssues": [],
       "regression": {
@@ -116,12 +116,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 784,
+      "uniqueColors": 782,
       "brightFrac": 0.4723,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.02,
+        "diffPct": 0,
         "warning": false
       },
       "errors": []
@@ -140,12 +140,12 @@
         "loadedTiles": 9,
         "activeBuildings": 2414
       },
-      "uniqueColors": 796,
+      "uniqueColors": 797,
       "brightFrac": 0.4227,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0,
         "warning": false
       },
       "errors": []
@@ -159,18 +159,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 131,
-        "triangles": 360853,
+        "drawCalls": 132,
+        "triangles": 360889,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 849,
-      "brightFrac": 0.3322,
+      "uniqueColors": 839,
+      "brightFrac": 0.3313,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 6.31,
-        "warning": true
+        "diffPct": 5.01,
+        "warning": false
       },
       "errors": []
     },
@@ -183,17 +183,17 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "day",
-        "drawCalls": 134,
-        "triangles": 360915,
+        "drawCalls": 133,
+        "triangles": 360891,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 561,
-      "brightFrac": 0.0467,
+      "uniqueColors": 567,
+      "brightFrac": 0.0469,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.44,
+        "diffPct": 0.31,
         "warning": false
       },
       "errors": []
@@ -207,18 +207,18 @@
         "regionId": "esenler-namik-kemal",
         "qualityTier": "high",
         "timeOfDay": "sunset",
-        "drawCalls": 130,
-        "triangles": 355337,
+        "drawCalls": 135,
+        "triangles": 360925,
         "loadedTiles": 25,
         "activeBuildings": 4159
       },
-      "uniqueColors": 1244,
+      "uniqueColors": 1253,
       "brightFrac": 0.0842,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 5.17,
-        "warning": false
+        "diffPct": 19.68,
+        "warning": true
       },
       "errors": []
     },
@@ -232,16 +232,16 @@
         "qualityTier": "high",
         "timeOfDay": "day",
         "drawCalls": 133,
-        "triangles": 260782,
+        "triangles": 260722,
         "loadedTiles": 24,
         "activeBuildings": 2811
       },
-      "uniqueColors": 845,
+      "uniqueColors": 847,
       "brightFrac": 0.841,
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0,
         "warning": false
       },
       "errors": []
@@ -284,7 +284,7 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 1342,
+      "uniqueColors": 1340,
       "brightFrac": 0.7782,
       "hudIssues": [],
       "regression": {
@@ -308,7 +308,7 @@
         "loadedTiles": 9,
         "activeBuildings": 1377
       },
-      "uniqueColors": 996,
+      "uniqueColors": 997,
       "brightFrac": 0.0213,
       "hudIssues": [],
       "regression": {
@@ -337,7 +337,7 @@
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0,
         "warning": false
       },
       "errors": []
@@ -361,7 +361,7 @@
       "hudIssues": [],
       "regression": {
         "hasReference": true,
-        "diffPct": 0.01,
+        "diffPct": 0,
         "warning": false
       },
       "errors": []
