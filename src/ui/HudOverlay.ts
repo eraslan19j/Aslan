@@ -60,6 +60,8 @@ export interface HudTelemetryView {
   vehicleCondition: number;
   /** Short spec line for the current car, e.g. "3982 cc V8 TT · 614 hp · 3.4 s". */
   vehicleSpecLine: string;
+  /** v0.9.0 — shown while the player is inside a garage's repair radius. */
+  nearRepairShop: boolean;
 }
 
 export interface HudCallbacks {
@@ -71,6 +73,8 @@ export interface HudCallbacks {
   onToggleVehicle: () => void;
   onCallTaxi: () => void;
   onHorn: () => void;
+  /** v0.9.0 — repair at the nearest garage (charged from cash). */
+  onRepairVehicle: () => void;
   onCycleCamera: () => void;
   onToggleAudio: () => void;
   onCycleDrivingMode: () => void;
@@ -165,6 +169,7 @@ export class HudOverlay {
   private readonly driftBtn: HTMLButtonElement;
   private readonly hornBtn: HTMLButtonElement;
   private readonly steerModeQuickBtn: HTMLButtonElement;
+  private readonly repairBtn: HTMLButtonElement;
   private readonly shiftDownBtn: HTMLButtonElement;
   private readonly shiftUpBtn: HTMLButtonElement;
   private readonly holdButtons: HTMLButtonElement[] = [];
@@ -407,7 +412,15 @@ export class HudOverlay {
     this.steerModeQuickBtn.textContent = '🎛';
     this.steerModeQuickBtn.addEventListener('click', () => this.callbacks.onCycleSteeringMode());
 
-    auxLeft.append(this.hornBtn, this.steerModeQuickBtn);
+    // v0.9.0 (D4) — appears only when a garage is in range.
+    this.repairBtn = document.createElement('button');
+    this.repairBtn.type = 'button';
+    this.repairBtn.className = 'touch-pad-btn touch-btn-small repair-hidden';
+    this.repairBtn.dataset.testid = 'touch-repair';
+    this.repairBtn.textContent = '🔧';
+    this.repairBtn.addEventListener('click', () => this.callbacks.onRepairVehicle());
+
+    auxLeft.append(this.hornBtn, this.steerModeQuickBtn, this.repairBtn);
 
     // Steering Mode 1: Crisp Left / Right Buttons
     this.steerButtonsWrap = document.createElement('div');
@@ -836,6 +849,7 @@ export class HudOverlay {
       this.updateHintLabel();
     }
     this.enterCarBtn.classList.toggle('touch-hidden', !view.nearVehicle);
+    this.repairBtn.classList.toggle('repair-hidden', !view.nearRepairShop || view.vehicleCondition >= 100);
     this.callTaxiBtn.classList.toggle('touch-hidden', view.nearVehicle);
 
     if (view.inVehicle) {

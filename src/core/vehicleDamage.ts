@@ -296,3 +296,66 @@ export function vehicleConditionPercent(state: VehicleDamageState): number {
   for (const id of PANEL_ORDER) sum += state.panels[id].health;
   return Math.round((sum / PANEL_ORDER.length) * 100);
 }
+
+/** v0.9.0 (D4) — where the player can pay to fix the car. */
+export interface RepairShop {
+  id: string;
+  x: number;
+  z: number;
+  nameTr: string;
+  nameEn: string;
+}
+
+/** Three fictional repair shops, reusing the existing landmark coordinate space. */
+export const REPAIR_SHOPS: readonly RepairShop[] = [
+  { id: 'shop-sanayi', x: 96, z: -74, nameTr: 'Sanayi Tamirci', nameEn: 'Industrial Garage' },
+  { id: 'shop-carsi', x: -58, z: 121, nameTr: 'Çarşı Kaportacı', nameEn: 'Bazaar Body Shop' },
+  { id: 'shop-sahil', x: 182, z: 40, nameTr: 'Sahil Oto Servis', nameEn: 'Coast Auto Service' },
+];
+
+export const REPAIR_INTERACT_DISTANCE_M = 9;
+
+/** Nearest shop within interaction range, or null. */
+export function findNearbyRepairShop(
+  x: number,
+  z: number,
+  shops: readonly RepairShop[] = REPAIR_SHOPS,
+): RepairShop | null {
+  let best: RepairShop | null = null;
+  let bestSq = REPAIR_INTERACT_DISTANCE_M * REPAIR_INTERACT_DISTANCE_M;
+  for (const s of shops) {
+    const dSq = (s.x - x) ** 2 + (s.z - z) ** 2;
+    if (dSq <= bestSq) {
+      bestSq = dSq;
+      best = s;
+    }
+  }
+  return best;
+}
+
+/**
+ * A wrecked car can still limp to a garage at this speed (GTA-style).
+ * Returns the effective top speed in m/s given the current damage.
+ */
+export function damagedTopSpeedMps(healthyTopSpeedMps: number, conditionPercent: number): number {
+  const c = clamp(conditionPercent / 100, 0, 1);
+  if (c >= 0.99) return healthyTopSpeedMps;
+  // 30 % of top speed when the car is a write-off, ramping back to full when healthy.
+  return healthyTopSpeedMps * (0.3 + 0.7 * c);
+}
+
+/** Money movement for a repair, clamped so the player can never go negative. */
+export interface RepairCharge {
+  affordable: boolean;
+  costTry: number;
+  balanceAfterTry: number;
+}
+
+export function chargeRepair(costTry: number, balanceTry: number): RepairCharge {
+  const cost = Math.max(0, Math.round(costTry));
+  const balance = Math.max(0, Math.round(balanceTry));
+  if (cost > balance) {
+    return { affordable: false, costTry: cost, balanceAfterTry: balance };
+  }
+  return { affordable: true, costTry: cost, balanceAfterTry: balance - cost };
+}

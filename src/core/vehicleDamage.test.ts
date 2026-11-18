@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyVehicleImpact,
+  chargeRepair,
   consumeDamageEvents,
   createDamageState,
+  damagedTopSpeedMps,
+  findNearbyRepairShop,
   PANEL_ORDER,
   pickPanelForContact,
+  REPAIR_INTERACT_DISTANCE_M,
   repairCostTry,
   repairVehicleDamage,
   updateVehicleCondition,
@@ -110,5 +114,44 @@ describe('v0.9.0 GTA-style Vehicle Damage (panels, dents, detached hood, glass)'
     consumeDamageEvents(state);
     expect(state.pendingImpacts.length).toBe(0);
     expect(state.pendingDetached.length).toBe(0);
+  });
+});
+
+describe('repair economy (v0.9.0 D4)', () => {
+  it('finds the nearest shop only inside interaction range', () => {
+    const shop = findNearbyRepairShop(96, -74);
+    expect(shop?.id).toBe('shop-sanayi');
+    expect(findNearbyRepairShop(96 + REPAIR_INTERACT_DISTANCE_M + 2, -74)).toBeNull();
+  });
+
+  it('prices scale with damage and are zero for a pristine car', () => {
+    const state = createDamageState('sedan');
+    expect(repairCostTry(state)).toBe(0);
+    applyVehicleImpact(state, 14, 0, 2.2, 0, -1, 0, 0, 0, 4.3, 1.84);
+    expect(repairCostTry(state)).toBeGreaterThan(0);
+  });
+
+  it('a write-off still limps at ~30 % of its top speed', () => {
+    expect(damagedTopSpeedMps(50, 100)).toBeCloseTo(50, 5);
+    expect(damagedTopSpeedMps(50, 0)).toBeCloseTo(15, 5);
+    expect(damagedTopSpeedMps(50, 50)).toBeGreaterThan(damagedTopSpeedMps(50, 20));
+  });
+
+  it('refuses a repair the player cannot afford', () => {
+    const poor = chargeRepair(410, 120);
+    expect(poor.affordable).toBe(false);
+    expect(poor.balanceAfterTry).toBe(120);
+  });
+
+  it('deducts exactly the cost when affordable', () => {
+    const ok = chargeRepair(410, 900);
+    expect(ok.affordable).toBe(true);
+    expect(ok.balanceAfterTry).toBe(490);
+  });
+
+  it('never charges a negative amount', () => {
+    const r = chargeRepair(-50, 100);
+    expect(r.costTry).toBe(0);
+    expect(r.balanceAfterTry).toBe(100);
   });
 });

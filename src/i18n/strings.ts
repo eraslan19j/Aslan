@@ -10,6 +10,9 @@ export interface UiStrings {
   buildingsLabel: string;
   /** v0.9.0 — crash damage readout. */
   damageLabel: string;
+  repairNoShop: string;
+  repairTooPoor: string;
+  repairDone: string;
   speedUnit: string;
   physicsReady: string;
   physicsLoading: string;
@@ -99,6 +102,9 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     tilesLabel: 'Karo',
     buildingsLabel: 'Bina',
     damageLabel: 'Hasar',
+    repairNoShop: 'Tamir için bir tamirciye yaklaş',
+    repairTooPoor: 'Paran yetmiyor',
+    repairDone: 'Araç tamir edildi',
     speedUnit: 'km/s',
     physicsReady: 'Fizik Hazır',
     physicsLoading: 'Fizik…',
@@ -191,6 +197,9 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
     tilesLabel: 'Tiles',
     buildingsLabel: 'Bldgs',
     damageLabel: 'Damage',
+    repairNoShop: 'Drive to a garage to repair',
+    repairTooPoor: 'Not enough cash',
+    repairDone: 'Vehicle repaired',
     speedUnit: 'km/h',
     physicsReady: 'Physics OK',
     physicsLoading: 'Physics…',

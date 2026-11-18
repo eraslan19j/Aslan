@@ -49,9 +49,12 @@ import {
 } from './core/vehicle';
 import {
   applyVehicleImpact,
+  chargeRepair,
   consumeDamageEvents,
   createDamageState,
+  findNearbyRepairShop,
   pickPanelForContact,
+  repairCostTry,
   repairVehicleDamage,
   updateVehicleCondition,
   vehicleConditionPercent,
@@ -192,7 +195,7 @@ interface GameDebugHandle {
   getCrashCount: () => number;
   /** v0.9.0 — current panel damage (0..100) and a full repair for the QA harness. */
   vehicleCondition: () => number;
-  repairVehicle: () => boolean;
+  repairVehicle: (force?: boolean) => boolean;
 }
 
 declare global {
@@ -595,10 +598,28 @@ async function bootstrap(): Promise<void> {
     }
   };
 
-  /** Where the nearest repair shop would be — always available, damage is never permanent. */
-  const repairPlayerVehicle = (): boolean => {
+  /**
+   * v0.9.0 (D4) — repair at a garage. Charged from `save.cash`; a wrecked car can
+   * always crawl to the nearest shop, so damage is never a dead end.
+   */
+  const repairPlayerVehicle = (force = false): boolean => {
     if (vehicleDamage.totalDamage < 1) return false;
+    const t = getStrings(save.locale);
+    const shop = findNearbyRepairShop(playerX, playerZ);
+    if (!shop && !force) {
+      hud.showToast(t.repairNoShop);
+      return false;
+    }
+    const cost = repairCostTry(vehicleDamage);
+    const charge = chargeRepair(cost, save.cash);
+    if (!charge.affordable) {
+      hud.showToast(`${t.repairTooPoor} (₺${cost})`);
+      return false;
+    }
+    save.cash = charge.balanceAfterTry;
+    applySave();
     repairVehicleDamage(vehicleDamage);
+    hud.showToast(`${t.repairDone} · ₺${cost}`);
     runtime.scene.syncPlayerDamage(
       vehicleDamage,
       playerVehicle.x,
@@ -1046,6 +1067,7 @@ async function bootstrap(): Promise<void> {
       onToggleVehicle: toggleVehicle,
       onCallTaxi: callTaxi,
       onHorn: triggerHorn,
+      onRepairVehicle: () => repairPlayerVehicle(),
       onCycleCamera: () => {
         cycleCameraView();
       },
@@ -1291,7 +1313,7 @@ async function bootstrap(): Promise<void> {
     getDiagnostics: buildDiagnosticsSnapshot,
     getCrashCount: () => crashLog.list().length,
     vehicleCondition: () => vehicleConditionPercent(vehicleDamage),
-    repairVehicle: () => repairPlayerVehicle(),
+    repairVehicle: (force = false) => repairPlayerVehicle(force),
   };
   window.__game = debugHandle;
 
@@ -1675,6 +1697,7 @@ async function bootstrap(): Promise<void> {
         activeBuildings: tel.activeBuildings,
         vehicleCondition: vehicleConditionPercent(vehicleDamage),
         vehicleSpecLine: inVehicle ? formatVehicleSpecLine(playerVehicle.archetype) : '',
+        nearRepairShop: findNearbyRepairShop(playerX, playerZ) !== null,
         physicsReady,
         qualityTier: save.qualityTier,
         regionName: save.locale === 'tr' ? runtime.meta.nameTr : runtime.meta.nameEn,
