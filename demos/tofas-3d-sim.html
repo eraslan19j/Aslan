@@ -1718,16 +1718,22 @@ function buildSilhouette() {
    bring the total width up to 1.65 m */
 const BODY_W = CAR.W - 0.115;
 const shellGeo = new THREE.ExtrudeGeometry(buildSilhouette(), {
-  depth: BODY_W, bevelEnabled: true,
-  bevelThickness: 0.018, bevelSize: 0.020, bevelSegments: 2,
-  curveSegments: 12,
+  /* A rectangular extrusion gives every edge of the body a hard 90° corner —
+     sill, shoulder, nose and tail all at once.  Real panels are radiused
+     everywhere and that is what makes light roll off them instead of sitting
+     flat.  A wider, better-segmented bevel rounds the whole perimeter without
+     moving the silhouette: 46 mm across, four segments, so the highlight has
+     somewhere to break. */
+  depth: BODY_W - 0.052, bevelEnabled: true,
+  bevelThickness: 0.026, bevelSize: 0.046, bevelSegments: 4,
+  curveSegments: 16,
 });
 /* ExtrudeGeometry lays the shape in the XY plane and extrudes along +Z.
    Our silhouette is authored in (z, y) and must be extruded across X, so:
      rotateY(-90°) maps  x→-z,  z→x   (silhouette z becomes world x)
    then shift the result so the extrusion is centred on the car's axis. */
 shellGeo.rotateY(-Math.PI / 2);
-shellGeo.translate(BODY_W / 2, 0, 0);
+shellGeo.translate((BODY_W - 0.052) / 2, 0, 0);
 shellGeo.computeVertexNormals();
 
 const shell = new THREE.Mesh(shellGeo, matPaint);
@@ -1999,7 +2005,8 @@ const doorGroups = [];
 {
   /* the silhouette closes the nose at Z_NOSE - 0.045; sit the fascia just
      proud of that or the grille and lamps end up inside the shell */
-  const gz = Z_NOSE - 0.022;
+  /* the bevel now reaches Z_NOSE - 0.046 at the nose; sit the fascia proud */
+  const gz = Z_NOSE + 0.004;
   const gy = Y_SCUTTLE - 0.175;
 
   /* the grille opening: a wide black recess with horizontal chrome slats */
@@ -2029,7 +2036,7 @@ const headlights = [];
   const bezelGeo = new THREE.BoxGeometry(0.355, 0.172, 0.012);
   const y = Y_SCUTTLE - 0.175;
   /* same as the grille — on the nose, not behind it */
-  const z = Z_NOSE - 0.028;
+  const z = Z_NOSE - 0.004;
 
   [-1, 1].forEach((side) => {
     const bez = new THREE.Mesh(bezelGeo, matChrome);
@@ -2059,7 +2066,7 @@ const taillights = [];
   const bezelGeo = new THREE.BoxGeometry(0.500, 0.208, 0.014);
   const y = Y_DECK - 0.185;
   /* -Z is rearward, so proud of the panel means a SMALLER z, not a larger one */
-  const z = REAR_FACE - 0.010;
+  const z = REAR_FACE - 0.036;
 
   [-1, 1].forEach((side) => {
     const bez = new THREE.Mesh(bezelGeo, matTrim);
