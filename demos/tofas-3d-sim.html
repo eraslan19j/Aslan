@@ -38,8 +38,9 @@
     transition:opacity .7s .2s}
   #hud.on{opacity:1}
 
-  #cluster{position:absolute;right:max(14px,env(safe-area-inset-right));
-    bottom:max(14px,env(safe-area-inset-bottom));width:180px;height:180px}
+  #cluster{position:absolute;right:max(12px,env(safe-area-inset-right));
+    bottom:calc(max(14px,env(safe-area-inset-bottom)) + 146px);
+    width:150px;height:150px}
   #cluster svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
   .dial-bg{fill:rgba(8,11,16,.7);stroke:rgba(255,255,255,.09);stroke-width:1}
   #spdArc,#rpmArc{fill:none;stroke-linecap:round}
@@ -88,14 +89,17 @@
   .pad.hit{background:rgba(232,192,90,.3);border-color:rgba(232,192,90,.8);transform:scale(.95)}
   .pad svg{width:46%;height:46%;fill:none;stroke:rgba(240,246,252,.7);
     stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-  #padL{left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));
-    width:84px;height:84px}
-  #padR{right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));
-    width:84px;height:84px}
-  #padGas{right:calc(max(16px,env(safe-area-inset-right)) + 96px);
-    bottom:max(16px,env(safe-area-inset-bottom));width:64px;height:64px}
-  #padBrake{right:calc(max(16px,env(safe-area-inset-right)) + 96px);
-    bottom:calc(max(16px,env(safe-area-inset-bottom)) + 72px);width:64px;height:64px}
+  /* Steering pads sit low on the left; the throttle/brake stack sits low on
+     the right.  The gauge cluster is moved ABOVE them so nothing overlaps —
+     on a 360 px-wide phone the cluster used to sit underneath the pedals. */
+  #padL{left:max(14px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));
+    width:78px;height:78px}
+  #padR{right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));
+    width:78px;height:78px}
+  #padGas{right:calc(max(14px,env(safe-area-inset-right)) + 88px);
+    bottom:max(14px,env(safe-area-inset-bottom));width:60px;height:60px}
+  #padBrake{right:calc(max(14px,env(safe-area-inset-right)) + 88px);
+    bottom:calc(max(14px,env(safe-area-inset-bottom)) + 68px);width:60px;height:60px}
   #padHB{left:calc(max(16px,env(safe-area-inset-left)) + 92px);
     bottom:calc(max(16px,env(safe-area-inset-bottom)) + 6px);width:52px;height:52px;
     font:600 8px/1 ui-monospace,monospace;letter-spacing:.08em;color:#9aa5b5}
@@ -133,9 +137,22 @@
   #help.dim{opacity:0}
   #help b{color:#b9c3d0;font-weight:600}
   @media (max-width:820px){ #help{display:none} }
-  @media (max-height:440px){
-    #cluster{width:124px;height:124px} #minimap{width:92px;height:92px}
-    #padL,#padR{width:70px;height:70px}
+  @media (max-height:520px){
+    #cluster{width:112px;height:112px;
+      bottom:calc(max(10px,env(safe-area-inset-bottom)) + 122px)}
+    #minimap{width:84px;height:84px}
+    #padL,#padR{width:66px;height:66px}
+    #padGas,#padBrake{width:52px;height:52px}
+    #padGas{right:calc(max(10px,env(safe-area-inset-right)) + 76px);
+      bottom:max(10px,env(safe-area-inset-bottom))}
+    #padBrake{right:calc(max(10px,env(safe-area-inset-right)) + 76px);
+      bottom:calc(max(10px,env(safe-area-inset-bottom)) + 58px)}
+  }
+  /* portrait phones: gauges at the top-right, clear of everything */
+  @media (max-width:560px) and (orientation:portrait){
+    #cluster{width:126px;height:126px;top:calc(max(12px,env(safe-area-inset-top)) + 52px);
+      bottom:auto}
+    #minimap{width:96px;height:96px}
   }
   #camLabel{position:fixed;left:50%;top:max(58px,calc(env(safe-area-inset-top) + 44px));
     transform:translateX(-50%);z-index:24;font:600 9px/1 ui-monospace,monospace;
@@ -289,8 +306,8 @@ const CFG = {
   FINAL_DRIVE: 4.10,
   DRIVELINE_EFF: 0.91,
   DIFF_LOCK: 0.55,
-  AUTO_UP: 4900,
-  AUTO_DOWN: 1900,
+  AUTO_UP: 4200,
+  AUTO_DOWN: 1700,
   SHIFT_TIME: 0.24,
 
   BRAKE_TORQUE: 2500,
@@ -1243,647 +1260,804 @@ const texRoof = canvasTex(64, (c, S) => {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   11.  CAR MODEL  —  1980s Turkish family sedan
+   11.  CAR MODEL  —  Tofaş Şahin / Fiat 131 (1980s Turkish family sedan)
    ══════════════════════════════════════════════════════════════════════════
    Model-space convention, used everywhere from here on:
 
         +Z = forward (nose)      +X = left      +Y = up
         origin = centre of mass, which sits COM_Y above the wheel centres
 
-   Real-world targets:  4.37 m long · 1.65 m wide · 1.39 m tall · 2.46 m
-   wheelbase · 1.33 m track · 13-inch steel wheels with chrome hubcaps.
+   The real car, measured off a side-on photograph and the published figures:
 
-   Nothing here is a texture on a box: the body is an extrusion of the side
-   silhouette, the glasshouse is its own set of panes, and every part that
-   has to move, open or light up is a separate mesh.
+        length 4.37 m · width 1.65 m · height 1.36 m
+        wheelbase 2.46 m · track 1.33 m
+        ground clearance 0.18 m · belt line 0.95 m
+        roof 1.36 m · scuttle 0.88 m · boot deck 0.93 m
+
+   Wheel contact patches sit at y = -0.555, so every real-world height h in
+   metres maps to model space as  y = h - 0.555.
+
+   What makes the shape read as a 131 rather than a generic box:
+     · a long glasshouse with THIN pillars — the car is mostly window
+     · a bonnet that slopes DOWN toward the nose, not a flat slab
+     · a short, high boot deck
+     · black plastic bumpers (not chrome) with a body-colour rub strip
+     · the C-pillar kinks forward at the base, so the rear screen is wide
+
+   Everything that has to move, open or light up is a separate mesh.
    ══════════════════════════════════════════════════════════════════════════ */
 step(48, 'araç modelleniyor…');
 
-const PAINT = 0xe9e3d2;        // ivory — a very common Şahin colour
-const BODY_W = 1.52;   // shell width; doors and trim bring the car to 1.65
-const HALF_BODY = BODY_W / 2;
-/* Heights are measured up from the wheel contact patch, which sits at
-   y = -0.555 in model space, so a real-world figure of 1.39 m becomes 0.835. */
-const Y_GROUND = -0.555;       // contact patch
-const Y_SILL = -0.245;         // bottom of the painted body (0.31 m up)
-const Y_FLOOR = Y_SILL;
-const Y_BELT = 0.395;          // window sill / belt line  (0.95 m up)
-const Y_SCUTTLE = 0.315;       // base of the windscreen    (0.87 m up)
-const Y_DECK = 0.365;          // boot lid                  (0.92 m up)
-const Y_BONNET = 0.330;        // bonnet                    (0.885 m up)
-const Y_ROOF = 0.835;          // roof                      (1.39 m up)
-const Z_NOSE = 2.0;
-const Z_TAIL = -2.05;
-const AXLE_F = CFG.WHEELBASE * 0.5;
-const AXLE_R = -CFG.WHEELBASE * 0.5;
-const ARCH_R = 0.455;
-const BODY_L_HALF = 2.19;
+/* ── dimensions, in metres above the contact patch ───────────────────────── */
+const CAR = {
+  L: 4.37, W: 1.65, H: 1.36,
+  WB: CFG.WHEELBASE,
+  TRACK: CFG.TRACK,
+  nose: 2.115,          // z of the front bumper face
+  tail: -2.255,         // z of the rear bumper face
+  sillH: 0.175,         // bottom of the painted body
+  beltH: 0.95,          // window sill
+  scuttleH: 0.88,       // base of the windscreen
+  bonnetH: 0.885,       // bonnet at the scuttle
+  bonnetNoseH: 0.80,    // bonnet at the nose (it slopes down)
+  deckH: 0.93,          // boot lid
+  roofH: 1.36,
+  archR: 0.44,          // wheel arch radius
+};
 
+/* model-space Y for each of those heights */
+const YG = (h) => h - 0.555;
+const Y_SILL     = YG(CAR.sillH);
+const Y_BELT     = YG(CAR.beltH);
+const Y_SCUTTLE  = YG(CAR.scuttleH);
+const Y_BONNET   = YG(CAR.bonnetH);
+const Y_BONNET_N = YG(CAR.bonnetNoseH);
+const Y_DECK     = YG(CAR.deckH);
+const Y_ROOF     = YG(CAR.roofH);
+const Y_ARCH     = YG(CAR.sillH);
+/* the physics chassis check refers to the body underside by this name */
+const Y_FLOOR = Y_SILL;
+
+const HALF_W   = CAR.W / 2;
+const Z_NOSE   = CAR.nose;
+const Z_TAIL   = CAR.tail;
+const AXLE_F   = CFG.WHEELBASE * 0.5;
+const AXLE_R   = -CFG.WHEELBASE * 0.5;
+const ARCH_R   = CAR.archR;
+
+/* ── materials ───────────────────────────────────────────────────────────── */
+/* ivory is the signature Şahin colour; the paint is a single-coat solid with
+   a clearcoat on top so it catches a highlight along the shoulder line */
+const PAINT = 0xe8e2d0;
+const matPaint = new THREE.MeshPhysicalMaterial({
+  color: PAINT, roughness: 0.34, metalness: 0.02,
+  clearcoat: 0.55, clearcoatRoughness: 0.28,
+});
+const matTrim   = new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: 0.62 });
+const matBlack  = new THREE.MeshStandardMaterial({ color: 0x101113, roughness: 0.85 });
+const matBumper = new THREE.MeshStandardMaterial({ color: 0x232427, roughness: 0.72 });
+const matGlass  = new THREE.MeshPhysicalMaterial({
+  color: 0x1c2530, roughness: 0.055, metalness: 0.0,
+  transparent: true, opacity: 0.66,
+  clearcoat: 1.0, clearcoatRoughness: 0.02, side: THREE.DoubleSide,
+});
+const matChrome = new THREE.MeshStandardMaterial({ color: 0xcfd6de, roughness: 0.19, metalness: 0.95 });
+const matSteel  = new THREE.MeshStandardMaterial({ color: 0x9aa2ac, roughness: 0.44, metalness: 0.85 });
+const matRubber = new THREE.MeshStandardMaterial({ color: 0x16171a, roughness: 0.94 });
+const matSeat   = new THREE.MeshStandardMaterial({ color: 0x4a4038, roughness: 0.97 });
+const matDash   = new THREE.MeshStandardMaterial({ color: 0x25211d, roughness: 0.96 });
+const matSeam   = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.42 });
+const matHeadlamp = new THREE.MeshPhysicalMaterial({
+  color: 0xf4f1e6, roughness: 0.06, metalness: 0.06,
+  emissive: 0x4a4438, emissiveIntensity: 0.35, clearcoat: 1.0,
+});
+const matAmber  = new THREE.MeshPhysicalMaterial({ color: 0xc4701a, roughness: 0.22, clearcoat: 0.7 });
+const matTailLens = new THREE.MeshPhysicalMaterial({
+  color: 0x8b1d14, roughness: 0.15,
+  emissive: 0x2a0704, emissiveIntensity: 0.22, clearcoat: 0.8,
+});
+
+/* ── the root nodes ──────────────────────────────────────────────────────── */
 const carRoot = new THREE.Group();
 scene.add(carRoot);
+
+/* carVisual holds the sprung body: everything that rolls, pitches and squats */
 const carVisual = new THREE.Group();
 carRoot.add(carVisual);
 
-/* ── materials ───────────────────────────────────────────────────────────── */
-const matPaint = new THREE.MeshPhysicalMaterial({
-  color: PAINT, roughness: 0.30, metalness: 0.05,
-  clearcoat: 0.9, clearcoatRoughness: 0.14,
-});
-const matChrome = new THREE.MeshStandardMaterial({ color: 0xdfe4ea, roughness: 0.13, metalness: 1.0 });
-const matGlass = new THREE.MeshPhysicalMaterial({
-  color: 0x27313d, roughness: 0.06, metalness: 0.0,
-  transparent: true, opacity: 0.62,
-  clearcoat: 1.0, clearcoatRoughness: 0.03, side: THREE.DoubleSide,
-});
-const matRubber = new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 0.95 });
-const matSteel = new THREE.MeshStandardMaterial({ color: 0x9aa2ac, roughness: 0.42, metalness: 0.9 });
-const matInterior = new THREE.MeshStandardMaterial({ color: 0x2b2723, roughness: 0.94 });
-const matSeat = new THREE.MeshStandardMaterial({ color: 0x5a4c3d, roughness: 0.96 });
-const matBlack = new THREE.MeshStandardMaterial({ color: 0x131519, roughness: 0.78 });
-const matSeam = new THREE.MeshBasicMaterial({ color: 0x4a443a });
-const matHeadlight = new THREE.MeshPhysicalMaterial({
-  color: 0xf2efe4, roughness: 0.05, metalness: 0.10,
-  /* a faint self-illumination so the lamp reads as glass even by daylight */
-  emissive: 0x6a6250, emissiveIntensity: 0.55, clearcoat: 1.0,
-});
-const matAmber = new THREE.MeshStandardMaterial({ color: 0xd97a1f, roughness: 0.28 });
-const matTail = () => new THREE.MeshPhysicalMaterial({
-  color: 0x8e1f16, roughness: 0.18, metalness: 0.0,
-  emissive: 0x3a0a04, emissiveIntensity: 0.25, clearcoat: 0.85,
-});
+/* ══════════════════════════════════════════════════════════════════════════
+   THE SHELL — extruded side silhouette with the wheel arches cut out
+   ══════════════════════════════════════════════════════════════════════════
+   The silhouette is drawn from the rear bottom corner, anticlockwise over
+   the roof and down the nose, then back along the floor.  Walking the floor
+   gives the two arch notches somewhere to live: `absarc` with clockwise=false
+   sweeps a half-circle UP into the body, which is exactly a wheel arch.
+   ══════════════════════════════════════════════════════════════════════════ */
+function buildSilhouette() {
+  const sh = new THREE.Shape();
 
-/* ── BODY: extrude the side silhouette across the car's width ─────────────── */
-const bodyShape = new THREE.Shape();
-bodyShape.moveTo(Z_TAIL, Y_SILL);         // rear bottom
-bodyShape.lineTo(Z_TAIL, Y_DECK - 0.02);  // vertical rear panel, boot height
-bodyShape.lineTo(-1.96, Y_DECK);          // boot lid
-bodyShape.lineTo(-1.50, Y_DECK + 0.015);  // base of the rear screen
-bodyShape.lineTo(-0.80, Y_ROOF);          // C-pillar  (raked, 131-like)
-bodyShape.lineTo(-0.24, Y_ROOF);          // roof
-bodyShape.lineTo(0.52, Y_ROOF);           // roof front edge
-bodyShape.lineTo(0.94, Y_SCUTTLE);        // windscreen base  (short bonnet)
-bodyShape.lineTo(1.56, Y_BONNET);         // bonnet
-bodyShape.lineTo(1.94, Y_BONNET);         // bonnet nose
-bodyShape.quadraticCurveTo(Z_NOSE, Y_BONNET - 0.012, Z_NOSE, Y_BONNET - 0.085);
-bodyShape.lineTo(Z_NOSE, Y_SCUTTLE - 0.10);  // grille panel
-bodyShape.lineTo(1.97, Y_SILL);           // front valance
-bodyShape.lineTo(Z_TAIL, Y_SILL);
-bodyShape.closePath();
-
-/* ── arch cut-outs ─────────────────────────────────────────────────────────
-   The silhouette is a closed loop; carving a half-disc out of the bottom
-   edge at each axle gives the wheels somewhere to live.  Without this the
-   paint runs straight over the tyres and the car looks like it is floating.
-
-   The path is walked from the rear-bottom corner forwards, so the notches
-   are inserted in that order.                                              */
-const SHAPE_BOTTOM = Y_FLOOR;
-const archCut = new THREE.Shape();
-archCut.absarc(0, 0, ARCH_R, 0, Math.PI, false);
-
-/* rebuild the silhouette with the two arches subtracted */
-const bodyShape2 = new THREE.Shape();
-bodyShape2.moveTo(Z_TAIL, SHAPE_BOTTOM);
-bodyShape2.lineTo(Z_TAIL, Y_DECK - 0.02);
-bodyShape2.lineTo(-1.96, Y_DECK);
-bodyShape2.lineTo(-1.50, Y_DECK + 0.015);
-bodyShape2.lineTo(-0.80, Y_ROOF);
-bodyShape2.lineTo(-0.24, Y_ROOF);
-bodyShape2.lineTo(0.52, Y_ROOF);
-bodyShape2.lineTo(0.94, Y_SCUTTLE);
-bodyShape2.lineTo(1.56, Y_BONNET);
-bodyShape2.lineTo(1.94, Y_BONNET);
-bodyShape2.quadraticCurveTo(Z_NOSE, Y_BONNET - 0.012, Z_NOSE, Y_BONNET - 0.085);
-bodyShape2.lineTo(Z_NOSE, Y_SCUTTLE - 0.10);
-bodyShape2.lineTo(1.97, Y_SILL);
-/* now run back along the floor, cutting an arch at each axle */
-bodyShape2.lineTo(AXLE_F + ARCH_R * 0.92, Y_FLOOR);
-bodyShape2.absarc(AXLE_F, Y_FLOOR, ARCH_R * 0.92, 0, Math.PI, true);
-bodyShape2.lineTo(AXLE_R + ARCH_R * 0.92, Y_FLOOR);
-bodyShape2.absarc(AXLE_R, Y_FLOOR, ARCH_R * 0.92, 0, Math.PI, true);
-bodyShape2.lineTo(Z_TAIL, SHAPE_BOTTOM);
-bodyShape2.closePath();
-
-const bodyGeo = new THREE.ExtrudeGeometry(bodyShape2, {
-  depth: BODY_W - 0.08,
-  bevelEnabled: true,
-  bevelThickness: 0.026,
-  bevelSize: 0.026,
-  bevelSegments: 2,
-  curveSegments: 8,
-});
-/* The shape is drawn in XY (longitudinal, vertical) and extruded along +Z.
-   rotateY(-90°) maps shape-X → world Z and extrusion → world -X, so after
-   the rotation the slab runs from x = -depth to x = 0; centring it on X puts
-   the body squarely on the car's axis.  A tiny extra nudge on Z lines the
-   extrusion up with the model's own centreline. */
-bodyGeo.rotateY(-Math.PI / 2);
-bodyGeo.translate((BODY_W - 0.08) / 2, 0, 0);
-bodyGeo.computeBoundingBox();
-bodyGeo.translate(0, 0, -(bodyGeo.boundingBox.min.z + bodyGeo.boundingBox.max.z) / 2);
-bodyGeo.computeVertexNormals();
-
-const bodyMesh = new THREE.Mesh(bodyGeo, matPaint);
-bodyMesh.castShadow = true;
-bodyMesh.receiveShadow = true;
-carVisual.add(bodyMesh);
-
-/* ── rocker / lower body: fills the gap between the sill and the wheels ─── */
-{
-  /* a shallow box tucked just inside the body sides, running the length of
-     the wheelbase and reaching down to the top of the wheels */
-  const rocker = new THREE.Mesh(
-    new THREE.BoxGeometry(BODY_W - 0.36, 0.10, CFG.WHEELBASE - 0.10),
-    matPaint
-  );
-  /* reach down to just above the wheel centre line, the way a rocker box does */
-  rocker.position.set(0, Y_FLOOR - 0.035, -0.05);
-  rocker.castShadow = true;
-  rocker.receiveShadow = true;
-  carVisual.add(rocker);
-
-  /* front and rear valance panels below the bumpers */
-  [-1, 1].forEach((side) => {
-    const v = new THREE.Mesh(
-      new THREE.BoxGeometry(BODY_W - 0.14, 0.16, 0.10),
-      new THREE.MeshStandardMaterial({ color: 0x232326, roughness: 0.9 })
-    );
-    v.position.set(0, Y_FLOOR - 0.04, side * (BODY_L_HALF - 0.10));
-    carVisual.add(v);
-  });
-
-  /* inner arch liners so you cannot see through the wheel wells */
-  [AXLE_F, AXLE_R].forEach((az) => {
-    [-1, 1].forEach((side) => {
-      const liner = new THREE.Mesh(
-        new THREE.CylinderGeometry(ARCH_R - 0.015, ARCH_R - 0.015, 0.10, 12, 1, true, 0, Math.PI),
-        new THREE.MeshStandardMaterial({ color: 0x2b2926, roughness: 0.95, side: THREE.DoubleSide })
-      );
-      liner.rotation.z = Math.PI / 2;   // cylinder axis along X, radius in YZ
-      liner.position.set(side * (BODY_W / 2 - 0.14), Y_FLOOR + 0.02, az);
-      carVisual.add(liner);
-    });
-  });
+  /* ── the LOWER BODY only — sill to belt line ────────────────────────────
+     The greenhouse is built from separate pillars, glass and roof panels.
+     Extruding the full outline would produce a solid block up to the roof
+     and the glass would be sealed inside it, which is exactly what made the
+     first attempt look like a moulded slab rather than a car.            */
+  sh.moveTo(Z_TAIL + 0.115, Y_SILL);          // rear bumper tuck, low
+  sh.lineTo(Z_TAIL + 0.09, Y_DECK - 0.055);   // rear panel, rising
+  sh.lineTo(Z_TAIL + 0.055, Y_DECK);          // boot lip
+  sh.lineTo(-1.45, Y_DECK + 0.004);           // boot lid — short and flat
+  sh.lineTo(-1.30, Y_BELT);                   // up onto the belt line
+  sh.lineTo(0.30, Y_BELT + 0.004);            // door tops, very slightly rising
+  sh.lineTo(0.615, Y_BELT);                   // belt line meets the A-pillar
+  sh.lineTo(0.645, Y_SCUTTLE);                // scuttle / wiper panel
+  sh.lineTo(0.98, Y_SCUTTLE - 0.002);
+  sh.lineTo(1.86, Y_BONNET_N);                // bonnet, sloping DOWN to the nose
+  sh.quadraticCurveTo(Z_NOSE - 0.035, Y_BONNET_N - 0.006,
+                      Z_NOSE - 0.045, Y_BONNET_N - 0.055);  // nose rounds off
+  sh.lineTo(Z_NOSE - 0.05, Y_SCUTTLE - 0.295); // grille panel
+  sh.lineTo(Z_NOSE - 0.075, Y_SILL + 0.02);    // front valance
+  sh.lineTo(AXLE_F + ARCH_R * 0.96, Y_SILL);
+  sh.absarc(AXLE_F, Y_SILL, ARCH_R * 0.96, 0, Math.PI, true);    // front arch
+  sh.lineTo(AXLE_R + ARCH_R * 0.96, Y_SILL);
+  sh.absarc(AXLE_R, Y_SILL, ARCH_R * 0.96, 0, Math.PI, true);    // rear arch
+  sh.lineTo(Z_TAIL + 0.115, Y_SILL);
+  sh.closePath();
+  return sh;
 }
 
-/* ── wheel arch lips: half-tori on the body sides ────────────────────────── */
-[AXLE_F, AXLE_R].forEach((az) => {
-  [-1, 1].forEach((side) => {
-    const lip = new THREE.Mesh(
-      new THREE.TorusGeometry(ARCH_R, 0.028, 5, 14, Math.PI),
-      new THREE.MeshStandardMaterial({ color: 0xd3cbb8, roughness: 0.5 })
-    );
-    lip.position.set(side * (HALF_BODY - 0.005), Y_FLOOR + 0.05, az);
-    lip.rotation.y = Math.PI / 2;
-    lip.castShadow = true;
-    carVisual.add(lip);
-  });
+/* the shell is slightly narrower than the car: the doors sit proud of it and
+   bring the total width up to 1.65 m */
+const BODY_W = CAR.W - 0.115;
+const shellGeo = new THREE.ExtrudeGeometry(buildSilhouette(), {
+  depth: BODY_W, bevelEnabled: true,
+  bevelThickness: 0.018, bevelSize: 0.020, bevelSegments: 2,
+  curveSegments: 12,
 });
+/* ExtrudeGeometry lays the shape in the XY plane and extrudes along +Z.
+   Our silhouette is authored in (z, y) and must be extruded across X, so:
+     rotateY(-90°) maps  x→-z,  z→x   (silhouette z becomes world x)
+   then shift the result so the extrusion is centred on the car's axis. */
+shellGeo.rotateY(-Math.PI / 2);
+shellGeo.translate(BODY_W / 2, 0, 0);
+shellGeo.computeVertexNormals();
 
-/* ── DOORS: separate meshes sitting proud of the body with real shut lines ─ */
-const doorGroups = [];
-[-1, 1].forEach((side) => {
-  const x = side * (HALF_BODY - 0.012);
+const shell = new THREE.Mesh(shellGeo, matPaint);
+shell.castShadow = true;
+shell.receiveShadow = true;
+carVisual.add(shell);
 
-  /* The door skin runs from the sill up to the belt line and STOPS there —
-     anything taller hides the side glass and the car reads as a slab. */
-  const DOOR_H = Y_BELT - Y_SILL;          // 0.64
-  const DOOR_Y = Y_SILL + DOOR_H * 0.5;    // 0.075
-
-  /* front door: from the A-pillar to the B-pillar */
-  const fDoor = new THREE.Mesh(new THREE.BoxGeometry(0.035, DOOR_H, 1.06), matPaint);
-  fDoor.position.set(x, DOOR_Y, 0.06);
-  fDoor.castShadow = true;
-  carVisual.add(fDoor);
-  doorGroups.push(fDoor);
-
-  /* rear door */
-  const rDoor = new THREE.Mesh(new THREE.BoxGeometry(0.035, DOOR_H, 0.98), matPaint);
-  rDoor.position.set(x, DOOR_Y, -0.94);
-  rDoor.castShadow = true;
-  carVisual.add(rDoor);
-  doorGroups.push(rDoor);
-
-  /* shut lines: thin recessed dark strips at the door edges */
-  [0.59, -0.47, -1.44, -1.98].forEach((z) => {
-    const seam = new THREE.Mesh(new THREE.BoxGeometry(0.008, DOOR_H - 0.02, 0.012), matSeam);
-    seam.position.set(x + side * 0.019, DOOR_Y, z);
-    carVisual.add(seam);
-  });
-
-  /* handles: just below the belt line, where a hand actually goes */
-  [0.16, -1.14].forEach((z) => {
-    const h = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.036, 0.20), matChrome);
-    h.position.set(x + side * 0.024, Y_BELT - 0.075, z);
-    carVisual.add(h);
-  });
-
-  /* the chrome rubbing strip along the flank, at mid-door height */
-  const strip = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.026, 3.50), matChrome);
-  strip.position.set(x + side * 0.021, Y_SILL + DOOR_H * 0.42, -0.70);
-  carVisual.add(strip);
-
-  /* Sill / rocker: a body-coloured skirt running between the arches.  This
-     is what closes the visual gap between the painted shell and the tyres. */
-  const sill = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.155, 2.36), matPaint);
-  sill.position.set(x + side * 0.004, Y_FLOOR - 0.055, -0.05);
-  sill.castShadow = true;
-  carVisual.add(sill);
-
-
-});
-
-/* ── GLASSHOUSE: real panes with wind angles ─────────────────────────────── */
-/* windscreen */
+/* ── the roof: a slightly domed panel spanning the cabin ───────────────────── */
 {
-  const hw = 0.700;
+  const ROOF_W = BODY_W - 0.012;
+  const roofV = new Float32Array([
+    -ROOF_W / 2, Y_ROOF - 0.020, -0.735,
+     ROOF_W / 2, Y_ROOF - 0.020, -0.735,
+     ROOF_W / 2, Y_ROOF - 0.020,  0.315,
+    -ROOF_W / 2, Y_ROOF - 0.020,  0.315,
+    /* a shallow crown, 18 mm higher in the middle */
+    -ROOF_W / 2, Y_ROOF + 0.008, -0.210,
+     ROOF_W / 2, Y_ROOF + 0.008, -0.210,
+  ]);
+  const roofGeo = new THREE.BufferGeometry();
+  roofGeo.setAttribute('position', new THREE.BufferAttribute(roofV, 3));
+  roofGeo.setIndex([
+    0, 1, 5, 0, 5, 4,      // left half of the crown
+    4, 5, 2, 4, 2, 3,      // right half
+  ]);
+  roofGeo.computeVertexNormals();
+  const roof = new THREE.Mesh(roofGeo, matPaint);
+  roof.material = matPaint;
+  roof.castShadow = true;
+  carVisual.add(roof);
+
+  /* the roof underside, so the headlining is not floating in the open */
+  const under = new THREE.Mesh(
+    new THREE.BoxGeometry(ROOF_W - 0.02, 0.012, 1.02), matDash);
+  under.position.set(0, Y_ROOF - 0.030, -0.210);
+  carVisual.add(under);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE GLASSHOUSE
+   ══════════════════════════════════════════════════════════════════════════
+   The side glass is a single wide pane per side, inset from the shell, with
+   thin painted pillars laid over it.  That is how the real car reads: from
+   most angles you see window, not metal.
+   ══════════════════════════════════════════════════════════════════════════ */
+const GLASS_X = HALF_W - 0.075;         // just inside the door skin
+const glassPanes = [];
+
+/* helper: a flat quad in the X plane, given its four (z,y) corners */
+function paneGeometry(corners) {
   const v = new Float32Array([
-    -hw, Y_SCUTTLE + 0.005, 0.935,
-     hw, Y_SCUTTLE + 0.005, 0.935,
-     hw, Y_ROOF - 0.008, 0.515,
-    -hw, Y_ROOF - 0.008, 0.515,
+    0, corners[0][1], corners[0][0],
+    0, corners[1][1], corners[1][0],
+    0, corners[2][1], corners[2][0],
+    0, corners[3][1], corners[3][0],
   ]);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(v, 3));
   g.setIndex([0, 1, 2, 0, 2, 3]);
   g.computeVertexNormals();
-  carVisual.add(new THREE.Mesh(g, matGlass));
+  return g;
 }
+
+[-1, 1].forEach((side) => {
+  /* one long side pane from the A-pillar to the C-pillar, split by a thin
+     B-pillar so it reads as two doors */
+  const fwd = paneGeometry([
+    [0.585, Y_BELT],
+    [0.605, Y_ROOF - 0.030],
+    [-0.145, Y_ROOF - 0.026],
+    [-0.145, Y_BELT],
+  ]);
+  const fm = new THREE.Mesh(fwd, matGlass);
+  fm.position.x = side * GLASS_X;
+  carVisual.add(fm);
+  glassPanes.push(fm);
+
+  const aft = paneGeometry([
+    [-0.215, Y_BELT],
+    [-0.215, Y_ROOF - 0.026],
+    [-0.735, Y_ROOF - 0.030],
+    [-0.845, Y_DECK + 0.055],
+  ]);
+  const am = new THREE.Mesh(aft, matGlass);
+  am.position.x = side * GLASS_X;
+  carVisual.add(am);
+  glassPanes.push(am);
+});
+
+/* windscreen: a single pane from the scuttle up to the header rail */
+{
+  const hw = HALF_W - 0.115;
+  const wv = new Float32Array([
+    -hw, Y_SCUTTLE + 0.006, 0.645,
+     hw, Y_SCUTTLE + 0.006, 0.645,
+     hw, Y_ROOF - 0.030, 0.315,
+    -hw, Y_ROOF - 0.030, 0.315,
+  ]);
+  const wg = new THREE.BufferGeometry();
+  wg.setAttribute('position', new THREE.BufferAttribute(wv, 3));
+  wg.setIndex([0, 1, 2, 0, 2, 3]);
+  wg.computeVertexNormals();
+  const ws = new THREE.Mesh(wg, matGlass);
+  carVisual.add(ws);
+  glassPanes.push(ws);
+}
+
 /* rear screen */
 {
-  const hw = 0.665;
-  const v = new Float32Array([
-    -hw, Y_DECK + 0.012, -1.505,
-    -hw, Y_ROOF - 0.008, -0.795,
-     hw, Y_ROOF - 0.008, -0.795,
-     hw, Y_DECK + 0.012, -1.505,
-  ]);
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(v, 3));
-  g.setIndex([0, 1, 2, 0, 2, 3]);
-  g.computeVertexNormals();
-  carVisual.add(new THREE.Mesh(g, matGlass));
-}
-/* side glass: two panes per side with a B-pillar between them */
-[-1, 1].forEach((side) => {
-  const x = side * (HALF_BODY - 0.070);
-
-  /* vertices are (x=0 on the pane, y=height, z=longitudinal) — the pane is
-     then pushed out to the body side by the mesh's own X offset */
-  /* the front pane follows the A-pillar from the belt line to the roof */
-  const fv = new Float32Array([
-    0, Y_BELT, 0.90,
-    0, Y_ROOF - 0.004, 0.515,
-    0, Y_ROOF - 0.004, -0.24,
-    0, Y_BELT, -0.24,
-  ]);
-  const fg = new THREE.BufferGeometry();
-  fg.setAttribute('position', new THREE.BufferAttribute(fv, 3));
-  fg.setIndex([0, 1, 2, 0, 2, 3]);
-  fg.computeVertexNormals();
-  const fwm = new THREE.Mesh(fg, matGlass);
-  fwm.position.x = x;
-  carVisual.add(fwm);
-
+  const hw = HALF_W - 0.120;
   const rv = new Float32Array([
-    0, Y_BELT, -0.30,
-    0, Y_ROOF - 0.004, -0.30,
-    0, Y_ROOF - 0.004, -0.795,
-    0, Y_BELT, -0.855,
+    -hw, Y_DECK + 0.020, -1.435,
+     hw, Y_DECK + 0.020, -1.435,
+     hw, Y_ROOF - 0.014, -0.735,
+    -hw, Y_ROOF - 0.014, -0.735,
   ]);
   const rg = new THREE.BufferGeometry();
   rg.setAttribute('position', new THREE.BufferAttribute(rv, 3));
   rg.setIndex([0, 1, 2, 0, 2, 3]);
   rg.computeVertexNormals();
-  const rwm = new THREE.Mesh(rg, matGlass);
-  rwm.position.x = x;
-  carVisual.add(rwm);
+  const rs = new THREE.Mesh(rg, matGlass);
+  carVisual.add(rs);
+  glassPanes.push(rs);
+}
 
-  /* B-pillar: thin, so the glasshouse reads as one continuous band.
-     Its height is derived from the cabin so it can never poke through the
-     roof again. */
-  const GLASS_H = Y_ROOF - Y_BELT;
-  const bp = new THREE.Mesh(new THREE.BoxGeometry(0.045, GLASS_H, 0.048), matPaint);
-  bp.position.set(x, Y_BELT + GLASS_H * 0.5, -0.28);
-  carVisual.add(bp);
-
-  /* the vent-window divider on the front door */
-  const vd = new THREE.Mesh(new THREE.BoxGeometry(0.035, GLASS_H * 0.85, 0.032), matPaint);
-  vd.position.set(x, Y_BELT + GLASS_H * 0.46, 0.34);
-  carVisual.add(vd);
-
-  /* chrome window trim along the belt line */
-  const trim = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.018, 1.30), matChrome);
-  trim.position.set(x + side * 0.014, Y_BELT + 0.004, -0.18);
-  carVisual.add(trim);
-
-  /* roof rail strip */
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.016, 0.60), matChrome);
-  rail.position.set(x + side * 0.01, Y_ROOF - 0.006, -0.28);
-  carVisual.add(rail);
-});
-
-/* ── BONNET / BOOT: separate panels with shut lines ──────────────────────── */
+/* ── pillars, laid OVER the glass so they read as metal ──────────────────── */
 {
-  const bonnet = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.024, 1.02), matPaint);
-  bonnet.position.set(0, Y_BONNET + 0.012, 1.26);
+  const PILL_W = 0.052;              // how wide a pillar looks from the side
+  const px = HALF_W - 0.062;
+
+  [-1, 1].forEach((side) => {
+    /* A-pillar, following the windscreen rake */
+    const ap = new THREE.Mesh(new THREE.BoxGeometry(0.030, 0.52, PILL_W), matPaint);
+    ap.position.set(side * px, Y_SCUTTLE + 0.245, 0.625);
+    ap.rotation.x = -0.62;
+    carVisual.add(ap);
+
+    /* B-pillar */
+    const bp = new THREE.Mesh(
+      new THREE.BoxGeometry(0.028, Y_ROOF - Y_BELT, PILL_W), matPaint);
+    bp.position.set(side * px, (Y_ROOF + Y_BELT) * 0.5, -0.180);
+    carVisual.add(bp);
+
+    /* C-pillar: wide at the base, kinked forward — the 131's signature */
+    const cpV = new Float32Array([
+      0, Y_BELT, -0.735,
+      0, Y_ROOF - 0.012, -0.735,
+      0, Y_ROOF - 0.012, -0.905,
+      0, Y_DECK + 0.045, -1.400,
+    ]);
+    const cg = new THREE.BufferGeometry();
+    cg.setAttribute('position', new THREE.BufferAttribute(cpV, 3));
+    cg.setIndex([0, 1, 2, 0, 2, 3]);
+    cg.computeVertexNormals();
+    const cp = new THREE.Mesh(cg, matPaint);
+    cp.position.x = side * px;
+    carVisual.add(cp);
+
+    /* the roof rail: a thin painted strip along the top of the glass */
+    const rail = new THREE.Mesh(
+      new THREE.BoxGeometry(0.034, 0.030, 1.02), matPaint);
+    rail.position.set(side * (HALF_W - 0.052), Y_ROOF - 0.012, -0.215);
+    carVisual.add(rail);
+
+    /* the chrome window surround at the belt line — every Şahin had one */
+    const surround = new THREE.Mesh(
+      new THREE.BoxGeometry(0.014, 0.016, 1.44), matChrome);
+    surround.position.set(side * (HALF_W - 0.048), Y_BELT + 0.004, -0.090);
+    carVisual.add(surround);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DOORS — separate meshes, proud of the shell, with real shut lines
+   ══════════════════════════════════════════════════════════════════════════ */
+const doorGroups = [];
+{
+  const DOOR_H = Y_BELT - Y_SILL;          // sill to belt
+  const DOOR_Y = Y_SILL + DOOR_H * 0.5;
+  const dx = HALF_W - 0.012;
+
+  [-1, 1].forEach((side) => {
+    /* front door */
+    const f = new THREE.Mesh(new THREE.BoxGeometry(0.024, DOOR_H, 1.03), matPaint);
+    f.position.set(side * dx, DOOR_Y, 0.075);
+    f.castShadow = true;
+    carVisual.add(f);
+    doorGroups.push(f);
+
+    /* rear door */
+    const r = new THREE.Mesh(new THREE.BoxGeometry(0.024, DOOR_H, 0.96), matPaint);
+    r.position.set(side * dx, DOOR_Y, -0.955);
+    r.castShadow = true;
+    carVisual.add(r);
+    doorGroups.push(r);
+
+    /* shut lines */
+    [0.615, -0.455, -1.445, -1.905].forEach((z) => {
+      const seam = new THREE.Mesh(
+        new THREE.BoxGeometry(0.006, DOOR_H - 0.03, 0.010), matSeam);
+      seam.position.set(side * (dx + side * 0.013), DOOR_Y, z);
+      carVisual.add(seam);
+    });
+
+    /* the black rub strip that runs the length of the car at mid-height */
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.030, 2.62), matTrim);
+    strip.position.set(side * (dx + side * 0.014), Y_SILL + DOOR_H * 0.52, -0.560);
+    carVisual.add(strip);
+
+    /* chrome door handles, just under the belt line */
+    [0.175, -1.175].forEach((z) => {
+      const h = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.028, 0.155), matChrome);
+      h.position.set(side * (dx + side * 0.018), Y_BELT - 0.065, z);
+      carVisual.add(h);
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BONNET / BOOT — separate panels, with the bonnet sloping to the nose
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  /* the bonnet is a quad tilted to follow the shoulder line */
+  const bw = BODY_W * 0.46;
+  const bv = new Float32Array([
+    -bw, Y_SCUTTLE + 0.008, 0.975,
+     bw, Y_SCUTTLE + 0.008, 0.975,
+     bw, Y_BONNET_N + 0.004, 1.885,
+    -bw, Y_BONNET_N + 0.004, 1.885,
+  ]);
+  const bg = new THREE.BufferGeometry();
+  bg.setAttribute('position', new THREE.BufferAttribute(bv, 3));
+  bg.setIndex([0, 1, 2, 0, 2, 3]);
+  bg.computeVertexNormals();
+  const bonnet = new THREE.Mesh(bg, matPaint);
   bonnet.castShadow = true;
   carVisual.add(bonnet);
 
-  const boot = new THREE.Mesh(new THREE.BoxGeometry(1.38, 0.024, 0.78), matPaint);
-  boot.position.set(0, Y_DECK + 0.012, -1.74);
+  /* the 131's bonnet has a strong centre crease */
+  const crease = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.014, 0.88), matTrim);
+  crease.position.set(0, Y_BONNET - 0.020, 1.420);
+  crease.rotation.x = -0.045;
+  carVisual.add(crease);
+
+  /* boot lid */
+  const boot = new THREE.Mesh(new THREE.BoxGeometry(BODY_W * 0.9, 0.020, 0.78), matPaint);
+  boot.position.set(0, Y_DECK + 0.006, -1.830);
   boot.castShadow = true;
   carVisual.add(boot);
 
-  /* bonnet centre crease — the 131 has a prominent one */
-  const crease = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.012, 1.0), new THREE.MeshBasicMaterial({ color: 0xcfc7b4 }));
-  crease.position.set(0, Y_BONNET + 0.026, 1.26);
-  carVisual.add(crease);
-
   /* shut lines across the width */
-  [[0.74, Y_BONNET + 0.014], [-1.21, Y_DECK + 0.014]].forEach(([z, y]) => {
-    const l = new THREE.Mesh(new THREE.BoxGeometry(1.44, 0.008, 0.012), matSeam);
+  [[0.965, Y_SCUTTLE + 0.004], [-1.435, Y_DECK + 0.006]].forEach(([z, y]) => {
+    const l = new THREE.Mesh(new THREE.BoxGeometry(BODY_W * 0.88, 0.006, 0.012), matSeam);
     l.position.set(0, y, z);
     carVisual.add(l);
   });
 }
 
-/* ── front fascia: grille, chrome bars, rectangular headlights ───────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   FRONT FASCIA — the 131's face: wide grille, rectangular lamps
+   ══════════════════════════════════════════════════════════════════════════ */
 {
-  const grille = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.19, 0.03), matBlack);
-  grille.position.set(0, Y_BONNET - 0.115, Z_NOSE - 0.005);
+  const gz = Z_NOSE - 0.055;
+  const gy = Y_SCUTTLE - 0.175;
+
+  /* the grille opening: a wide black recess with horizontal chrome slats */
+  const grille = new THREE.Mesh(new THREE.BoxGeometry(1.14, 0.165, 0.024), matBlack);
+  grille.position.set(0, gy, gz);
   carVisual.add(grille);
 
-  for (let i = 0; i < 4; i++) {
-    /* NB: never shadow a variable from an enclosing scope here — this loop
-       used to assign to the shape variable `s` and bent a chrome mesh across
-       the whole car. */
-    const slat = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.012, 0.016), matChrome);
-    slat.position.set(0, Y_SCUTTLE - 0.045 + i * 0.045, Z_NOSE - 0.004);
+  for (let i = 0; i < 3; i++) {
+    /* NB: keep the loop variable uniquely named — shadowing an outer `s`
+       here once bent a mesh across the whole car */
+    const slat = new THREE.Mesh(new THREE.BoxGeometry(1.10, 0.011, 0.014), matChrome);
+    slat.position.set(0, gy - 0.050 + i * 0.050, gz + 0.010);
     carVisual.add(slat);
   }
-  /* the centre bar */
-  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.17, 0.02), matChrome);
-  bar.position.set(0, Y_BONNET - 0.115, Z_NOSE + 0.012);
-  carVisual.add(bar);
+
+  /* the centre boss, holding the (unbadged) middle of the grille */
+  const boss = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.150, 0.016), matChrome);
+  boss.position.set(0, gy, gz + 0.016);
+  carVisual.add(boss);
 }
 
-/* HEADLIGHTS — rectangular, one pair outboard, one pair inboard */
+/* HEADLIGHTS — one rectangular unit per side, plus amber indicators */
 const headlights = [];
 {
-  const lensGeo = new THREE.BoxGeometry(0.26, 0.135, 0.030);
-  const bezelGeo = new THREE.BoxGeometry(0.30, 0.165, 0.018);
+  const lensGeo  = new THREE.BoxGeometry(0.325, 0.145, 0.026);
+  const bezelGeo = new THREE.BoxGeometry(0.355, 0.172, 0.012);
+  const y = Y_SCUTTLE - 0.175;
+  const z = Z_NOSE - 0.062;
+
   [-1, 1].forEach((side) => {
-    /* outer */
     const bez = new THREE.Mesh(bezelGeo, matChrome);
-    bez.position.set(side * 0.60, Y_BONNET - 0.045, Z_NOSE - 0.002);
+    bez.position.set(side * 0.485, y, z - 0.004);
     carVisual.add(bez);
-    const l = new THREE.Mesh(lensGeo, matHeadlight.clone());
-    l.position.set(side * 0.60, Y_BONNET - 0.045, Z_NOSE + 0.020);
-    carVisual.add(l);
-    headlights.push(l);
 
-    /* inner */
-    const bez2 = new THREE.Mesh(bezelGeo, matChrome);
-    bez2.position.set(side * 0.30, Y_BONNET - 0.045, Z_NOSE - 0.002);
-    carVisual.add(bez2);
-    const l2 = new THREE.Mesh(lensGeo, matHeadlight.clone());
-    l2.position.set(side * 0.30, Y_BONNET - 0.045, Z_NOSE + 0.020);
-    carVisual.add(l2);
-    headlights.push(l2);
+    const lens = new THREE.Mesh(lensGeo, matHeadlamp.clone());
+    lens.position.set(side * 0.485, y, z + 0.014);
+    carVisual.add(lens);
+    headlights.push(lens);
 
-    /* amber indicator outboard of the lamps */
-    const ind = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.10, 0.03), matAmber);
-    ind.position.set(side * 0.74, Y_BONNET - 0.145, Z_NOSE + 0.016);
+    /* the indicator sits outboard of the lamp, on the corner of the wing */
+    const ind = new THREE.Mesh(new THREE.BoxGeometry(0.115, 0.105, 0.030), matAmber);
+    ind.position.set(side * 0.712, y, z + 0.012);
+    ind.rotation.y = side * -0.20;
     carVisual.add(ind);
   });
 }
 
-/* TAIL LIGHTS — wide horizontal clusters */
+/* TAIL LIGHTS — wide horizontal clusters, as on the real car */
 const taillights = [];
 {
-  const bezel = new THREE.BoxGeometry(0.52, 0.17, 0.026);
-  const lens = new THREE.BoxGeometry(0.47, 0.135, 0.03);
+  const lensGeo  = new THREE.BoxGeometry(0.395, 0.150, 0.026);
+  const bezelGeo = new THREE.BoxGeometry(0.425, 0.176, 0.012);
+  const y = Y_DECK - 0.130;
+  const z = Z_TAIL + 0.062;
+
   [-1, 1].forEach((side) => {
-    const b = new THREE.Mesh(bezel, matChrome);
-    b.position.set(side * 0.52, Y_DECK - 0.075, Z_TAIL - 0.004);
-    carVisual.add(b);
-    const l = new THREE.Mesh(lens, matTail());
-    l.position.set(side * 0.52, Y_DECK - 0.075, Z_TAIL - 0.020);
-    carVisual.add(l);
-    taillights.push(l);
+    const bez = new THREE.Mesh(bezelGeo, matTrim);
+    bez.position.set(side * 0.510, y, z + 0.004);
+    carVisual.add(bez);
+
+    const lens = new THREE.Mesh(lensGeo, matTailLens.clone());
+    lens.position.set(side * 0.510, y, z - 0.012);
+    carVisual.add(lens);
+    taillights.push(lens);
   });
-  /* reversing lamps inboard */
+
+  /* reversing lamps, inboard */
   [-1, 1].forEach((side) => {
-    const r = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.09, 0.028),
-      new THREE.MeshStandardMaterial({ color: 0xd8d8d8, roughness: 0.3 }));
-    r.position.set(side * 0.16, Y_DECK - 0.135, Z_TAIL - 0.016);
+    const r = new THREE.Mesh(new THREE.BoxGeometry(0.105, 0.075, 0.024),
+      new THREE.MeshStandardMaterial({ color: 0xcfcfc8, roughness: 0.32 }));
+    r.position.set(side * 0.165, y, z - 0.008);
     carVisual.add(r);
   });
-}
 
-/* ── bumpers: chrome-look with rubber inserts and overriders ─────────────── */
-{
-  const fBump = new THREE.Mesh(new THREE.BoxGeometry(1.60, 0.145, 0.13), matChrome);
-  fBump.position.set(0, Y_BONNET - 0.275, Z_NOSE + 0.055);
-  fBump.castShadow = true;
-  carVisual.add(fBump);
-
-  const rBump = new THREE.Mesh(new THREE.BoxGeometry(1.60, 0.145, 0.13), matChrome);
-  rBump.position.set(0, Y_DECK - 0.245, Z_TAIL - 0.055);
-  rBump.castShadow = true;
-  carVisual.add(rBump);
-
-  const fRub = new THREE.Mesh(new THREE.BoxGeometry(1.56, 0.05, 0.145), matBlack);
-  fRub.position.set(0, Y_BONNET - 0.275, Z_NOSE + 0.055);
-  carVisual.add(fRub);
-  const rRub = fRub.clone();
-  rRub.position.z = Z_TAIL - 0.055;
-  carVisual.add(rRub);
-
-  /* overriders */
-  [-0.48, 0.48].forEach((x) => {
-    const o = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.19, 0.10), matChrome);
-    o.position.set(x, 0.17, Z_NOSE + 0.10);
-    carVisual.add(o);
-    const r = o.clone();
-    r.position.z = Z_TAIL - 0.10;
-    carVisual.add(r);
-  });
+  /* the boot-lid trim strip that joins the two clusters */
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.045, 0.014), matTrim);
+  bar.position.set(0, y, z - 0.006);
+  carVisual.add(bar);
 
   /* number plate recess */
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.11, 0.012),
-    new THREE.MeshStandardMaterial({ color: 0xe8e8e0, roughness: 0.6 }));
-  plate.position.set(0, 0.30, Z_TAIL - 0.026);
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.115, 0.010),
+    new THREE.MeshStandardMaterial({ color: 0xd8d6cc, roughness: 0.55 }));
+  plate.position.set(0, Y_DECK - 0.235, z - 0.004);
   carVisual.add(plate);
 }
 
-/* ── mirrors, exhaust, wipers ────────────────────────────────────────────── */
-[-1, 1].forEach((side) => {
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.018, 0.045), matBlack);
-  arm.position.set(side * 0.695, Y_BELT + 0.055, 0.78);
-  carVisual.add(arm);
-  const shell = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.10, 0.13), matBlack);
-  shell.position.set(side * 0.745, Y_BELT + 0.075, 0.76);
-  carVisual.add(shell);
-});
-
+/* ══════════════════════════════════════════════════════════════════════════
+   BUMPERS — black plastic, with a body-colour insert, as on a late Şahin
+   ══════════════════════════════════════════════════════════════════════════ */
 {
-  const ex = new THREE.Mesh(new THREE.CylinderGeometry(0.030, 0.030, 0.24, 8), matBlack);
-  ex.rotation.x = Math.PI / 2;
-  ex.position.set(-0.50, -0.02, Z_TAIL - 0.10);
-  carVisual.add(ex);
+  const BY = Y_SILL + 0.115;       // bumper centre height
 
-  /* wipers resting on the windscreen */
-  [-0.42, 0.12].forEach((x) => {
-    const w = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.012, 0.52), matBlack);
-    w.position.set(x, Y_BELT + 0.02, 0.88);
-    w.rotation.x = 0.72;
-    w.rotation.z = 0.22;
-    carVisual.add(w);
+  const front = new THREE.Mesh(new THREE.BoxGeometry(CAR.W - 0.055, 0.135, 0.10), matBumper);
+  front.position.set(0, BY, Z_NOSE - 0.020);
+  front.castShadow = true;
+  carVisual.add(front);
+
+  const rear = new THREE.Mesh(new THREE.BoxGeometry(CAR.W - 0.055, 0.135, 0.10), matBumper);
+  rear.position.set(0, BY, Z_TAIL + 0.020);
+  rear.castShadow = true;
+  carVisual.add(rear);
+
+  /* the colour-coded insert that runs through the middle of each bumper */
+  [-1, 1].forEach((end) => {
+    const ins = new THREE.Mesh(
+      new THREE.BoxGeometry(CAR.W - 0.14, 0.048, 0.012), matPaint);
+    ins.position.set(0, BY + 0.012, end > 0 ? Z_NOSE - 0.075 : Z_TAIL + 0.075);
+    carVisual.add(ins);
+  });
+
+  /* side returns, so the bumper wraps around the corner */
+  [-1, 1].forEach((end) => {
+    [-1, 1].forEach((side) => {
+      const wrap = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.135, 0.135), matBumper);
+      wrap.position.set(side * (CAR.W / 2 - 0.048), BY,
+                        end > 0 ? Z_NOSE - 0.085 : Z_TAIL + 0.085);
+      carVisual.add(wrap);
+    });
+  });
+
+  /* exhaust tail pipe */
+  const exhaust = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.030, 0.030, 0.135, 8), matSteel);
+  exhaust.rotation.x = Math.PI / 2;
+  exhaust.position.set(-0.475, Y_SILL + 0.022, Z_TAIL + 0.055);
+  carVisual.add(exhaust);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WHEEL ARCH LIPS — a thin painted flange, so the arch edge catches light
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  [AXLE_F, AXLE_R].forEach((az) => {
+    [-1, 1].forEach((side) => {
+      const lip = new THREE.Mesh(
+        new THREE.TorusGeometry(ARCH_R * 0.955, 0.020, 6, 18, Math.PI),
+        matPaint);
+      lip.position.set(side * (BODY_W / 2 - 0.006), Y_ARCH, az);
+      lip.rotation.y = Math.PI / 2;
+      carVisual.add(lip);
+
+      /* arch liner, dark, tucked well inside so it never shows in profile */
+      const liner = new THREE.Mesh(
+        new THREE.CylinderGeometry(ARCH_R * 0.94, ARCH_R * 0.94, 0.085, 14, 1, true, 0, Math.PI),
+        new THREE.MeshStandardMaterial({
+          color: 0x1a1917, roughness: 0.96, side: THREE.DoubleSide }));
+      liner.rotation.z = Math.PI / 2;
+      liner.position.set(side * (BODY_W / 2 - 0.075), Y_ARCH + 0.004, az);
+      carVisual.add(liner);
+    });
   });
 }
 
-/* ── INTERIOR SILHOUETTE ─────────────────────────────────────────────────
-   Visible through the glass: dash, wheel, seat backs, bench, headlining.
-   No detail below the belt line is modelled — it reads as a silhouette.     */
+/* ══════════════════════════════════════════════════════════════════════════
+   SILLS + UNDERBODY — closes the gap between the painted body and the tyres
+   ══════════════════════════════════════════════════════════════════════════ */
 {
-  const dash = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.20, 0.30), matInterior);
-  dash.position.set(0, 0.645, 0.72);
+  const rocker = new THREE.Mesh(
+    new THREE.BoxGeometry(BODY_W - 0.055, 0.105, CFG.WHEELBASE - 0.06), matPaint);
+  rocker.position.set(0, Y_SILL - 0.045, -0.02);
+  rocker.castShadow = true;
+  carVisual.add(rocker);
+
+  const under = new THREE.Mesh(
+    new THREE.BoxGeometry(BODY_W - 0.09, 0.045, CFG.WHEELBASE + 0.30), matBlack);
+  under.position.set(0, Y_SILL - 0.108, -0.02);
+  carVisual.add(under);
+
+  /* front and rear valance panels below the bumpers */
+  [-1, 1].forEach((end) => {
+    const v = new THREE.Mesh(new THREE.BoxGeometry(BODY_W - 0.10, 0.115, 0.075), matTrim);
+    v.position.set(0, Y_SILL + 0.005, end > 0 ? Z_NOSE - 0.105 : Z_TAIL + 0.105);
+    carVisual.add(v);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MIRRORS
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  [-1, 1].forEach((side) => {
+    const stalk = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.028, 0.026), matTrim);
+    stalk.position.set(side * (HALF_W - 0.030), Y_BELT + 0.040, 0.560);
+    carVisual.add(stalk);
+
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.040, 0.085, 0.130), matTrim);
+    head.position.set(side * (HALF_W + 0.028), Y_BELT + 0.062, 0.552);
+    head.castShadow = true;
+    carVisual.add(head);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   INTERIOR — a silhouette you can see through the glass
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  /* dash top, spanning the cabin just behind the windscreen */
+  const dash = new THREE.Mesh(new THREE.BoxGeometry(BODY_W - 0.10, 0.15, 0.28), matDash);
+  dash.position.set(0, Y_SCUTTLE - 0.135, 0.505);
   carVisual.add(dash);
 
-  const wheelRing = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.020, 5, 14), matBlack);
-  wheelRing.position.set(0.34, 0.70, 0.52);
-  wheelRing.rotation.y = Math.PI / 2;
-  wheelRing.rotation.z = 0.36;
-  carVisual.add(wheelRing);
+  /* instrument binnacle, in front of the driver */
+  const bin = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.115, 0.10), matBlack);
+  bin.position.set(0.335, Y_SCUTTLE - 0.075, 0.395);
+  carVisual.add(bin);
 
-  /* the cabin is only ~0.25 m of headroom above the seat backs now, so the
-     interior drops with it — a low, shallow 131-style cabin */
-  [-0.34, 0.34].forEach((x) => {
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.42, 0.13), matSeat);
-    back.position.set(x, 0.54, -0.16);
-    back.rotation.x = -0.09;
+  /* steering wheel: a torus, raked back like the real thing */
+  const wheelRim = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.017, 6, 16), matBlack);
+  wheelRim.position.set(0.335, Y_SCUTTLE - 0.135, 0.320);
+  wheelRim.rotation.y = Math.PI / 2;
+  wheelRim.rotation.z = 0.42;
+  carVisual.add(wheelRim);
+
+  /* seats: backrests and squabs, low enough to sit under the roof line */
+  [-0.335, 0.335].forEach((x) => {
+    const back = new THREE.Mesh(new THREE.BoxGeometry(0.325, 0.395, 0.115), matSeat);
+    back.position.set(x, Y_BELT - 0.145, -0.115);
+    back.rotation.x = -0.10;
     carVisual.add(back);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.11, 0.36), matSeat);
-    base.position.set(x, 0.30, 0.06);
-    carVisual.add(base);
-    /* low, integral headrest — the 131's seats barely had one */
-    const hr = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.10, 0.09), matSeat);
-    hr.position.set(x, 0.755, -0.20);
+
+    const squab = new THREE.Mesh(new THREE.BoxGeometry(0.325, 0.095, 0.345), matSeat);
+    squab.position.set(x, Y_SILL + 0.325, 0.085);
+    carVisual.add(squab);
+
+    /* headrest — small and low, as on the real seats */
+    const hr = new THREE.Mesh(new THREE.BoxGeometry(0.155, 0.085, 0.075), matSeat);
+    hr.position.set(x, Y_BELT + 0.135, -0.165);
     carVisual.add(hr);
   });
 
-  const bench = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.34, 0.14), matSeat);
-  bench.position.set(0, 0.50, -0.86);
+  /* rear bench */
+  const bench = new THREE.Mesh(new THREE.BoxGeometry(BODY_W - 0.14, 0.315, 0.115), matSeat);
+  bench.position.set(0, Y_BELT - 0.185, -0.905);
   bench.rotation.x = -0.08;
   carVisual.add(bench);
 
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(1.26, 0.02, 2.30), matInterior);
-  floor.position.set(0, 0.02, -0.2);
+  const benchSq = new THREE.Mesh(new THREE.BoxGeometry(BODY_W - 0.16, 0.085, 0.325), matSeat);
+  benchSq.position.set(0, Y_SILL + 0.285, -0.735);
+  carVisual.add(benchSq);
+
+  /* floor pan and headlining, so you never see through the car */
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(BODY_W - 0.085, 0.016, 2.30), matDash);
+  floor.position.set(0, Y_SILL + 0.095, -0.145);
   carVisual.add(floor);
 
-  const head = new THREE.Mesh(new THREE.BoxGeometry(1.24, 0.016, 1.30), new THREE.MeshStandardMaterial({ color: 0x6b6155, roughness: 0.98 }));
-  head.position.set(0, Y_ROOF - 0.02, -0.3);
-  carVisual.add(head);
+  const lining = new THREE.Mesh(
+    new THREE.BoxGeometry(BODY_W - 0.115, 0.012, 1.26),
+    new THREE.MeshStandardMaterial({ color: 0x9d9585, roughness: 0.98 }));
+  lining.position.set(0, Y_ROOF - 0.020, -0.235);
+  carVisual.add(lining);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
    12.  WHEELS + SUSPENSION VISUALS
    ══════════════════════════════════════════════════════════════════════════
-   Each corner is a group whose position is written by the suspension every
-   frame.  The axle is local X, so a wheel is a cylinder rotated to spin
-   about X and the front pair is yawed by the steering angle.
+   Each corner is a group whose position the suspension writes every frame.
+   The axle is local X, so a wheel is a cylinder turned to spin about X and
+   the front pair is yawed by the steering angle.
+
+   A 131 rides on 13-inch steel wheels with a small chrome hubcap — not an
+   alloy.  That look is the whole point: black steel, a chrome dish in the
+   middle, and a visible ring of holes.
    ══════════════════════════════════════════════════════════════════════════ */
 const WHEEL_R = CFG.WHEEL_R;
 const WHEEL_W = CFG.WHEEL_W;
 
+const wheelVisuals = [];
+
 function buildWheel() {
-  const group = new THREE.Group();     // positioned by the suspension
-  const steer = new THREE.Group();     // yawed by the steering
-  const spin = new THREE.Group();      // rolled by the wheel speed
+  const group = new THREE.Group();       // positioned by the suspension
+  const steer = new THREE.Group();       // yawed by the steering
+  const spin  = new THREE.Group();       // rolled by the wheel angle
   group.add(steer);
   steer.add(spin);
 
-  /* tyre */
-  const tyre = new THREE.Mesh(
-    new THREE.CylinderGeometry(WHEEL_R, WHEEL_R, WHEEL_W, 24, 1),
-    matRubber
-  );
-  tyre.rotation.z = Math.PI / 2;
+  /* ── tyre: a lathe, so the sidewall has a real shoulder ──────────────── */
+  const tyrePts = [];
+  const R = WHEEL_R, rIn = R * 0.615, hw = WHEEL_W * 0.5;
+  /* outer sidewall */
+  tyrePts.push(new THREE.Vector2(rIn, -hw));
+  tyrePts.push(new THREE.Vector2(R * 0.90, -hw));
+  tyrePts.push(new THREE.Vector2(R * 0.985, -hw * 0.80));
+  tyrePts.push(new THREE.Vector2(R, -hw * 0.42));
+  tyrePts.push(new THREE.Vector2(R, hw * 0.42));
+  tyrePts.push(new THREE.Vector2(R * 0.985, hw * 0.80));
+  tyrePts.push(new THREE.Vector2(R * 0.90, hw));
+  tyrePts.push(new THREE.Vector2(rIn, hw));
+  const tyreGeo = new THREE.LatheGeometry(tyrePts, 20);
+  tyreGeo.rotateZ(Math.PI / 2);          // lathe axis Y → X
+  const tyre = new THREE.Mesh(tyreGeo, matRubber);
   tyre.castShadow = true;
   spin.add(tyre);
 
-  /* sidewall shoulders, so the tread reads as rounded rather than a drum */
-  [-1, 1].forEach((s) => {
-    const sh = new THREE.Mesh(new THREE.TorusGeometry(WHEEL_R - 0.026, 0.028, 5, 24), matRubber);
-    sh.position.x = s * (WHEEL_W / 2 - 0.012);
-    sh.rotation.y = Math.PI / 2;
-    sh.castShadow = true;
-    spin.add(sh);
-  });
+  /* subtle tread blocks, so the tyre reads as rotating when it spins */
+  const treadGeo = new THREE.BoxGeometry(WHEEL_W * 0.62, 0.016, 0.048);
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const t = new THREE.Mesh(treadGeo, matBlack);
+    t.position.set(0, Math.cos(a) * R * 0.985, Math.sin(a) * R * 0.985);
+    t.rotation.x = -a;
+    spin.add(t);
+  }
 
-  /* steel rim */
-  const rim = new THREE.Mesh(
-    new THREE.CylinderGeometry(WHEEL_R * 0.68, WHEEL_R * 0.68, WHEEL_W * 0.94, 20),
-    matSteel
-  );
-  rim.rotation.z = Math.PI / 2;
+  /* ── steel rim: a shallow dish, painted black ────────────────────────── */
+  const rimGeo = new THREE.CylinderGeometry(rIn * 0.995, rIn * 0.995, WHEEL_W * 0.86, 20, 1, true);
+  rimGeo.rotateZ(Math.PI / 2);
+  const rim = new THREE.Mesh(rimGeo, matSteel);
   spin.add(rim);
 
-  /* chrome hubcap, dished outward */
-  const capPts = [];
-  for (let i = 0; i <= 5; i++) {
-    const t = i / 5;
-    capPts.push(new THREE.Vector2(WHEEL_R * 0.20 + t * WHEEL_R * 0.50, t * 0.030));
-  }
-  const cap = new THREE.Mesh(new THREE.LatheGeometry(capPts, 20), matChrome);
-  cap.rotation.z = -Math.PI / 2;
-  cap.position.x = WHEEL_W * 0.42;
+  /* the rim face: a flat disc set in from the outer edge */
+  const faceGeo = new THREE.CircleGeometry(rIn * 0.985, 20);
+  const face = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({
+    color: 0x2a2b2e, roughness: 0.62, metalness: 0.35 }));
+  face.rotation.y = -Math.PI / 2;
+  face.position.x = WHEEL_W * 0.40;
+  spin.add(face);
+
+  /* ── the chrome hubcap: a domed dish, the 131's most recognisable wheel
+        detail.  Modelled as a spherical cap plus a ring of vent holes. ──── */
+  const capR = rIn * 0.685;
+  const capGeo = new THREE.SphereGeometry(capR, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42);
+  capGeo.rotateZ(-Math.PI / 2);          // dome points along +X
+  capGeo.scale(1, 1, 1);
+  const cap = new THREE.Mesh(capGeo, matChrome);
+  cap.position.x = WHEEL_W * 0.415;
   spin.add(cap);
 
-  /* vent slots — these make the rotation legible at speed */
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * TAU;
-    const slot = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.026, 0.055), matBlack);
-    slot.position.set(WHEEL_W * 0.44, Math.cos(a) * WHEEL_R * 0.40, Math.sin(a) * WHEEL_R * 0.40);
-    slot.rotation.x = -a;
-    spin.add(slot);
+  /* the flat chrome ring around the base of the dome */
+  const ringGeo = new THREE.TorusGeometry(capR * 0.985, 0.011, 5, 18);
+  ringGeo.rotateY(Math.PI / 2);
+  const ring = new THREE.Mesh(ringGeo, matChrome);
+  ring.position.x = WHEEL_W * 0.412;
+  spin.add(ring);
+
+  /* vent holes: four dark ovals punched around the cap, as on the real item */
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + 0.4;
+    const hole = new THREE.Mesh(
+      new THREE.CircleGeometry(capR * 0.185, 10),
+      new THREE.MeshStandardMaterial({ color: 0x0d0e10, roughness: 0.9 }));
+    hole.rotation.y = -Math.PI / 2;
+    hole.position.set(WHEEL_W * 0.418,
+                      Math.cos(a) * capR * 0.53,
+                      Math.sin(a) * capR * 0.53);
+    spin.add(hole);
   }
 
-  const hub = new THREE.Mesh(new THREE.SphereGeometry(0.040, 10, 8), matChrome);
-  hub.position.x = WHEEL_W * 0.45;
-  hub.scale.x = 0.5;
-  spin.add(hub);
-
-  /* brake disc — does not spin with the cap, it sits inboard */
-  const disc = new THREE.Mesh(
-    new THREE.CylinderGeometry(WHEEL_R * 0.60, WHEEL_R * 0.60, 0.016, 18),
-    new THREE.MeshStandardMaterial({ color: 0x565a60, roughness: 0.65, metalness: 0.6 })
-  );
-  disc.rotation.z = Math.PI / 2;
-  disc.position.x = -WHEEL_W * 0.12;
-  spin.add(disc);
+  /* wheel nuts around the centre */
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2;
+    const nut = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.012, 6), matSteel);
+    nut.rotation.z = Math.PI / 2;
+    nut.position.set(WHEEL_W * 0.44, Math.cos(a) * capR * 0.30, Math.sin(a) * capR * 0.30);
+    spin.add(nut);
+  }
 
   return { group, steer, spin };
 }
 
-/* corner order used by the physics: 0 FL, 1 FR, 2 RL, 3 RR
-   (+X is the car's left, so FL is +X, and +Z is forward) */
+/* The four corners, in the order the physics expects: FL, FR, RL, RR.
+   The x is where the tyre CENTRELINE sits, which is inboard of the body side
+   by half a tyre width plus a little clearance — putting it at TRACK/2 buried
+   the wheels inside the arches.  The physics still uses CFG.TRACK for the
+   spring and anti-roll lever arms. */
+const WHEEL_X = HALF_W - CFG.WHEEL_W * 0.5 - 0.035;
 const WHEEL_DEFS = [
-  { x: HALF_BODY - 0.075, z: AXLE_F, front: true, side: 1 },
-  { x: -(HALF_BODY - 0.075), z: AXLE_F, front: true, side: -1 },
-  { x: HALF_BODY - 0.075, z: AXLE_R, front: false, side: 1 },
-  { x: -(HALF_BODY - 0.075), z: AXLE_R, front: false, side: -1 },
+  { x:  WHEEL_X, z: AXLE_F, front: true,  side:  1 },
+  { x: -WHEEL_X, z: AXLE_F, front: true,  side: -1 },
+  { x:  WHEEL_X, z: AXLE_R, front: false, side:  1 },
+  { x: -WHEEL_X, z: AXLE_R, front: false, side: -1 },
 ];
 
-const wheelVisuals = WHEEL_DEFS.map((def) => {
+for (let i = 0; i < 4; i++) {
   const w = buildWheel();
-  w.def = def;
   carVisual.add(w.group);
-  return w;
-});
-
+  wheelVisuals.push(w);
+}
 
 /* ══════════════════════════════════════════════════════════════════════════
    13.  VEHICLE PHYSICS
@@ -2073,11 +2247,14 @@ function loadSensitivity(loadN) {
    ══════════════════════════════════════════════════════════════════════════ */
 
 /* crank torque for a 1.6 pushrod four, N·m */
+/* 1.6 L OHV four, as fitted to the Şahin: 125 Nm at 3000 rpm and about
+   75 hp (56 kW) at 5400.  The curve stays usable well past the power peak,
+   which is what lets a 1050 kg car pull to 160 km/h with only four gears. */
 const TORQUE_CURVE = [
-  [600, 88], [1000, 108], [1400, 122], [1800, 130],
-  [2200, 135], [2600, 136], [3000, 133], [3400, 127],
-  [3800, 119], [4200, 110], [4600, 99], [5000, 86],
-  [5400, 70], [5800, 50], [6200, 26],
+  [700, 92], [1000, 108], [1400, 118], [1800, 123],
+  [2200, 126], [2600, 127], [3000, 125], [3400, 122],
+  [3800, 118], [4200, 113], [4600, 108], [5000, 102],
+  [5400, 95], [5800, 84], [6200, 64], [6600, 34],
 ];
 
 function torqueAtRpm(rpm) {
@@ -2576,9 +2753,13 @@ function physicsStep(dt) {
       const sNeeded = (fMaxLong > 1 ? slipForGrip(demandLong, tOther > 0) : 0) * sgn(tOther || 1);
       const target = (vLong + sNeeded * Math.max(Math.abs(vLong), vFloor)) / CFG.WHEEL_R;
 
-      /* tyre relaxation length: real tyres take a few milliseconds to build
-         force, and that is exactly the time constant that keeps this stable */
-      const tau = 0.012;
+      /* Tyre relaxation: real tyres take tens of milliseconds to build
+         force, and this is the time constant that keeps the stick/slip solve
+         stable.  It was 12 ms, which at a 120 Hz step means the wheel jumps
+         69 % of the way to equilibrium every frame — that oscillates, and the
+         oscillation showed up as a speed sawtooth and a slip ratio flickering
+         between 0.05 and 0.40.  45 ms puts the per-step gain at 0.185. */
+      const tau = 0.045;
       w.angVel += (target - w.angVel) * Math.min(1, dt / tau);
 
     } else {
@@ -2766,8 +2947,15 @@ function updateGearbox(dt) {
 
   if (V.gear < CFG.GEARS.length) {
     const topNow = gearTop(V.gear);
-    const rpmHigh = V.rpm > CFG.AUTO_UP;
-    const pastGood = V.speed > topNow * 0.80;      // 80 % of the gear's reach
+    /* at full throttle the box holds each gear longer; lifting off makes it
+       shift up early, which is what a kickdown-less hydraulic box does */
+    /* Up-shift earlier when cruising, later when pressing on — but never so
+       late that a modest engine has to reach redline to get there.  The old
+       mapping put the full-throttle point at 4600 rpm, which this engine
+       cannot reach in 3rd on the road, so the car never found 4th. */
+    const upAt = lerp(CFG.AUTO_UP - 1400, CFG.AUTO_UP, V.throttle);
+    const rpmHigh = V.rpm > upAt;
+    const pastGood = V.speed > topNow * 0.35;
     if (rpmHigh && pastGood) {
       V.gear++;
       V.shiftTimer = CFG.SHIFT_TIME;
