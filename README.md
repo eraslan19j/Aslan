@@ -4,9 +4,21 @@ Gerçek İstanbul harita ve yükseklik verileriyle %100 çevrimdışı çalışa
 
 - **Paket Adı:** `com.istanbulstreets.game`
 - **Hedef Platformlar:** Android 16 (API 36, minSdk 24, `sensorLandscape`) + Web Demosu
-- **Mevcut Sürüm:** **`v0.2.0` (M1.5 Görsel QA + M2 Sürüş & Trafik · Çoklu Bölge)** — Varsayılan başlangıç bölgesi **Esenler / Namık Kemal Mahallesi**, ikinci bölge **Fatih (Sultanahmet–Eminönü)**, sürülebilir Sarı Taksi, gerçek yol grafı üzerinde AI trafik, tüm OSM ibadethanelerinde otomatik Güvenli Alan, 20:9 mobil dokunmatik kontroller ve Ayarlar içi canlı Tanılama Paneli (`RAPORU KOPYALA`).
+- **Mevcut Sürüm:** **`v0.9.1` "Hasar & Ses"** — GTA-tarzı 10 panelli araç hasarı (ezilme, kopan parça, cam kırılması, motor dumanı), OBB↔OBB araba çarpışması (araçlar artık birbirine girmiyor), tamamen yeniden yazılmış katmanlı motor/egzoz/turbo sesi, kayma hızına bağlı 3 katmanlı lastik sesi, kapı senkronlu biniş animasyonu, tamirci ekonomisi ve sade oyun HUD'u.
+- **Oynanabilir APK:** [`releases/istanbul-streets-latest-debug.apk`](releases/istanbul-streets-latest-debug.apk) — her etiketli sürümde otomatik güncellenir.
+- **Planlar:** [`docs/plans/V090_ROADMAP.md`](docs/plans/V090_ROADMAP.md) (tamamlandı) · [`docs/plans/V100_PLAN.md`](docs/plans/V100_PLAN.md) (sıradaki) · [`docs/plans/VEHICLE_SPECS_V090.md`](docs/plans/VEHICLE_SPECS_V090.md) (7 aracın tam teknik künyesi)
+- **Proje hafızası:** [`docs/memory/STATE.md`](docs/memory/STATE.md) — her sürümde güncellenen tek doğruluk kaynağı.
 
-## Özellikler (`v0.2.0`)
+## v0.9.1 Öne Çıkanlar
+
+- **Araç hasarı (D1–D4):** 10 gövde paneli ayrı ayrı hasarlanır; kaput/tampon/çamurluk kuvvet eşiğini aşınca **kopup fırlar**, ön cam kırılır, motor duman çıkarır ve güç kaybeder. Hasarlı araç tamirciye kadar %30 hızla sürünür; tamir `₺` ile yapılır.
+- **Çarpışma (P1–P3):** OBB SAT/MTV çözücü + gerçek temas yaması; kütle paylaşımı, sekme katsayısı ve PIT dönüşü.
+- **Ses (A1–A7):** AudioWorklet içinde silindir ateşleme dizisi, egzoz banka gecikmesi, susturucu + kuyruk borusu dalga kılavuzu, emme Helmholtz, supap tıkırtısı, turbo spool/BOV/wastegate; nitro 4 katmana ayrıldı ve tamamı telefon hoparlörünün geçirdiği bantta.
+- **Biniş animasyonu (K1–K2):** Kapı 1.12 rad açılır, karakter kapıdan yürüyerek biner, kapı kapanır.
+- **Sade HUD:** FPS/Çizim/Karo/Bina sayaçları kaldırıldı; yalnızca hasar alınınca görünen ince bir hasar çubuğu var.
+
+## Temel Özellikler (`v0.2.0`'dan beri)
+
 - **Çoklu Çevrimdışı Bölge Paketi (`public/derived-data/`, Toplam 3.6 MB):**
   - **Esenler / Namık Kemal Mahallesi (Varsayılan · 1.9 MB):** SHA-256 doğrulamalı `v1.1-esenler-data/osm_data.zip` + Copernicus DEM GLO-30 (`29.3–90.7 m`) + Overpass; 44 adet 300 m karo, **4,474 OSM bina**, 633 tekilleştirilmiş sokak, 1,922 düğüm / 2,164 kenar, 144 park, 2 su, 12 anonim mahalle noktası (gerçek kişi/marka/ev adresi içermez) ve **10 otomatik `amenity=place_of_worship` Güvenli Alanı**.
   - **Fatih: Sultanahmet–Eminönü (İkinci Bölge · 1.7 MB):** 59 adet 300 m karo, **3,661 OSM bina**, 727 yol, kırmızı T1 tramvay hattı, 1,796 düğüm / 1,924 kenar, Copernicus DEM GLO-30 (`0.0–67.2 m`) ve Ayasofya / Sultanahmet Camii / Yeni Cami Güvenli Alanları. Duraklat menüsünden anlık geçiş.
