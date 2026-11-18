@@ -13,8 +13,8 @@
     "transmissionMode": "auto",
     "crashCount": 0,
     "perf": {
-      "fps": 43.255848958264735,
-      "frameMs": 156.28285648705577,
+      "fps": 40.48839888635125,
+      "frameMs": 169.81500271683421,
       "drawCalls": 131,
       "triangles": 351778,
       "geometries": 101,
@@ -45,7 +45,7 @@
   "qualityToggleOk": true,
   "hasAttributions": true,
   "pauseToggleOk": true,
-  "uniqueColors": 845,
+  "uniqueColors": 846,
   "brightFrac": 0.3123,
   "errors": []
 }
