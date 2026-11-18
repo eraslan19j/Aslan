@@ -33,6 +33,11 @@ env:
   ANDROID_BUILD_TOOLS: '36.0.0'
   ANDROID_NDK: '29.0.14206865'
 
+# Release oluşturmak için içerik yazma izni gerekli
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   build-apk:
     name: Export APK + Play gate checks
@@ -310,8 +315,36 @@ jobs:
           echo "✅ K4 geçti — ${COUNT} kütüphane, tümü 16 KB hizalı"
           echo "::notice title=K4-16KB::${COUNT} .so, tümü 16 KB hizalı"
 
-      # ---- Artifact ----
-      - name: Upload APK
+      # ---- Kullanıcının telefonuna kuracağı APK ----
+      # Release asset seçildi çünkü artifact indirme URL'leri
+      # productionresultssa8.blob.core.windows.net üzerinden geliyor ve
+      # bu adres her istemciden erişilebilir değil. Release asset ise
+      # api.github.com üzerinden doğrudan indirilebilir.
+      - name: Publish APK as release (telefon için indirilebilir)
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="prototype-$(date -u +%Y%m%d-%H%M%S)"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          gh release create "$TAG" \
+            build/android/prototype.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Faz 0.5 Prototip APK — $TAG" \
+            --notes "Faz 0.5 kanıt prototipi. Telefona kurup açın; ekranın üstündeki sayaç FPS/ms/draw call gösterir.
+
+**K2** — açıldı mı?
+**K5** — FPS değeri (eşik: 30)
+**K6** — sağ üstteki renderer adı (mobile(vulkan) mı?)
+**K8** — oyuncu aracı ile NPC'ler aynı görünüyor mu?
+
+Raporu kopyalamak için ekrana **3 parmak** dokunun, sonra panele yapıştırın." \
+            --latest 2>&1 | tail -3
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+            --jq '.assets[] | "\(.name) — \(.size) bayt\n\(.url)"'
+
+      - name: Upload APK (artifact, yedek)
         uses: actions/upload-artifact@v4
         with:
           name: godot-prototype-apk-${{ github.run_id }}
