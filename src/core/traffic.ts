@@ -44,6 +44,12 @@ export interface TrafficAgent {
   knockYawRate: number;
   braking: boolean;
   parked: boolean;
+  /**
+   * v0.9.0 — accumulated body damage 0..1 for NPC cars. The instanced renderer cannot
+   * deform vertices, so it darkens the paint, squashes the body and (above 0.55) puffs
+   * smoke — enough for a readable "that car got wrecked" beat on a phone screen.
+   */
+  dent: number;
 }
 
 export interface TrafficCollisionResult {
@@ -285,6 +291,7 @@ export class RoadTrafficSimulator {
       knockYawRate: 0,
       braking: false,
       parked: isParked,
+      dent: 0,
     };
   }
 
@@ -504,6 +511,8 @@ export class RoadTrafficSimulator {
         a.suspPitch = clamp(a.suspPitch - impact * 0.016, -0.12, 0.12);
         a.skidIntensity = clamp(impact / 11, 0.3, 1.0);
         a.braking = true;
+        // v0.9.0: the struck NPC car accumulates visible body damage.
+        a.dent = clamp(a.dent + impact * 0.045, 0, 1);
       }
 
       a.speedMps = Math.min(a.speedMps, 1.2);

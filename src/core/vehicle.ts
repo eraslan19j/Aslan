@@ -641,7 +641,9 @@ export function stepPlayerVehicle(
       revLimiterCut *
       shiftCut *
       tcsFactor *
-      speedCapFactor;
+      speedCapFactor *
+      // v0.9.0: crash damage chokes the engine (GTA-style limp-home power loss).
+      clamp(dyn.powerScale, 0.1, 1);
 
     const totalDriveTorqueNm = engineTorqueNm * totalRatio * 0.92;
 
@@ -836,7 +838,9 @@ export function stepPlayerVehicle(
     }
 
     // 4. Aerodynamic drag + realistic slope gravity component
-    const aeroDragN = 0.5 * 1.225 * pSpec.dragCoeff * 2.15 * vLong * Math.abs(vLong);
+    // Detached bumpers / flapping panels add real drag (damage model dragScale).
+    const aeroDragN =
+      0.5 * 1.225 * pSpec.dragCoeff * 2.15 * vLong * Math.abs(vLong) * clamp(dyn.dragScale, 1, 2.2);
     const slopeGravityN = -pSpec.massKg * 9.81 * slopeSin * 0.62;
     sumFxBody += -aeroDragN + slopeGravityN;
 

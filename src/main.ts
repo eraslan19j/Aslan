@@ -28,6 +28,11 @@ import {
 import { nextAtmospherePreset } from './core/timeCycle';
 import { findSanctuaryZone } from './core/sanctuary';
 import { SaveStore, type SaveData } from './core/save';
+import {
+  createDoorChoreography,
+  startDoorSequence,
+  stepDoorChoreography,
+} from './render/doorChoreography';
 import { RoadTrafficSimulator } from './core/traffic';
 import {
   applyVehicleCollisionImpulse,
@@ -39,7 +44,19 @@ import {
   resetPlayerVehicleMotion,
   stepPlayerVehicle,
   type PlayerVehicleState,
+  VEHICLE_SPECS,
 } from './core/vehicle';
+import {
+  applyVehicleImpact,
+  consumeDamageEvents,
+  createDamageState,
+  pickPanelForContact,
+  repairVehicleDamage,
+  updateVehicleCondition,
+  vehicleConditionPercent,
+  type VehicleDamageState,
+} from './core/vehicleDamage';
+import { formatVehicleSpecLine } from './core/vehicleCatalog';
 import {
   cycleDrivingMode as nextDrivingMode,
   cycleSteeringControlMode as nextSteeringMode,
@@ -172,6 +189,9 @@ interface GameDebugHandle {
   setRenderFrozen: (frozen: boolean) => void;
   getDiagnostics: () => DiagnosticsSnapshot;
   getCrashCount: () => number;
+  /** v0.9.0 — current panel damage (0..100) and a full repair for the QA harness. */
+  vehicleCondition: () => number;
+  repairVehicle: () => boolean;
 }
 
 declare global {
@@ -374,6 +394,11 @@ async function bootstrap(): Promise<void> {
   };
 
   let playerVehicle: PlayerVehicleState;
+  /** v0.9.0 — persistent GTA-style panel damage for the player's current car. */
+  let vehicleDamage: VehicleDamageState = createDamageState('sedan');
+  // Re-pointed whenever the player swaps into a different car (archetype-specific panels).
+  /** v0.9.0 — door swing choreography (unit-tested pure state machine). */
+  const door = createDoorChoreography();
   playerVehicle = placeVehicleNear(
     runtime,
     runtime.manifest.spawn.x,
@@ -555,6 +580,34 @@ async function bootstrap(): Promise<void> {
     syncDebugHandle();
   };
 
+  /**
+   * v0.9.0 — GTA-style door choreography. The driver door swings out, the character
+   * steps in, then the door slams shut. Purely cosmetic; physics is untouched.
+   */
+  const stepDoorAnimation = (dt: number): void => {
+    const before = door.angle;
+    stepDoorChoreography(door, dt);
+    if (door.angle !== before) {
+      runtime.scene.setPlayerDoorAngle('left', door.angle);
+    }
+  };
+
+  /** Where the nearest repair shop would be — always available, damage is never permanent. */
+  const repairPlayerVehicle = (): boolean => {
+    if (vehicleDamage.totalDamage < 1) return false;
+    repairVehicleDamage(vehicleDamage);
+    runtime.scene.syncPlayerDamage(
+      vehicleDamage,
+      playerVehicle.x,
+      playerVehicle.y,
+      playerVehicle.z,
+      playerVehicle.heading,
+      0,
+    );
+    syncDebugHandle();
+    return true;
+  };
+
   const enterVehicle = (): void => {
     inVehicle = true;
     playerVehicle.dyn.drivingMode = drivingMode;
@@ -568,6 +621,7 @@ async function bootstrap(): Promise<void> {
     hud.resetTouchInputs();
     sound.playDoorClick();
     void triggerLightHaptic();
+    startDoorSequence(door, 'opening');
     syncDebugHandle();
   };
 
@@ -598,6 +652,7 @@ async function bootstrap(): Promise<void> {
     gear = 'N';
     hud.resetTouchInputs();
     sound.playDoorClick();
+    startDoorSequence(door, 'opening');
     void triggerLightHaptic();
     syncDebugHandle();
   };
@@ -643,6 +698,9 @@ async function bootstrap(): Promise<void> {
         }
         runtime.scene.setPlayerVehicleStyle(playerVehicle.archetype, playerVehicle.paintHex);
         runtime.scene.resetVehicleEffects();
+        // v0.9.0: a newly claimed car starts pristine with its own damage map.
+        vehicleDamage = createDamageState(playerVehicle.archetype);
+        updateVehicleCondition(vehicleDamage);
         const vehName =
           claimed.archetype === 'sports'
             ? save.locale === 'tr'
@@ -670,6 +728,7 @@ async function bootstrap(): Promise<void> {
     const heading = runtime.scene.getCameraYaw() + Math.PI;
     playerVehicle = placeVehicleNear(runtime, playerX, playerZ, heading);
     runtime.scene.resetVehicleEffects();
+    vehicleDamage = createDamageState(playerVehicle.archetype);
     sound.playHorn();
     void triggerLightHaptic();
     hud.showToast(getStrings(save.locale).taxiCalledToast);
@@ -945,6 +1004,7 @@ async function bootstrap(): Promise<void> {
           runtime.manifest.spawn.heading,
         );
         runtime.scene.resetVehicleEffects();
+        vehicleDamage = createDamageState(playerVehicle.archetype);
       },
       onToggleVehicle: toggleVehicle,
       onCallTaxi: callTaxi,
@@ -1193,6 +1253,8 @@ async function bootstrap(): Promise<void> {
     },
     getDiagnostics: buildDiagnosticsSnapshot,
     getCrashCount: () => crashLog.list().length,
+    vehicleCondition: () => vehicleConditionPercent(vehicleDamage),
+    repairVehicle: () => repairPlayerVehicle(),
   };
   window.__game = debugHandle;
 
@@ -1298,6 +1360,9 @@ async function bootstrap(): Promise<void> {
           if (shiftDown) manualShiftVehicle(playerVehicle, -1);
 
           const surfaceGrip = timeOfDay === 'night' ? 0.94 : timeOfDay === 'sunset' ? 0.97 : 1.0;
+          // v0.9.0: damage degrades power, adds drag and can ultimately kill the engine.
+          playerVehicle.dyn.powerScale = vehicleDamage.powerScale;
+          playerVehicle.dyn.dragScale = vehicleDamage.dragScale;
           const res = stepPlayerVehicle(
             playerVehicle,
             { throttle, brake, steer, handbrake: hb, surfaceGrip },
@@ -1346,8 +1411,35 @@ async function bootstrap(): Promise<void> {
               trafficHit.impactSpeed,
               sampleElev,
             );
-            if (trafficHit.impactSpeed > 1.6) {
-              sound.playImpact(trafficHit.impactSpeed * 1.15);
+            if (trafficHit.impactSpeed > 1.2) {
+              // v0.9.0: route the hit into the panel damage model, then let the
+              // material of the struck panel choose the crash timbre (metal/plastic/glass).
+              const hitPanel = pickPanelForContact(
+                playerVehicle.x,
+                playerVehicle.z,
+                playerVehicle.heading,
+                trafficHit.contactX,
+                trafficHit.contactZ,
+                VEHICLE_SPECS[playerVehicle.archetype].length,
+                VEHICLE_SPECS[playerVehicle.archetype].width,
+              );
+              applyVehicleImpact(
+                vehicleDamage,
+                trafficHit.impactSpeed * 1.35,
+                trafficHit.contactX,
+                trafficHit.contactZ,
+                trafficHit.nx,
+                trafficHit.nz,
+                playerVehicle.x,
+                playerVehicle.z,
+                playerVehicle.heading,
+                VEHICLE_SPECS[playerVehicle.archetype].length,
+                VEHICLE_SPECS[playerVehicle.archetype].width,
+              );
+              sound.playImpact(
+                trafficHit.impactSpeed * 1.15,
+                hitPanel === 'windshield' ? 'glass' : hitPanel.startsWith('bumper') ? 'plastic' : 'metal',
+              );
               runtime.scene.emitCollisionSparks(
                 trafficHit.contactX,
                 playerVehicle.y + 0.72,
@@ -1453,6 +1545,18 @@ async function bootstrap(): Promise<void> {
     audioPacket.surfaceWetness = timeOfDay === 'night' ? 1.12 : timeOfDay === 'sunset' ? 1.05 : 1.0;
     sound.updateVehicleAudio(audioPacket);
 
+    // v0.9.0: door swing choreography + visible crash damage, then clear one-shot queues.
+    stepDoorAnimation(Math.min(rawDt, 0.05));
+    runtime.scene.syncPlayerDamage(
+      vehicleDamage,
+      playerVehicle.x,
+      playerVehicle.y,
+      playerVehicle.z,
+      playerVehicle.heading,
+      Math.min(rawDt, 0.05),
+    );
+    consumeDamageEvents(vehicleDamage);
+
     runtime.scene.render();
 
     // Update zero-GC 2D Minimap radar at ~10 Hz
@@ -1529,6 +1633,8 @@ async function bootstrap(): Promise<void> {
         triangles: tel.triangles,
         loadedTiles: tel.loadedTiles,
         activeBuildings: tel.activeBuildings,
+        vehicleCondition: vehicleConditionPercent(vehicleDamage),
+        vehicleSpecLine: inVehicle ? formatVehicleSpecLine(playerVehicle.archetype) : '',
         physicsReady,
         qualityTier: save.qualityTier,
         regionName: save.locale === 'tr' ? runtime.meta.nameTr : runtime.meta.nameEn,

@@ -521,6 +521,9 @@ export interface VehicleDynamicState {
   suspHeaveVel: number;
   /** 4 independent wheels: FL(0), FR(1), RL(2), RR(3) */
   wheels: [WheelTelemetry, WheelTelemetry, WheelTelemetry, WheelTelemetry];
+  /** v0.9.0 damage multipliers fed from the panel damage model (1 = healthy). */
+  powerScale: number;
+  dragScale: number;
 }
 
 export function createWheelTelemetry(
@@ -585,6 +588,8 @@ export function createVehicleDynamicState(
     suspPitchVel: 0,
     suspRollVel: 0,
     suspHeaveVel: 0,
+    powerScale: 1,
+    dragScale: 1,
     wheels: [
       createWheelTelemetry(0, true, spec.halfTrack, spec.frontAxleZ),
       createWheelTelemetry(1, true, -spec.halfTrack, spec.frontAxleZ),

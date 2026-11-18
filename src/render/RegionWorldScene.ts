@@ -47,11 +47,14 @@ import {
   createPlayerTaxiRig,
   getTrafficClassWheelLayout,
   mapArchetypeToTrafficClass,
+  setDoorAngle,
   setPlayerVehicleAppearance,
   updatePlayerTaxiRig,
+  updatePlayerVehicleDamage,
   type PlayerTaxiRig,
   type TrafficVisualClass,
 } from './vehicleMesh';
+import type { VehicleDamageState } from '../core/vehicleDamage';
 
 export type QaCameraMode = 'follow' | 'street' | 'overview';
 export type PlayerCameraView = 'chase' | 'wide' | 'hood' | 'bumper' | 'topdown';
@@ -167,6 +170,8 @@ export class RegionWorldScene {
   private readonly trafficClasses: Record<TrafficVisualClass, TrafficInstancedClass>;
   private readonly trafficWheelInst: THREE.InstancedMesh;
   private readonly trafficColorScratch = new THREE.Color();
+  /** v0.9.0 — grime tint used to show accumulated NPC body damage. */
+  private readonly grimeColor = new THREE.Color(0x4a4640);
   private readonly wheelParentMat = new THREE.Matrix4();
   private readonly wheelLocalMat = new THREE.Matrix4();
   private readonly wheelFinalMat = new THREE.Matrix4();
@@ -1176,7 +1181,10 @@ export class RegionWorldScene {
       const bucket = this.trafficClasses[cls];
       const baseRoadY = a.y + 0.31;
       const scaleZ = a.archetype === 'hatchback' ? 0.91 : a.archetype === 'van' || a.archetype === 'dolmus' ? 1.07 : 1.0;
-      const scaleY = a.archetype === 'van' || a.archetype === 'dolmus' ? 1.12 : 1.0;
+      // v0.9.0: NPC cars that have been rammed visibly crumple (squashed body + darker paint).
+      const dent = a.dent;
+      const scaleY =
+        (a.archetype === 'van' || a.archetype === 'dolmus' ? 1.12 : 1.0) * (1 - dent * 0.12);
 
       // Dynamic pitch & body roll suspension copied from player vehicle mechanics!
       this.dummyObj.rotation.order = 'YXZ';
@@ -1185,7 +1193,14 @@ export class RegionWorldScene {
       this.dummyObj.scale.set(1, scaleY, scaleZ);
       this.dummyObj.updateMatrix();
 
-      this.trafficColorScratch.setHex(a.paintHex);
+      if (dent > 0.01) {
+        // Scuffed paint: darken + desaturate toward grime as the body takes hits.
+        this.trafficColorScratch.setHex(a.paintHex);
+        const mix = Math.min(0.62, dent * 0.75);
+        this.trafficColorScratch.lerp(this.grimeColor, mix);
+      } else {
+        this.trafficColorScratch.setHex(a.paintHex);
+      }
       bucket.bodyInst.setMatrixAt(idx, this.dummyObj.matrix);
       bucket.bodyInst.setColorAt(idx, this.trafficColorScratch);
       bucket.trimWheelsInst.setMatrixAt(idx, this.dummyObj.matrix);
@@ -1347,6 +1362,24 @@ export class RegionWorldScene {
 
   emitCollisionSparks(x: number, y: number, z: number, count = 12): void {
     this.vehicleEffects.emitImpactSparks(x, y, z, count);
+  }
+
+  /** v0.9.0 — drives the visible dents / detached panels / engine smoke. */
+  syncPlayerDamage(
+    state: VehicleDamageState,
+    x: number,
+    y: number,
+    z: number,
+    heading: number,
+    dt: number,
+  ): void {
+    this.taxiRig.damage.setCamera(this.camera);
+    updatePlayerVehicleDamage(this.taxiRig, state, x, y, z, heading, dt);
+  }
+
+  /** v0.9.0 — door choreography for the enter/exit animation. */
+  setPlayerDoorAngle(side: 'left' | 'right', angle: number): void {
+    setDoorAngle(this.taxiRig, side, angle);
   }
 
   resetVehicleEffects(): void {

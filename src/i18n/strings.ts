@@ -8,6 +8,8 @@ export interface UiStrings {
   trisLabel: string;
   tilesLabel: string;
   buildingsLabel: string;
+  /** v0.9.0 — crash damage readout. */
+  damageLabel: string;
   speedUnit: string;
   physicsReady: string;
   physicsLoading: string;
@@ -90,12 +92,13 @@ export interface UiStrings {
 const STRINGS: Record<LocaleCode, UiStrings> = {
   tr: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.8.0 · Apex Sürüş',
+    milestoneTag: 'v0.9.0 · Hasar & Ses',
     fpsLabel: 'FPS',
     drawsLabel: 'Çizim',
     trisLabel: 'Üçgen',
     tilesLabel: 'Karo',
     buildingsLabel: 'Bina',
+    damageLabel: 'Hasar',
     speedUnit: 'km/s',
     physicsReady: 'Fizik Hazır',
     physicsLoading: 'Fizik…',
@@ -181,12 +184,13 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
   },
   en: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.8.0 · Apex Drive',
+    milestoneTag: 'v0.9.0 · Damage & Audio',
     fpsLabel: 'FPS',
     drawsLabel: 'Draws',
     trisLabel: 'Tris',
     tilesLabel: 'Tiles',
     buildingsLabel: 'Bldgs',
+    damageLabel: 'Damage',
     speedUnit: 'km/h',
     physicsReady: 'Physics OK',
     physicsLoading: 'Physics…',

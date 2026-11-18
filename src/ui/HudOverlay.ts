@@ -56,6 +56,10 @@ export interface HudTelemetryView {
   drifting: boolean;
   driftAngleDeg: number;
   driftScore: number;
+  /** v0.9.0 — 0..100 body condition; 100 = pristine (row hidden). */
+  vehicleCondition: number;
+  /** Short spec line for the current car, e.g. "3982 cc V8 TT · 614 hp · 3.4 s". */
+  vehicleSpecLine: string;
 }
 
 export interface HudCallbacks {
@@ -140,6 +144,9 @@ export class HudOverlay {
   private readonly subEl: HTMLDivElement;
   private readonly perfRowEl: HTMLDivElement;
   private readonly locationRowEl: HTMLDivElement;
+  /** v0.9.0 — crash damage bar; hidden while the car is pristine. */
+  private readonly damageRowEl: HTMLDivElement;
+  private lastDamageHtml = '';
   private readonly hintEl: HTMLDivElement;
 
   private readonly cameraBtn: HTMLButtonElement;
@@ -162,7 +169,6 @@ export class HudOverlay {
   private readonly shiftUpBtn: HTMLButtonElement;
   private readonly holdButtons: HTMLButtonElement[] = [];
   private stickKnobEl: HTMLDivElement | null = null;
-  private lastPerfHtml = '';
   private lastLocationHtml = '';
 
   private locale: LocaleCode;
@@ -239,7 +245,12 @@ export class HudOverlay {
     this.locationRowEl.className = 'location-row';
     this.locationRowEl.dataset.testid = 'location-telemetry';
 
-    brandCard.append(brandRow, this.perfRowEl, this.locationRowEl);
+    this.damageRowEl = document.createElement('div');
+    this.damageRowEl.className = 'damage-row';
+    this.damageRowEl.dataset.testid = 'vehicle-damage';
+    this.damageRowEl.style.display = 'none';
+
+    brandCard.append(brandRow, this.perfRowEl, this.damageRowEl, this.locationRowEl);
 
     const actions = document.createElement('div');
     actions.className = 'hud-actions';
@@ -851,28 +862,48 @@ export class HudOverlay {
       }
     }
 
-    const perfHtml =
-      `<span class="perf-pill">${t.fpsLabel}: ${Math.round(view.fps)}</span>` +
-      `<span class="perf-pill">${t.drawsLabel}: ${view.drawCalls}</span>` +
-      `<span class="perf-pill">${t.tilesLabel}: ${view.loadedTiles}</span>` +
-      `<span class="perf-pill">${t.buildingsLabel}: ${view.activeBuildings}</span>`;
-    if (perfHtml !== this.lastPerfHtml) {
-      this.lastPerfHtml = perfHtml;
-      this.perfRowEl.innerHTML = perfHtml;
+    // v0.9.0 — the FPS / draw-call / tile / building counters are developer telemetry,
+    // not gameplay information. They made the HUD read like a web dashboard on a phone
+    // ("site gibi görünüyor"), so they now live only in the diagnostics modal.
+    if (this.perfRowEl.childElementCount > 0) {
+      this.perfRowEl.replaceChildren();
+      this.perfRowEl.classList.add('hidden-telemetry');
     }
 
     const sanctuaryHtml = view.sanctuaryLabel
       ? `<span class="sanctuary-pill" data-testid="sanctuary-banner">${t.sanctuaryBanner} · ${view.sanctuaryLabel}</span>`
       : '';
     const vehiclePromptHtml =
-      !view.inVehicle && view.nearVehicle && !this.touchEnabled
+      !view.inVehicle && view.nearVehicle
         ? `<span class="prompt-pill" data-testid="vehicle-prompt">${t.nearVehiclePrompt}</span>`
         : '';
 
+    // Location line keeps the player-oriented district + landmark context only.
     const locationHtml =
       `<span class="location-pill">${view.regionName} · ${view.nearestLandmarkLabel}</span>` +
       sanctuaryHtml +
       vehiclePromptHtml;
+    // v0.9.0 — a compact body-condition bar replaces the developer counters:
+    // it only appears once the car actually takes damage.
+    const condition = Math.round(view.vehicleCondition);
+    if (condition >= 100) {
+      if (this.damageRowEl.style.display !== 'none') {
+        this.damageRowEl.style.display = 'none';
+        this.lastDamageHtml = '';
+      }
+    } else {
+      const damageHtml =
+        `<span class="damage-label" data-testid="vehicle-condition">` +
+        `${t.damageLabel} %${100 - condition}</span>` +
+        `<span class="damage-track"><span class="damage-fill" style="width:${condition}%"></span></span>` +
+        (view.vehicleSpecLine ? `<span class="spec-pill">${view.vehicleSpecLine}</span>` : '');
+      if (damageHtml !== this.lastDamageHtml) {
+        this.lastDamageHtml = damageHtml;
+        this.damageRowEl.innerHTML = damageHtml;
+        this.damageRowEl.style.display = 'flex';
+      }
+    }
+
     if (locationHtml !== this.lastLocationHtml) {
       this.lastLocationHtml = locationHtml;
       this.locationRowEl.innerHTML = locationHtml;

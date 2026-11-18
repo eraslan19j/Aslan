@@ -6,6 +6,8 @@ import {
 } from '../core/vehicle';
 import { mergeColoredParts, type ColoredGeometryPart } from './meshMerge';
 import { createPlateTexture } from './proceduralTextures';
+import type { PanelId, VehicleDamageState } from '../core/vehicleDamage';
+import { VehicleDamageVisuals } from './vehicleDamageVisuals';
 
 export type TrafficVisualClass = 'sports' | 'sedan' | 'suv';
 
@@ -75,6 +77,15 @@ export interface PlayerTaxiRig {
   root: THREE.Group;
   chassisGroup: THREE.Group;
   driverSeatMount: THREE.Group;
+  /** v0.9.0 — damage visual anchors: hood, front/rear bumpers, doors (hinged). */
+  panelMeshes: Partial<Record<PanelId, THREE.Mesh>>;
+  /** Driver door hinge — swings open for the enter/exit choreography. */
+  doorFrontLeftPivot: THREE.Group;
+  doorFrontRightPivot: THREE.Group;
+  /** Current door angle in radians (0 closed, ~1.15 open). */
+  doorAngle: number;
+  /** v0.9.0 damage visuals: dents, detached panels, debris & smoke. */
+  damage: VehicleDamageVisuals;
   steeringWheel: THREE.Mesh;
   /** Independent suspension & steering hubs in exact physics order: [FL, FR, RL, RR] */
   wheelHubGroups: THREE.Group[];
@@ -662,6 +673,126 @@ export function createPlayerTaxiRig(
   mergedTrim.castShadow = true;
   chassisGroup.add(mergedTrim);
 
+  // ---- v0.9.0 damage panels (separate meshes so they can dent, flap and fly off) ----
+  const panelMeshes: Partial<Record<PanelId, THREE.Mesh>> = {};
+  const makePanelMesh = (
+    id: PanelId,
+    parts: ColoredGeometryPart[],
+    material: THREE.Material,
+  ): THREE.Mesh => {
+    const geo = trackGeo(mergeColoredParts(parts));
+    const mesh = new THREE.Mesh(geo, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.visible = false; // hidden until damage is applied; the base body shows otherwise
+    chassisGroup.add(mesh);
+    panelMeshes[id] = mesh;
+    return mesh;
+  };
+
+  makePanelMesh(
+    'hood',
+    [
+      { geometry: new THREE.BoxGeometry(1.74, 0.1, 1.44), color: 0xffffff, position: [0, 0.86, 1.32], rotation: [0.13, 0, 0] },
+      { geometry: new THREE.BoxGeometry(0.5, 0.03, 0.5), color: 0xffffff, position: [0, 0.92, 1.34], rotation: [0.13, 0, 0] },
+    ],
+    bodyPaintMat,
+  );
+  makePanelMesh(
+    'trunk',
+    [{ geometry: new THREE.BoxGeometry(1.78, 0.09, 1.0), color: 0xffffff, position: [0, 0.89, -1.56] }],
+    bodyPaintMat,
+  );
+  makePanelMesh(
+    'bumperFront',
+    [
+      { geometry: new THREE.BoxGeometry(1.94, 0.23, 0.3), color: 0x1b2029, position: [0, 0.41, 2.08] },
+      { geometry: new THREE.BoxGeometry(1.06, 0.19, 0.08), color: 0x101319, position: [0, 0.64, 2.15] },
+    ],
+    trimMat,
+  );
+  makePanelMesh(
+    'bumperRear',
+    [
+      { geometry: new THREE.BoxGeometry(1.94, 0.25, 0.3), color: 0x1b2029, position: [0, 0.43, -2.08] },
+      { geometry: new THREE.CylinderGeometry(0.052, 0.052, 0.26, 8), color: 0xe2e8f0, position: [-0.5, 0.34, -2.2], rotation: [Math.PI / 2, 0, 0] },
+      { geometry: new THREE.CylinderGeometry(0.052, 0.052, 0.26, 8), color: 0xe2e8f0, position: [0.5, 0.34, -2.2], rotation: [Math.PI / 2, 0, 0] },
+    ],
+    trimMat,
+  );
+  makePanelMesh(
+    'windshield',
+    [
+      {
+        geometry: new THREE.BoxGeometry(1.44, 0.58, 0.05),
+        color: 0xffffff,
+        position: [0, 1.13, 0.66],
+        rotation: [-0.52, 0, 0],
+      },
+    ],
+    glassMat,
+  );
+  makePanelMesh(
+    'doorFrontLeft',
+    [
+      { geometry: new THREE.BoxGeometry(0.06, 0.48, 1.5), color: 0xffffff, position: [0.95, 0.62, -0.2] },
+      { geometry: new THREE.BoxGeometry(0.05, 0.04, 0.2), color: 0xdbe4ee, position: [0.99, 0.78, 0.02] },
+    ],
+    bodyPaintMat,
+  );
+  makePanelMesh(
+    'doorFrontRight',
+    [
+      { geometry: new THREE.BoxGeometry(0.06, 0.48, 1.5), color: 0xffffff, position: [-0.95, 0.62, -0.2] },
+      { geometry: new THREE.BoxGeometry(0.05, 0.04, 0.2), color: 0xdbe4ee, position: [-0.99, 0.78, 0.02] },
+    ],
+    bodyPaintMat,
+  );
+
+  // Damage visuals (dents / flying panels / engine smoke) live in their own group.
+  const damage = new VehicleDamageVisuals(bodyPaintMat);
+  root.add(damage.group);
+  const panelCenters: Partial<Record<PanelId, [number, number, number]>> = {
+    hood: [0, 0.88, 1.32],
+    trunk: [0, 0.89, -1.56],
+    bumperFront: [0, 0.45, 2.1],
+    bumperRear: [0, 0.45, -2.1],
+    windshield: [0, 1.13, 0.66],
+    doorFrontLeft: [0.95, 0.62, -0.2],
+    doorFrontRight: [-0.95, 0.62, -0.2],
+  };
+  for (const [id, mesh] of Object.entries(panelMeshes) as [PanelId, THREE.Mesh][]) {
+    const c = panelCenters[id];
+    if (c) damage.registerPanel(id, mesh, new THREE.Vector3(c[0], c[1], c[2]));
+  }
+  geometries.push(...damage.resources.geometries);
+  materials.push(...damage.resources.materials);
+
+  // Driver / passenger door hinges (used by the enter & exit animation).
+  const doorFrontLeftPivot = new THREE.Group();
+  doorFrontLeftPivot.position.set(0.95, 0.55, 0.55);
+  chassisGroup.add(doorFrontLeftPivot);
+  const doorFrontRightPivot = new THREE.Group();
+  doorFrontRightPivot.position.set(-0.95, 0.55, 0.55);
+  chassisGroup.add(doorFrontRightPivot);
+
+  // A thin painted door skin that swings with the hinge (visible only while opening).
+  const doorSkinGeo = trackGeo(
+    mergeColoredParts([
+      { geometry: new THREE.BoxGeometry(0.05, 0.46, 1.42), color: 0xffffff, position: [0, 0, -0.72] },
+      { geometry: new THREE.BoxGeometry(0.04, 0.3, 1.1), color: 0x0f1726, position: [0, 0.1, -0.72] },
+    ]),
+  );
+  const leftDoorSkin = new THREE.Mesh(doorSkinGeo, bodyPaintMat);
+  const rightDoorSkin = new THREE.Mesh(doorSkinGeo, bodyPaintMat);
+  leftDoorSkin.visible = false;
+  rightDoorSkin.visible = false;
+  leftDoorSkin.castShadow = true;
+  rightDoorSkin.castShadow = true;
+  doorFrontLeftPivot.add(leftDoorSkin);
+  doorFrontRightPivot.add(rightDoorSkin);
+
+
   // 3. Glowing Front LED Headlights + Modern White DRL Eyebrow Strips
   const mergedHeadlightsGeo = trackGeo(
     mergeColoredParts([
@@ -828,6 +959,11 @@ export function createPlayerTaxiRig(
     root,
     chassisGroup,
     driverSeatMount,
+    panelMeshes,
+    doorFrontLeftPivot,
+    doorFrontRightPivot,
+    doorAngle: 0,
+    damage,
     steeringWheel,
     wheelHubGroups,
     frontSteerPivots,
@@ -848,6 +984,12 @@ export function createPlayerTaxiRig(
     textures,
   };
 
+  // Door skins are toggled by `setDoorAngle` through these references.
+  (rig as PlayerTaxiRig & { leftDoorSkin: THREE.Mesh; rightDoorSkin: THREE.Mesh }).leftDoorSkin =
+    leftDoorSkin;
+  (rig as PlayerTaxiRig & { leftDoorSkin: THREE.Mesh; rightDoorSkin: THREE.Mesh }).rightDoorSkin =
+    rightDoorSkin;
+
   setPlayerVehicleAppearance(rig, initialArchetype, initialPaintHex);
   return rig;
 }
@@ -857,6 +999,49 @@ export function createPlayerTaxiRig(
  * sporty drift camber, exhaust backfire flames, brake/reverse lights, turn signals,
  * and 2nd-order spring-damped suspension chassis pitch/roll/heave.
  */
+/**
+ * v0.9.0 — swings the driver (or passenger) door. `angle` is in radians:
+ * 0 = shut, ~1.15 rad = fully open. Doors also become visible from the side view,
+ * so the enter/exit choreography reads clearly on a phone screen.
+ */
+export function setDoorAngle(rig: PlayerTaxiRig, side: 'left' | 'right', angle: number): void {
+  const pivot = side === 'left' ? rig.doorFrontLeftPivot : rig.doorFrontRightPivot;
+  const dir = side === 'left' ? -1 : 1;
+  pivot.rotation.y = dir * angle;
+  const skin = (rig as PlayerTaxiRig & { leftDoorSkin?: THREE.Mesh; rightDoorSkin?: THREE.Mesh })[
+    side === 'left' ? 'leftDoorSkin' : 'rightDoorSkin'
+  ];
+  if (skin) skin.visible = angle > 0.02;
+  rig.doorAngle = angle;
+}
+
+/**
+ * v0.9.0 — pushes the live damage state onto the car's visual panels.
+ * Call once per frame after `updatePlayerTaxiRig`.
+ */
+export function updatePlayerVehicleDamage(
+  rig: PlayerTaxiRig,
+  state: VehicleDamageState,
+  worldX: number,
+  worldY: number,
+  worldZ: number,
+  heading: number,
+  dt: number,
+): void {
+  rig.damage.apply(state, worldX, worldY, worldZ, heading, dt, 0xffffff);
+  for (const [id, mesh] of Object.entries(rig.panelMeshes) as [PanelId, THREE.Mesh][]) {
+    const panel = state.panels[id];
+    if (!panel) continue;
+    // Reveal the dedicated panel mesh only once it is visibly damaged.
+    mesh.visible = !panel.detached && panel.dent > 0.015;
+    if (mesh.visible && mesh.material instanceof THREE.MeshStandardMaterial) {
+      // Scuffed metal: dull the paint as the panel takes damage.
+      const wear = Math.min(1, panel.dent);
+      mesh.material.color.setRGB(1 - wear * 0.45, 1 - wear * 0.42, 1 - wear * 0.38);
+    }
+  }
+}
+
 export function updatePlayerTaxiRig(rig: PlayerTaxiRig, vehicle: PlayerVehicleState): void {
   const dyn = vehicle.dyn;
   const driftCamber = dyn.drivingMode === 'drift' ? 0.06 : 0.02;

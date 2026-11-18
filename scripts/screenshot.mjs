@@ -124,6 +124,11 @@ async function checkHudLayout(page) {
         }
       }
     }
+    // v0.9.0 — the HUD must read like a game, not a web dashboard.
+    const telemetry = document.querySelector('[data-testid="perf-telemetry"]');
+    if (telemetry && telemetry.textContent.trim().length > 0) {
+      issues.push('Developer telemetry (FPS/draw calls) is visible on the main HUD');
+    }
     return issues;
   });
 }
