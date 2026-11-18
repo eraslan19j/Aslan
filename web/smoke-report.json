@@ -13,15 +13,15 @@
     "transmissionMode": "auto",
     "crashCount": 0,
     "perf": {
-      "fps": 36.288074021202824,
-      "frameMs": 290.03952889349745,
-      "drawCalls": 109,
-      "triangles": 292931,
-      "geometries": 81,
+      "fps": 37.44525802874473,
+      "frameMs": 154.06616307457074,
+      "drawCalls": 130,
+      "triangles": 355291,
+      "geometries": 101,
       "textures": 13,
       "pixelRatio": 1,
-      "loadedTiles": 11,
-      "activeBuildings": 2546
+      "loadedTiles": 25,
+      "activeBuildings": 4159
     }
   },
   "initialRegion": "esenler-namik-kemal",
@@ -32,7 +32,7 @@
   "drivingModeToggleOk": true,
   "transmissionToggleOk": true,
   "audioToggleOk": true,
-  "walkDist": 1.68,
+  "walkDist": 2.28,
   "driveDist": 2.52,
   "driveSpeedKph": 31,
   "driveGear": "1",
