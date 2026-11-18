@@ -95,7 +95,7 @@ export interface UiStrings {
 const STRINGS: Record<LocaleCode, UiStrings> = {
   tr: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.9.0 · Hasar & Ses',
+    milestoneTag: 'v0.9.1 · Hasar & Ses',
     fpsLabel: 'FPS',
     drawsLabel: 'Çizim',
     trisLabel: 'Üçgen',
@@ -190,7 +190,7 @@ const STRINGS: Record<LocaleCode, UiStrings> = {
   },
   en: {
     appTitle: 'ISTANBUL STREETS',
-    milestoneTag: 'v0.9.0 · Damage & Audio',
+    milestoneTag: 'v0.9.1 · Damage & Audio',
     fpsLabel: 'FPS',
     drawsLabel: 'Draws',
     trisLabel: 'Tris',
