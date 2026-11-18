@@ -78,19 +78,22 @@ jobs:
           echo "Detected orientation line: ${ORIENTATION}"
           echo "$ORIENTATION" | grep -qE "0x0*6|sensorLandscape|=6([^0-9]|$)"
           {
-            echo "## Istanbul Streets — v0.8.0 Debug APK (Yol Tutuşu, Temiz Cadde Props, Gelişmiş NPC Araçlar, Fiziksel Bariyerler & Modern Görseller — API 36)"
+            echo "## Istanbul Streets — v0.9.0 Debug APK (GTA-Tarzı Hasar, Katmanlı Motor/Lastik Sesi, OBB Çarpışma, Sade HUD — API 36)"
             echo ""
             echo "- **Package:** \`com.istanbulstreets.game\`"
             echo "- **Target SDK:** \`36\` (Android 16) · **Min SDK:** \`24\` (Android 7.0+)"
             echo "- **Orientation:** \`sensorLandscape\` (\`${ORIENTATION}\`)"
             echo "- **Debug APK Size:** \`${APK_SIZE_MB} MB\` (${APK_SIZE_BYTES} bytes)"
             echo "- **Bölgeler:** Tepe Mahallesi (varsayılan) + Tarihî Yarımada (Duraklat menüsünden geçiş) — %100 çevrimdışı 300m karolar"
-            echo "- **v0.8.0 Yenilikler ve Düzeltmeler:**"
-            echo "  - **Yüksek Hızda Dengeli Cadde Sürüşü (\`CADDE\`):** Arka lastik tutuşu güçlendirildi, ESC yanal dengeleme ve hıza duyarlı direksiyon hassasiyeti eklendi; hızlı giderken istemsiz kayma/savrulma giderildi. El freni veya \`DRİFT\` / \`SİM\` modları tüm heyecanıyla korundu."
-            echo "  - **Yol Ortası Ağaç/Direk/Prop Temizliği:** 103 çevrimdışı karonun tamamında (\`44\` Tepe Mahallesi + \`59\` Tarihî Yarımada) her ağaç, sokak lambası, tabela, bank ve çöp kutusu tüm asfalt yol şeritleri, kavşak ağızları, refüjler ve binalardan güvenli mesafede konumlandırıldı (\`0\` yol ihlali)."
-            echo "  - **Modernize NPC Trafik Araçları (Görünüm + Fizik):** Tüm NPC araçlara parlak metalik boya, dönen ve virajda yönelen 5 kollu alaşım jantlı tekerlekler, dinamik kırmızı fren lambaları + 3. LED fren şeridi, süspansiyon yatma/dalış ve gerçek momentumlu çarpışma tepkisi eklendi."
-            echo "  - **Görünmez Duvarlar Kaldırıldı — Fiziksel Belediye Yol Bariyerleri:** Oyuncu, NPC trafik, yayalar ve minimap tek bir ortak harita sınırını paylaşır; yolların bittiği gerçek sınır noktalarına kırmızı-beyaz reflektörlü beton belediye bariyerleri, trafik konileri ve yanıp sönen sarı ikaz lambaları yerleştirildi."
-            echo "  - **Modern Görseller & Çok Eklemli Karakter Animasyonları:** GPU atmosferik gökyüzü shader'ı + gün batımı parıltısı + yıldızlı gece gökyüzü, okunabilir ışıklı \`KAFE\` / \`FIRIN\` / \`MARKET\` neon tabelaları, füme camlı balkonlar, diz/dirsek eklemli ana karakter ve yürüyüş animasyonlu yayalar."
+            echo "- **v0.9.0 Yenilikler ve Düzeltmeler:**"
+            echo "  - **GTA-Tarzı Araç Hasarı:** 10 ayrı gövde paneli (kaput, ön/arka tampon, kapılar, çamurluklar, tavan, ön cam). Çarpma anında panel ezilir, yeterince sertse **kopup fırlar** (yerçekimi + sekme fiziği), ön cam kırılır, hasarlı motor duman çıkarır. Ağır hasarda motor gücü düşer, araç sürünerek gider."
+            echo "  - **Araçlar Artık Birbirine Girmiyor:** Daire yaklaşımı yerine gerçek **OBB (yönlü kutu) SAT/MTV** çarpışma çözücü. Temas yaması normal + teğet üzerinde hesaplandığı için PIT manevrası ve kütle paylaşımlı savrulma gerçekçi."
+            echo "  - **Yepyeni Motor Sesi:** AudioWorklet DSP tamamen yeniden yazıldı — silindir ateşleme darbe dizisi, egzoz banka gecikmesi, susturucu haznesi, kuyruk borusu dalga kılavuzu, emme Helmholtz rezonansı, supap tıkırtısı, turbo spool/flutter/BOV/wastegate ve overrun patlamaları. Her araç sınıfının kendi ses kimliği var."
+            echo "  - **Gerçek Lastik Sesi:** Sabit bant-geçiren yerine kayma hızına bağlı 3 katman — cıyaklama (320–2150 Hz arası kayma ile yükselen temel ton + harmonikler + FM vibrato), kilitli teker kazıması ve yol gürültüsü. Islak/gece zeminde daha yüksek."
+            echo "  - **Sade Oyun HUD'u:** Ekrandaki FPS / Çizim / Karo / Bina satırları kaldırıldı (yalnızca Ayarlar → Tanılama'da). Yerine yalnızca hasar aldığında görünen ince bir hasar çubuğu ve araç künyesi geldi."
+            echo "  - **Kapı Açma Animasyonu:** Araca binerken sürücü kapısı 0.42 sn'de açılır, 0.30 sn bekler, 0.36 sn'de kapanır."
+            echo "  - **NPC Araçlar da Hasar Görüyor:** Çarpılan araç gövdesi ezilir, boyası kir rengine kayar."
+            echo "  - **Tam Araç Künyeleri:** 7 aracın motor kodu, hacim, silindir düzeni, sıkıştırma, supap düzeni, güç/tork eğrileri, şanzıman oranları, lastik/fren ölçüleri ve ses kimliği — hepsi fizik modeliyle testle senkron (`docs/plans/VEHICLE_SPECS_V090.md`)."
             echo "- **Commit:** \`${GITHUB_SHA}\`"
             echo ""
             echo "### Kurulum (Yalnızca Android Telefon)"
@@ -141,9 +144,9 @@ jobs:
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.8.0' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.9.0' }}
           target_commitish: ${{ github.sha }}
-          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.8.0 (Planted Street Grip, Road-Clear Props, Upgraded NPC Fleet & Physical Barriers - API 36)' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.9.0 (Crash Damage, Layered Engine & Tyre Audio, OBB Collision - API 36)' }}
           body_path: release-notes.md
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           files: |
