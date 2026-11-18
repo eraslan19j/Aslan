@@ -1935,24 +1935,27 @@ const doorGroups = [];
    FRONT FASCIA — the 131's face: wide grille, rectangular lamps
    ══════════════════════════════════════════════════════════════════════════ */
 {
-  const gz = Z_NOSE - 0.055;
+  /* the silhouette closes the nose at Z_NOSE - 0.045; sit the fascia just
+     proud of that or the grille and lamps end up inside the shell */
+  const gz = Z_NOSE - 0.022;
   const gy = Y_SCUTTLE - 0.175;
 
   /* the grille opening: a wide black recess with horizontal chrome slats */
-  const grille = new THREE.Mesh(new THREE.BoxGeometry(1.14, 0.165, 0.024), matBlack);
+  /* narrower than the lamp spacing, so the lamps sit outside it */
+  const grille = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.150, 0.024), matBlack);
   grille.position.set(0, gy, gz);
   carVisual.add(grille);
 
   for (let i = 0; i < 3; i++) {
     /* NB: keep the loop variable uniquely named — shadowing an outer `s`
        here once bent a mesh across the whole car */
-    const slat = new THREE.Mesh(new THREE.BoxGeometry(1.10, 0.011, 0.014), matChrome);
+    const slat = new THREE.Mesh(new THREE.BoxGeometry(0.585, 0.011, 0.014), matChrome);
     slat.position.set(0, gy - 0.050 + i * 0.050, gz + 0.010);
     carVisual.add(slat);
   }
 
   /* the centre boss, holding the (unbadged) middle of the grille */
-  const boss = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.150, 0.016), matChrome);
+  const boss = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.138, 0.016), matChrome);
   boss.position.set(0, gy, gz + 0.016);
   carVisual.add(boss);
 }
@@ -1963,22 +1966,23 @@ const headlights = [];
   const lensGeo  = new THREE.BoxGeometry(0.325, 0.145, 0.026);
   const bezelGeo = new THREE.BoxGeometry(0.355, 0.172, 0.012);
   const y = Y_SCUTTLE - 0.175;
-  const z = Z_NOSE - 0.062;
+  /* same as the grille — on the nose, not behind it */
+  const z = Z_NOSE - 0.028;
 
   [-1, 1].forEach((side) => {
     const bez = new THREE.Mesh(bezelGeo, matChrome);
-    bez.position.set(side * 0.485, y, z - 0.004);
+    bez.position.set(side * 0.575, y, z - 0.004);
     carVisual.add(bez);
 
     const lens = new THREE.Mesh(lensGeo, matHeadlamp.clone());
-    lens.position.set(side * 0.485, y, z + 0.014);
+    lens.position.set(side * 0.575, y, z + 0.014);
     carVisual.add(lens);
     headlights.push(lens);
 
     /* the indicator sits outboard of the lamp, on the corner of the wing */
-    const ind = new THREE.Mesh(new THREE.BoxGeometry(0.115, 0.105, 0.030), matAmber);
-    ind.position.set(side * 0.712, y, z + 0.012);
-    ind.rotation.y = side * -0.20;
+    /* below the lamp on the wing corner, not inboard beside it */
+    const ind = new THREE.Mesh(new THREE.BoxGeometry(0.150, 0.072, 0.028), matAmber);
+    ind.position.set(side * 0.600, y - 0.118, z + 0.008);
     carVisual.add(ind);
   });
 }
