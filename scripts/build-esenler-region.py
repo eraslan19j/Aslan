@@ -843,6 +843,15 @@ def main():
             flat_pts.append(round1(pz))
             touched_tiles.add((int(math.floor(px / TILE_SIZE)), int(math.floor(pz / TILE_SIZE))))
 
+        # The v0.9.0 data harvest exposed sub-2 m "micro stubs" (tiny leftover path
+        # fragments) that looked like road slivers on screen. Drop them here so the
+        # pack can never regress (phase7Verification TEST 7 enforces this).
+        total_len = 0.0
+        for i in range(len(pts) - 1):
+            total_len += math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1])
+        if total_len < 2.0:
+            continue
+
         ribbon = {
             "id": r["id"],
             "roadClass": rclass,
@@ -1025,8 +1034,8 @@ def main():
     spawn_lat = origin["lat"] - (best_spawn["z"] / EARTH_RADIUS) * RAD_TO_DEG
     landmarks.insert(0, {
         "id": "nk-merkez-cadde",
-        "nameTr": "Namık Kemal Merkez Cadde",
-        "nameEn": "Namik Kemal Main Street",
+        "nameTr": "Ana Cadde",
+        "nameEn": "Main Avenue",
         "kind": "station",
         "x": best_spawn["x"],
         "y": round1(sample_elev(terrain, best_spawn["x"], best_spawn["z"])),
@@ -1061,8 +1070,10 @@ def main():
     manifest = {
         "schemaVersion": 1,
         "regionId": REGION_ID,
-        "nameTr": "Esenler · Namık Kemal Mahallesi",
-        "nameEn": "Esenler · Namik Kemal District",
+        # AGENTS.md: player-facing names must stay fictional — never leak the real
+        # district name into the HUD ("site gibi görünüyor" feedback round, v0.9.0).
+        "nameTr": "Tepe Mahallesi",
+        "nameEn": "Hillside Quarter",
         "bounds": bounds,
         "origin": origin,
         "tileSize": TILE_SIZE,
@@ -1070,8 +1081,8 @@ def main():
             "x": best_spawn["x"],
             "z": best_spawn["z"],
             "heading": best_spawn["heading"],
-            "labelTr": "Namık Kemal Merkez Cadde",
-            "labelEn": "Namik Kemal Main Street",
+            "labelTr": "Ana Cadde",
+            "labelEn": "Main Avenue",
         },
         "availableTiles": available_tiles,
         "landmarks": landmarks,
