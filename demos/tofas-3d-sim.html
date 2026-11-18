@@ -1565,8 +1565,8 @@ const CAR = {
   L: 4.37, W: 1.65, H: 1.36,
   WB: CFG.WHEELBASE,
   TRACK: CFG.TRACK,
-  nose: 2.115,          // z of the front bumper face
-  tail: -2.255,         // z of the rear bumper face
+  nose: 2.010,          // z of the front bumper face
+  tail: -2.175,         // z of the rear bumper face
   sillH: 0.155,         // bottom of the painted body — lower, more modern
   beltH: 0.97,          // window sill — a higher beltline reads newer
   scuttleH: 0.90,       // base of the windscreen
@@ -1687,11 +1687,16 @@ function buildSilhouette() {
   sh.lineTo(0.615, Y_BELT);                   // belt line meets the A-pillar
   sh.lineTo(0.645, Y_SCUTTLE);                // scuttle / wiper panel
   sh.lineTo(0.98, Y_SCUTTLE - 0.002);
-  sh.lineTo(1.86, Y_BONNET_N);                // bonnet, sloping DOWN to the nose
-  sh.quadraticCurveTo(Z_NOSE - 0.035, Y_BONNET_N - 0.006,
-                      Z_NOSE - 0.045, Y_BONNET_N - 0.055);  // nose rounds off
-  sh.lineTo(Z_NOSE - 0.05, Y_SCUTTLE - 0.295); // grille panel
-  sh.lineTo(Z_NOSE - 0.075, Y_SILL + 0.02);    // front valance
+  /* A short, almost flat bonnet that turns down sharply at the end — the 131's
+     nose is a step, not a wedge.  The old line fell steadily from 0.98 all the
+     way to 1.86 and then swooped, which produced a long beak. */
+  sh.lineTo(1.62, Y_BONNET - 0.004);          // bonnet stays high and flat
+  sh.lineTo(1.94, Y_BONNET_N + 0.012);        // it begins to turn
+  sh.quadraticCurveTo(Z_NOSE - 0.050, Y_BONNET_N - 0.004,
+                      Z_NOSE - 0.062, Y_BONNET_N - 0.062);  // a tight radius
+  /* the grille panel is close to vertical, as on the real car */
+  sh.lineTo(Z_NOSE - 0.058, Y_SCUTTLE - 0.300); // grille panel
+  sh.lineTo(Z_NOSE - 0.082, Y_SILL + 0.02);     // front valance
   /* The two wheel arches.  They are rooted at the HUB height (not the sill):
      the hub sits 0.15 m above the sill, so a semicircle drawn from the sill
      cannot reach over the tyre and merely scallops the paint.  Rooted at the
@@ -1780,6 +1785,91 @@ carVisual.add(shell);
     new THREE.BoxGeometry(ROOF_W - 0.02, 0.012, 1.02), matDash);
   under.position.set(0, Y_ROOF - 0.030, -0.210);
   carVisual.add(under);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FLANK DETAIL — the shoulder crease and the lower character line
+   ══════════════════════════════════════════════════════════════════════════
+   A car's flank is never one flat plane.  There is a crease along the shoulder
+   where the upper and lower pressings meet, and usually a second, softer one
+   low down; those two lines are a great deal of what the eye reads as
+   bodywork rather than a flat fill.  Both run the length of the car and taper
+   out at the ends, so they are built as swept strips pinned just proud of the
+   panel.
+   ══════════════════════════════════════════════════════════════════════════ */
+{
+  const halfW = BODY_W / 2 + 0.002;
+
+  /* The strips taper: full height in the middle of the door, nothing at the
+     extremes, which is how a real pressing dies out. */
+  const crease = (y, thickness, zFrom, zTo) => {
+    const segs = 26;
+    const pts = [];
+    for (let i = 0; i <= segs; i++) {
+      const t = i / segs;
+      const z = lerp(zFrom, zTo, t);
+      /* fade the height to nothing at both ends */
+      const taper = Math.sin(Math.PI * t);
+      pts.push([z, y, thickness * (0.35 + 0.65 * taper)]);
+    }
+    return pts;
+  };
+
+  /* All the crease segments live in ONE merged geometry.  Fifty-two separate
+     boxes put the draw-call count from 334 to 470, and this is a single
+     static shape with a single material — there is no reason for it to be
+     anything but one mesh. */
+  const creasePos = [];
+  const creaseIdx = [];
+  let cv = 0;
+
+  const addSegment = (x, y, zc, t, h, len) => {
+    /* a shallow wedge: outer face proud of the panel, inner face buried in it */
+    const xo = x, xi = x - Math.sign(x) * (t + 0.010);
+    const y0 = y - h * 0.5, y1 = y + h * 0.5;
+    const z0 = zc - len * 0.5, z1 = zc + len * 0.5;
+    const v = [
+      [xo, y0, z0], [xo, y0, z1], [xo, y1, z1], [xo, y1, z0],
+      [xi, y0, z0], [xi, y0, z1], [xi, y1, z1], [xi, y1, z0],
+    ];
+    v.forEach(p => creasePos.push(p[0], p[1], p[2]));
+    const faces = [
+      [0,1,2],[0,2,3],      // outer
+      [4,6,5],[4,7,6],      // inner
+      [0,4,5],[0,5,1],      // bottom -z..? kept simple
+      [3,2,6],[3,6,7],      // top
+      [0,3,7],[0,7,4],      // one end
+      [1,5,6],[1,6,2],      // other end
+    ];
+    faces.forEach(f => creaseIdx.push(cv + f[0], cv + f[1], cv + f[2]));
+    cv += 8;
+  };
+
+  [-1, 1].forEach((side) => {
+    const up = crease(Y_BELT - 0.075, 0.026, -1.62, 1.72);
+    for (let i = 0; i < up.length - 1; i++) {
+      const [z0, y0, t0] = up[i];
+      const [z1] = up[i + 1];
+      const len = Math.abs(z1 - z0) * 1.06;
+      addSegment(side * (halfW + t0 * 0.35), y0, (z0 + z1) * 0.5, t0, 0.026, len);
+    }
+
+    const lo = crease(Y_SILL + 0.150, 0.018, -1.72, 1.80);
+    for (let i = 0; i < lo.length - 1; i++) {
+      const [z0, y0, t0] = lo[i];
+      const [z1] = lo[i + 1];
+      const len = Math.abs(z1 - z0) * 1.06;
+      addSegment(side * (halfW + t0 * 0.35), y0, (z0 + z1) * 0.5, t0, 0.018, len);
+    }
+  });
+
+  const cg = new THREE.BufferGeometry();
+  cg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(creasePos), 3));
+  cg.setIndex(creaseIdx);
+  cg.computeVertexNormals();
+  const creases = new THREE.Mesh(cg, matPaint);
+  creases.castShadow = true;
+  carVisual.add(creases);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -2063,13 +2153,14 @@ const headlights = [];
        spherical cap, 6 mm of dome across 325 mm — gives the glass a curved
        surface, which is what produces the swept highlight a real lamp shows
        and what makes it look like it is set into the panel. */
-    const crownGeo = new THREE.SphereGeometry(1, 18, 8, 0, Math.PI * 2, 0, Math.PI * 0.30);
-    crownGeo.scale(0.168, 0.070, 0.030);
+    /* A polar cap opens along +Y, so turn it to face +Z first, THEN scale it
+       in the lamp's own frame — wide, tall, shallow.  Doing the scale before
+       the rotation is what made this come out as a vertical bar. */
+    const crownGeo = new THREE.SphereGeometry(1, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.34);
     crownGeo.rotateX(Math.PI / 2);
-    crownGeo.rotateZ(-Math.PI / 2);
+    crownGeo.scale(0.166, 0.072, 0.028);
     const crown = new THREE.Mesh(crownGeo, matGlassLamp);
-    crown.position.set(side * 0.575, y, z + 0.030);
-    crown.scale.x = lensGeo.parameters.width > 0 ? 1 : 1;
+    crown.position.set(side * 0.575, y, z + 0.020);
     carVisual.add(crown);
 
     /* the reflector dish behind the glass, so the lamp has depth when lit */
@@ -2394,28 +2485,31 @@ function buildWheel() {
      (not the mesh) so the disc ends up facing along the axle — leaving it on
      the mesh made the face read 0.37 m across the car, i.e. still sideways. */
   faceGeo.rotateY(Math.PI / 2);
+  /* A real 131 steel wheel is dark grey satin paint with a ring of slots, and
+     it is the DARKNESS of it that makes the small chrome cap read as chrome.
+     A near-black disc under a big mirror cap gave two flat tones and no wheel. */
   const face = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({
-    color: 0x2a2b2e, roughness: 0.62, metalness: 0.35 }));
+    color: 0x3a3c40, roughness: 0.52, metalness: 0.55 }));
   face.position.x = WHEEL_W * 0.40;
   spin.add(face);
 
   /* ── the chrome hubcap: a domed dish, the 131's most recognisable wheel
         detail.  Modelled as a spherical cap plus a ring of vent holes. ──── */
-  const capR = rIn * 0.685;
+  const capR = rIn * 0.44;
   const capGeo = new THREE.SphereGeometry(capR, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.42);
   capGeo.rotateZ(-Math.PI / 2);          // dome points along +X
   /* squashed along the axle: a deep cap reached x = 0.902, making the hubcap
      the widest point on the whole car — wider than the mirrors */
   capGeo.scale(0.42, 1, 1);
   const cap = new THREE.Mesh(capGeo, matChrome);
-  cap.position.x = WHEEL_W * 0.415;
+  cap.position.x = WHEEL_W * 0.335;
   spin.add(cap);
 
   /* the flat chrome ring around the base of the dome */
   const ringGeo = new THREE.TorusGeometry(capR * 0.985, 0.011, 5, 18);
   ringGeo.rotateY(Math.PI / 2);
   const ring = new THREE.Mesh(ringGeo, matChrome);
-  ring.position.x = WHEEL_W * 0.412;
+  ring.position.x = WHEEL_W * 0.330;
   spin.add(ring);
 
   /* vent holes: four dark ovals punched around the cap, as on the real item */
@@ -2428,10 +2522,26 @@ function buildWheel() {
     const hole = new THREE.Mesh(
       holeGeo,
       new THREE.MeshStandardMaterial({ color: 0x0d0e10, roughness: 0.9 }));
-    hole.position.set(WHEEL_W * 0.418,
+    hole.position.set(WHEEL_W * 0.336,
                       Math.cos(a) * capR * 0.53,
                       Math.sin(a) * capR * 0.53);
     spin.add(hole);
+  }
+
+  /* ── the ring of vent slots in the steel wheel ──────────────────────────
+     Eight slots punched round the dish, outboard of the cap.  These are what
+     give a steel wheel its structure — without them the disc under the cap is
+     just a dark circle and the whole corner reads as a hole. */
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const slotGeo = new THREE.BoxGeometry(0.006, rIn * 0.26, 0.030);
+    const slot = new THREE.Mesh(slotGeo,
+      new THREE.MeshStandardMaterial({ color: 0x101114, roughness: 0.95 }));
+    slot.position.set(WHEEL_W * 0.408,
+                      Math.cos(a) * rIn * 0.70,
+                      Math.sin(a) * rIn * 0.70);
+    slot.rotation.x = -a;
+    spin.add(slot);
   }
 
   /* wheel nuts around the centre */
