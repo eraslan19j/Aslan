@@ -333,10 +333,17 @@ jobs:
             echo "::warning::minSdk ${MINSDK} Play asgarisi 24'ün altında"
           fi
 
-          # Faz 0 kanıtı: sürüm birleştirmesi APK'ya indi mi
-          if [ "$VNAME" != "0.10.0" ]; then
-            echo "::warning::versionName ${VNAME}, version.json'daki 0.10.0 ile uyuşmuyor"
+          # Faz 0 kanıtı: APK sürümü version.json ile AYNI olmalı.
+          # 2026-11-19'da bu kontrol yoktu: proje 0.10.1, APK 0.10.0 çıktı
+          # (godot/export_presets.cfg senkron edilmemişti). Artık HATA.
+          EXPECTED=$(node -p "require('./version.json').version" 2>/dev/null || echo "?")
+          EXPECTED_CODE=$(node -p "require('./version.json').versionCode" 2>/dev/null || echo "?")
+          echo "beklenen: ${EXPECTED} (code ${EXPECTED_CODE}) — APK: ${VNAME} (code ${VCODE})"
+          if [ "$VNAME" != "$EXPECTED" ] || [ "$VCODE" != "$EXPECTED_CODE" ]; then
+            echo "::error title=SURUM-UYUSMUYOR::APK ${VNAME}(${VCODE}) != version.json ${EXPECTED}(${EXPECTED_CODE}) — version:sync çalıştır"
+            exit 1
           fi
+          echo "✅ Sürüm eşleşiyor: ${VNAME} (code ${VCODE})"
 
           if [ "$TARGET" != "36" ]; then
             echo "::error::K3 BAŞARISIZ — targetSdk ${TARGET}, beklenen 36"

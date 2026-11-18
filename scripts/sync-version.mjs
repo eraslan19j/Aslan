@@ -66,6 +66,22 @@ const targets = [
     pattern: /versionName "[^"]*"/,
     build: () => `versionName "${VERSION}"`,
   },
+  // Godot export preset — 2026-11-19'da eklendi.
+  // Bu hedef YOKKEN APK'da 0.10.0 kalırken proje 0.10.1'e çıkmıştı:
+  // Faz 0'ın öldürmesi gereken "sürüm ayrışması" hatasının aynısı.
+  // Godot export sürümü preset dosyasından okur, project.godot'tan DEĞİL.
+  {
+    file: 'godot/export_presets.cfg',
+    label: 'Godot export versionCode',
+    pattern: /^version\/code=\d+$/m,
+    build: () => `version/code=${CODE}`,
+  },
+  {
+    file: 'godot/export_presets.cfg',
+    label: 'Godot export versionName',
+    pattern: /^version\/name="[^"]*"$/m,
+    build: () => `version/name="${VERSION}"`,
+  },
   {
     file: 'src/i18n/strings.ts',
     label: 'strings.ts milestoneTag (tr)',
