@@ -281,6 +281,12 @@ jobs:
           ABI=$(grep -oP "native-code: '\K[^']+" /tmp/badging.txt || echo "?")
           echo "targetSdkVersion=${TARGET}" >> "$GITHUB_STEP_SUMMARY"
           echo "::notice title=K3-targetSdk::targetSdk=${TARGET} minSdk=${MINSDK}"
+          # badging biçimini teşhis için yayınla (ilk 6 satır)
+          N=0
+          while IFS= read -r L; do
+            N=$((N + 1)); [ "$N" -gt 6 ] && break
+            echo "::notice title=BADGING::$L"
+          done < /tmp/badging.txt
           echo "::notice title=PAKET::${PKG}"
           echo "::notice title=ABI::${ABI}"
           if [ "$TARGET" != "36" ]; then
