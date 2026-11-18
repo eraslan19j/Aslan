@@ -57,3 +57,17 @@
   9. **Kalıcı hafıza:** `docs/memory/STATE.md` eklendi — her sürümde güncellenecek tek doğruluk kaynağı.
 - **Sonuç:** 104/104 test, `tsc`/`eslint`/`vite build` temiz.
 - **Sonraki İlk Adım:** CI'da APK üret, `v0.9.0` release'i yayınla, `main`'e fast-forward, ardından Play Store metinleri.
+
+---
+
+## Oturum 5 — 2026-11-18 (v0.9.1 — kapı senkronu, nitro/turbo katmanları, tamirci ekonomisi)
+
+- **Hedef:** v0.9.0'ın eksik kalan üç parçasını bitirmek: karakterin kapıdan gerçekten yürüyerek binmesi, nitro/turbo seslerinin telefon hoparlöründe duyulur hale gelmesi, hasarın bir oyun döngüsüne (tamirci + para) bağlanması.
+- **Tamamlananlar:**
+  1. **K2 kapı senkronu:** `boardingPath.ts` (saf TS) kapı eşiği → koltuk yayını üretir; ekranda karakter kapıdan yürüyerek binip oturuyor. 7 test.
+  2. **A7 nitro/turbo:** `computeBoostAudio` ile 4 katman (hiss / jet gövdesi / turbo ıslığı / wastegate chuff); hepsi 350 Hz üstünde, telefon hoparlöründe kaybolmuyor. 6 test.
+  3. **D4 tamirci ekonomisi:** 3 kurgusal tamirci, `save.cash` üzerinden ödeme, para yetmezse ret, arızalı araç %30 hızla sürünerek tamirciye ulaşır, minimap'te sarı iğne. 6 test.
+  4. **Regresyon düzeltmeleri:** veri hasat botu kurgusal mahalle adlarını gerçek adlara çeviriyordu (AGENTS.md ihlali) → betik sabitlendi; 4 adet 2 m altı yol mikro-çubuğu paketten atıldı, betik de artık atıyor.
+  5. **Kararlılık:** headless CI ~1 FPS'te çalıştığı için kapı koreografisi 8 saniyeye uzuyordu → animasyon gerçek zamana bağlandı, `rawDt > 0.4` olursa atlanıyor.
+- **Sonuç:** 123/123 test, tüm kapılar yeşil, CI smoke + visual QA + soak geçti. `v0.9.1` yayınlandı, APK `main`'de `releases/` altında.
+- **Not:** GitHub Pages deploy iş akışı `Setup Pages` adımında düşüyor (repo ayarı gerekiyor) — oyun dağıtımını etkilemiyor.

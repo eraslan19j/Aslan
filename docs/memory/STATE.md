@@ -1,15 +1,15 @@
 # STATE.md — Güncel Durum (tek doğruluk kaynağı)
 
 > **Bu dosya her sürümde güncellenir.** Yeni bir oturuma başlayan ajan önce burayı okur.
-> Son güncelleme: **2026-11-16** · Sürüm: **v0.9.0** · Dal: `arena/868fe0be-aslan`
+> Son güncelleme: **2026-11-18** · Sürüm: **v0.9.1** · Dal: `arena/868fe0be-aslan`
 
 ## 1. Şu An Neredeyiz?
 
 | Alan | Durum |
 |---|---|
-| Sürüm | `v0.9.0` — "Hasar & Ses" (GTA-tarzı panel hasarı + katmanlı motor/lastik sesi) |
-| Son yeşil sürüm | `v0.8.0` (APK 7.27 MB, 67/67 test, 131 draw call) |
-| Test sayısı | **104 test / 21 dosya** (hepsi yeşil) |
+| Sürüm | `v0.9.1` — "Hasar & Ses" (panel hasarı, katmanlı ses, kapı senkronlu biniş, tamirci ekonomisi) |
+| Son yeşil sürüm | **`v0.9.1`** — APK **7,291,837 B**, `main`'de `releases/istanbul-streets-latest-debug.apk` |
+| Test sayısı | **123 test / 22 dosya** (hepsi yeşil) |
 | Kapılar | `tsc --noEmit` ✅ · `eslint .` ✅ · `vitest run` ✅ · `vite build` ✅ |
 | Platform | Capacitor 8, Android API 36, dikey→yatay `sensorLandscape`, offline |
 | Hedef | Google Play (AAB), TR/EN arayüz |
@@ -32,6 +32,9 @@
 | A5 | 3 katmanlı lastik sesi (cıyaklama + kazıma + gürültü), rüzgâr, nitro, katmanlı çarpma | `src/runtime/soundEngine.ts` |
 | A6 | Saf-TS ses modeli + 9 test | `src/core/vehicleAudioModel.ts` |
 | K1 | **Kapı açma animasyonu** (0 → 1.12 rad, bekleme, kapanma) | `src/render/doorChoreography.ts`, `vehicleMesh.ts` |
+| K2 | **Kapı senkronlu biniş**: kapı → karakter yürüyüşü → koltuğa oturma | `src/render/boardingPath.ts`, `RegionWorldScene.setBoarding` |
+| A7 | Nitro/turbo katmanları telefon hoparlörüne uygun (hiss + jet gövdesi + ıslık + wastegate) | `vehicleAudioModel.computeBoostAudio` |
+| D4 | Tamirci ekonomisi: 3 tamirci, `save.cash`'ten ödeme, arızalı araç 30 % hızla sürünür, minimap iğnesi | `vehicleDamage.ts` (`REPAIR_SHOPS`, `chargeRepair`), `MinimapRenderer` |
 | V1–V2 | NPC araçlarda göçme: gövde ezilmesi + kirli boya | `src/core/traffic.ts`, `RegionWorldScene.ts` |
 
 ## 3. Kilitlenmiş Sözleşmeler (değiştirme!)
@@ -45,14 +48,22 @@
 
 ## 4. Sıradaki İşler (v0.9.0 kapanışı → v1.0)
 
-1. APK üret (CI), `v0.9.0` release yayınla, `main`'e fast-forward.
-2. `docs/store/` ekran görüntüleri + Play Store metinleri (GTA/marka adı **yasak**).
-3. Ses ince ayarı: gerçek telefon kaydıyla karşılaştırma (kullanıcı geri bildirimi bekliyor).
+1. **Kullanıcı telefonda test etsin:** `releases/istanbul-streets-latest-debug.apk` (v0.9.1).
+   Özellikle ses (lastik/motor/nitro) ve kapı animasyonu geri bildirimi bekleniyor.
+2. v1.0 maddeleri → [`docs/plans/V100_PLAN.md`](../plans/V100_PLAN.md): NPC gövde çeşitliliği (V3),
+   şanzıman derinliği (R7), süspansiyon görselleri (P4), Play Store paketi (M6).
+3. GitHub Pages deploy adımı `Setup Pages` hatası veriyor (repo ayarı gerekli: Settings → Pages → GitHub Actions).
 4. v1.0: görev zinciri (5 ana + 3 yan), kayıt ilerlemesi, AdMob/IAP test kimlikleri.
 
 ## 5. Bilinen Tuzaklar
 
-- Playwright tarayıcısı sandbox'ta **yok**; görsel doğrulama CI'da (`.github/workflows`) yapılır. Yerelde `smartphone` çözünürlüğünde el ile doğrula.
+- Playwright tarayıcısı sandbox'ta **yok**; görsel doğrulama CI'da (`.github/workflows`) yapılır.
+- **Ses/görsel hatası ayıklama:** CI smoke raporu commit yorumu olarak yayınlanır
+  (`gh api repos/eraslan19j/Aslan/commits/<sha>/comments`). Job log'u bu sandbox'a inmez.
+- **Kare hızı düşük cihazlarda animasyon:** kapı/biniş korografisi `Math.min(rawDt, 0.5)` ile
+  gerçek zamana bağlı; `rawDt > 0.4` olursa koreografi atlanıp anında oturtulur (yoksa 8 sn sürer).
+- **Veri botu:** `build-esenler-region.py` oyuncuya görünen adları üretir. Kurgusal adlar
+  (`Tepe Mahallesi` / `Ana Cadde`) betikte sabittir — bot manifest'i ezse bile doğru kalır.
 - `scripts/smoke.mjs` `location-telemetry` testid'ine bağlı — HUD'ı değiştiren commit onu da güncellemeli (v0.9.0'da `perf-telemetry` boş olmalı kontrolü eklendi).
 - Android SDK sandbox'ta yok → APK yalnız CI'dan.
 - `toBeCloseTo(x, 0)` tam yuvarlama yapar; tolerans için `Math.abs(a-b) < tol` kullan.
