@@ -1,0 +1,42 @@
+import { VEHICLE_CATALOG, VEHICLE_ARCHETYPE_ORDER } from '../src/core/vehicleCatalog';
+import { writeFileSync } from 'node:fs';
+
+const rows: string[] = [];
+for (const a of VEHICLE_ARCHETYPE_ORDER) {
+  const e = VEHICLE_CATALOG[a];
+  const en = e.engine;
+  rows.push(`## ${e.modelName} (\`${a}\`) — ${e.bodyStyle}\n`);
+  rows.push('| Alan | Değer |');
+  rows.push('|---|---|');
+  rows.push(`| Motor kodu | ${en.code} |`);
+  rows.push(`| Hacim / silindir | ${en.displacementCc} cc · ${en.cylinders} silindir · ${en.layout} |`);
+  rows.push(`| Aşırı besleme | ${en.aspiration} |`);
+  rows.push(`| Yakıt | ${en.fuel} |`);
+  rows.push(`| Sıkıştırma | ${en.compressionRatio}:1 |`);
+  rows.push(`| Supap düzeni | ${en.valvetrain} |`);
+  rows.push(`| Güç | ${en.powerKw} kW / ${en.powerHp} hp @ ${en.powerRpm} rpm |`);
+  rows.push(`| Tork | ${en.torqueNm} Nm @ ${en.torqueRpm} rpm |`);
+  rows.push(`| Spesifik güç | ${en.specificOutputHpPerL} hp/L |`);
+  rows.push(`| Rölanti / kesici | ${en.idleRpm} / ${en.redlineRpm} rpm |`);
+  rows.push(`| Şanzıman | ${e.drivetrain.gearbox} · ${e.drivetrain.type} · ${e.drivetrain.gears.length} ileri |`);
+  rows.push(`| Oranlar | ${e.drivetrain.gears.join(' / ')} (geri ${e.drivetrain.reverseRatio}) |`);
+  rows.push(`| Son dişli | ${e.drivetrain.finalDrive} · vites süresi ${e.drivetrain.shiftTimeSec} s |`);
+  rows.push(`| Boş ağırlık / test | ${e.mass.curbKg} / ${e.mass.testKg} kg |`);
+  rows.push(`| Ön ağırlık dağılımı | %${Math.round(e.mass.frontWeightBias * 100)} |`);
+  rows.push(`| 0–100 km/s | ${e.performance.zeroTo100Sec} s |`);
+  rows.push(`| Son hız | ${e.performance.topSpeedKph} km/s |`);
+  rows.push(`| 100–0 fren | ${e.performance.braking100to0M} m |`);
+  rows.push(`| Güç/ağırlık | ${e.performance.powerToWeightHpPerTon} hp/ton |`);
+  rows.push(`| Boyutlar (U×G×Y) | ${e.dimensions.lengthMm}×${e.dimensions.widthMm}×${e.dimensions.heightMm} mm |`);
+  rows.push(`| Aks mesafesi / iz | ${e.dimensions.wheelbaseMm} / ${e.dimensions.trackMm} mm |`);
+  rows.push(`| Yerden yükseklik | ${e.dimensions.groundClearanceMm} mm |`);
+  rows.push(`| Lastik | ${e.chassis.tyreFront} / ${e.chassis.tyreRear} |`);
+  rows.push(`| Fren | ${e.chassis.brakeFrontMm} mm ön / ${e.chassis.brakeRearMm} mm arka |`);
+  rows.push(`| Süspansiyon | ${e.chassis.suspension} |`);
+  rows.push(`| Direksiyon | ${e.chassis.steering} |`);
+  rows.push(`| Cd | ${e.chassis.dragCoefficient} |`);
+  rows.push(`| Ses kimliği | ${e.audio.voice} · sub ${e.audio.subWeight} · bank detune ${e.audio.bankDetuneCents} cent${e.audio.hasTurboWhistle ? ' · turbo ıslığı' : ''}${e.audio.hasSuperchargerWhine ? ' · kompresör' : ''} |`);
+  rows.push('');
+}
+writeFileSync('docs/plans/VEHICLE_SPECS_V090.md', '# Araç Teknik Künyeleri (v0.9.0)\n\nBu dosya `src/core/vehicleCatalog.ts` içeriğinden **otomatik** üretilmiştir. Katalog değişince yeniden üret:\n\n```bash\nnpx tsx scripts/gen-vehicle-specs.ts\n```\n\n> Tüm isimler ve motor kodları **kurgusaldır**. Gerçek marka/model/motor adı kullanılmamıştır.\n\n' + rows.join('\n'));
+console.log('wrote');
