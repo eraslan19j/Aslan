@@ -89,25 +89,108 @@
   .pad.hit{background:rgba(232,192,90,.3);border-color:rgba(232,192,90,.8);transform:scale(.95)}
   .pad svg{width:46%;height:46%;fill:none;stroke:rgba(240,246,252,.7);
     stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-  /* Steering pads sit low on the left; the throttle/brake stack sits low on
-     the right.  The gauge cluster is moved ABOVE them so nothing overlaps —
-     on a 360 px-wide phone the cluster used to sit underneath the pedals. */
-  #padL{left:max(14px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));
-    width:78px;height:78px}
-  #padR{right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));
-    width:78px;height:78px}
-  #padGas{right:calc(max(14px,env(safe-area-inset-right)) + 88px);
-    bottom:max(14px,env(safe-area-inset-bottom));width:60px;height:60px}
-  #padBrake{right:calc(max(14px,env(safe-area-inset-right)) + 88px);
-    bottom:calc(max(14px,env(safe-area-inset-bottom)) + 68px);width:60px;height:60px}
-  #padHB{left:calc(max(16px,env(safe-area-inset-left)) + 92px);
-    bottom:calc(max(16px,env(safe-area-inset-bottom)) + 6px);width:52px;height:52px;
-    font:600 8px/1 ui-monospace,monospace;letter-spacing:.08em;color:#9aa5b5}
-  #padCam{right:max(14px,env(safe-area-inset-right));
-    top:calc(max(14px,env(safe-area-inset-top)) + 2px);width:42px;height:42px;border-radius:11px;
-    font:600 8px/1 ui-monospace,monospace;letter-spacing:.04em;color:#9aa5b5}
-  #padReset{right:calc(max(14px,env(safe-area-inset-right)) + 48px);
-    top:calc(max(14px,env(safe-area-inset-top)) + 2px);width:42px;height:42px;border-radius:11px}
+  /* ══════════════ touch controls: CarX-style layout ══════════════
+     Every control is its own layer: a brushed-glass disc with a hairline
+     bevel, a soft drop shadow and a coloured rim that lights up when it is
+     actually pressed.  The steering read-out between the paddles turns as you
+     steer, so you can see the lock angle rather than guessing at it.        */
+
+  /* ── steering paddles + live gauge ─────────────────────────────────── */
+  #steerWrap{position:absolute;
+    left:max(14px,env(safe-area-inset-left));
+    bottom:max(16px,env(safe-area-inset-bottom));
+    display:flex;align-items:center;gap:8px}
+
+  .spad{width:74px;height:74px;border-radius:20px;
+    display:grid;place-items:center;pointer-events:auto;
+    background:linear-gradient(155deg,rgba(46,54,66,.72),rgba(14,18,24,.82));
+    border:1px solid rgba(150,170,195,.22);
+    box-shadow:0 6px 18px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.10),
+               inset 0 -2px 6px rgba(0,0,0,.5);
+    backdrop-filter:blur(10px) saturate(1.2);
+    -webkit-backdrop-filter:blur(10px) saturate(1.2);
+    user-select:none;transition:transform .08s,border-color .12s,background .12s}
+  .spad svg{width:44%;height:44%;fill:none;stroke:rgba(226,238,250,.86);
+    stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+  .spad.hit{transform:scale(.94);
+    background:linear-gradient(155deg,rgba(232,192,90,.34),rgba(120,92,26,.5));
+    border-color:rgba(232,192,90,.85);
+    box-shadow:0 0 22px rgba(232,192,90,.34),inset 0 1px 0 rgba(255,235,190,.3)}
+
+  #steerGauge{width:60px;height:60px;flex:0 0 auto;opacity:.9}
+  #steerGauge svg{width:100%;height:100%;overflow:visible}
+  .sg-track{fill:rgba(10,14,20,.5);stroke:rgba(150,170,195,.2);stroke-width:2}
+  .sg-arc{fill:none;stroke:#e8c05a;stroke-width:3.4;stroke-linecap:round;
+    filter:drop-shadow(0 0 5px rgba(232,192,90,.65))}
+  .sg-needle{stroke:#f2f6fb;stroke-width:2;stroke-linecap:round;
+    transform-box:fill-box;transform-origin:center;
+    filter:drop-shadow(0 0 4px rgba(255,255,255,.5))}
+
+  /* ── pedals ───────────────────────────────────────────────────────── */
+  #pedalWrap{position:absolute;right:max(14px,env(safe-area-inset-right));
+    bottom:max(16px,env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:10px;align-items:center}
+
+  .pedal{position:relative;width:88px;height:60px;border-radius:16px;
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    overflow:hidden;pointer-events:auto;user-select:none;
+    background:linear-gradient(155deg,rgba(44,52,64,.74),rgba(12,16,22,.86));
+    border:1px solid rgba(150,170,195,.22);
+    box-shadow:0 6px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.09);
+    backdrop-filter:blur(10px) saturate(1.2);
+    -webkit-backdrop-filter:blur(10px) saturate(1.2);
+    transition:transform .08s,box-shadow .12s}
+  .pedal svg{width:20px;height:20px;fill:none;stroke:rgba(226,238,250,.85);
+    stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+  .pedal-lbl{font:700 8.5px/1 ui-monospace,monospace;letter-spacing:.14em;
+    color:rgba(200,214,232,.8)}
+  /* a fill bar that rises from the bottom as the pedal is pressed */
+  .pedal-fill{position:absolute;left:0;right:0;bottom:0;height:0%;display:block;
+    background:linear-gradient(0deg,rgba(232,192,90,.42),rgba(232,192,90,.06));
+    transition:height .07s linear;pointer-events:none}
+
+  #padGas.hit{transform:scale(.97);
+    box-shadow:0 0 24px rgba(232,192,90,.4),inset 0 1px 0 rgba(255,235,190,.25);
+    border-color:rgba(232,192,90,.75)}
+  #padBrake.hit{transform:scale(.97);
+    box-shadow:0 0 24px rgba(255,90,60,.4),inset 0 1px 0 rgba(255,190,180,.25);
+    border-color:rgba(255,90,60,.75)}
+  #padBrake .pedal-fill{background:linear-gradient(0deg,rgba(255,90,60,.42),rgba(255,90,60,.06))}
+  #padBrake.hit .pedal-fill{background:linear-gradient(0deg,rgba(255,90,60,.5),rgba(255,90,60,.1))}
+
+  /* ── handbrake: a wide bar level with the top pedal ────────────────── */
+  .chip-btn{position:absolute;
+    right:calc(max(14px,env(safe-area-inset-right)) + 100px);
+    bottom:calc(max(16px,env(safe-area-inset-bottom)) + 34px);
+    display:flex;align-items:center;gap:6px;padding:0 12px;height:42px;
+    border-radius:12px;pointer-events:auto;user-select:none;
+    background:linear-gradient(155deg,rgba(44,52,64,.74),rgba(12,16,22,.86));
+    border:1px solid rgba(150,170,195,.22);
+    box-shadow:0 6px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.09);
+    backdrop-filter:blur(10px) saturate(1.2);
+    -webkit-backdrop-filter:blur(10px) saturate(1.2);
+    font:700 8px/1 ui-monospace,monospace;letter-spacing:.12em;
+    color:rgba(200,214,232,.85);transition:transform .08s,box-shadow .12s}
+  .chip-btn svg{width:15px;height:15px;fill:none;stroke:rgba(226,238,250,.85);
+    stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+  .chip-btn.hit{transform:scale(.95);
+    box-shadow:0 0 22px rgba(255,90,60,.45);border-color:rgba(255,90,60,.8);
+    color:#ffd0c4}
+
+  /* ── utility keys ─────────────────────────────────────────────────── */
+  #utilWrap{position:absolute;right:max(14px,env(safe-area-inset-right));
+    top:calc(max(14px,env(safe-area-inset-top)) + 4px);
+    display:flex;gap:8px}
+  .util{width:44px;height:44px;border-radius:13px;pointer-events:auto;
+    display:grid;place-items:center;user-select:none;
+    background:linear-gradient(155deg,rgba(44,52,64,.7),rgba(12,16,22,.84));
+    border:1px solid rgba(150,170,195,.2);
+    box-shadow:0 4px 14px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.08);
+    backdrop-filter:blur(8px);
+    transition:transform .08s,border-color .12s}
+  .util svg{width:50%;height:50%;fill:none;stroke:rgba(214,226,242,.82);
+    stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+  .util.hit{transform:scale(.92);border-color:rgba(232,192,90,.8)}
 
   /* ══════════ debug ══════════ */
   #debug{position:fixed;left:max(14px,env(safe-area-inset-left));
@@ -137,16 +220,22 @@
   #help.dim{opacity:0}
   #help b{color:#b9c3d0;font-weight:600}
   @media (max-width:820px){ #help{display:none} }
-  @media (max-height:520px){
+  @media (max-height:540px){
     #cluster{width:112px;height:112px;
       bottom:calc(max(10px,env(safe-area-inset-bottom)) + 122px)}
     #minimap{width:84px;height:84px}
-    #padL,#padR{width:66px;height:66px}
-    #padGas,#padBrake{width:52px;height:52px}
-    #padGas{right:calc(max(10px,env(safe-area-inset-right)) + 76px);
-      bottom:max(10px,env(safe-area-inset-bottom))}
-    #padBrake{right:calc(max(10px,env(safe-area-inset-right)) + 76px);
-      bottom:calc(max(10px,env(safe-area-inset-bottom)) + 58px)}
+    .spad{width:64px;height:64px}
+    #steerGauge{width:50px;height:50px}
+    .pedal{width:76px;height:52px}
+    .chip-btn{height:38px;padding:0 10px}
+  }
+  /* short landscape phones: keep the gauges small and the pads out of them */
+  @media (max-height:420px){
+    #cluster{width:96px;height:96px;bottom:auto;
+      top:calc(max(8px,env(safe-area-inset-top)) + 40px)}
+    .spad{width:58px;height:58px}
+    .pedal{width:68px;height:46px}
+    #steerGauge{display:none}
   }
   /* portrait phones: gauges at the top-right, clear of everything */
   @media (max-width:560px) and (orientation:portrait){
@@ -207,23 +296,58 @@
   <div id="shift"></div>
 </div>
 
+<!-- ══════════════════════════════════════════════════════════════════════
+     TOUCH CONTROLS — laid out the way a mobile driving game lays them out.
+     Left thumb: power steering.  Right thumb: throttle / brake / handbrake.
+     Small utility keys along the top right.  Nothing overlaps the HUD.
+     ══════════════════════════════════════════════════════════════════════ -->
 <div id="touch">
-  <div class="pad" id="padL" data-act="left">
-    <svg viewBox="0 0 24 24"><path d="M15 5 L8 12 L15 19"/></svg>
+
+  <!-- ── steering: a paddle each side of a live angle read-out ─────────── -->
+  <div id="steerWrap">
+    <div class="spad" id="padL" data-act="left" aria-label="sola">
+      <svg viewBox="0 0 24 24"><path d="M15 5 L8 12 L15 19"/></svg>
+    </div>
+    <div id="steerGauge">
+      <svg viewBox="0 0 60 60">
+        <circle cx="30" cy="30" r="24" class="sg-track"/>
+        <path id="sgArc" class="sg-arc" d=""/>
+        <line id="sgNeedle" x1="30" y1="30" x2="30" y2="12" class="sg-needle"/>
+      </svg>
+    </div>
+    <div class="spad" id="padR" data-act="right" aria-label="sağa">
+      <svg viewBox="0 0 24 24"><path d="M9 5 L16 12 L9 19"/></svg>
+    </div>
   </div>
-  <div class="pad" id="padR" data-act="right">
-    <svg viewBox="0 0 24 24"><path d="M9 5 L16 12 L9 19"/></svg>
+
+  <!-- ── pedals: throttle above brake, on the right thumb ──────────────── -->
+  <div id="pedalWrap">
+    <div class="pedal" id="padGas" data-act="gas" aria-label="gaz">
+      <svg viewBox="0 0 24 24"><path d="M12 19 L12 6 M6 12 L12 6 L18 12"/></svg>
+      <span class="pedal-lbl">GAZ</span>
+      <i class="pedal-fill" id="gasFill"></i>
+    </div>
+    <div class="pedal" id="padBrake" data-act="brake" aria-label="fren">
+      <svg viewBox="0 0 24 24"><path d="M6 12 L18 12"/></svg>
+      <span class="pedal-lbl">FREN</span>
+      <i class="pedal-fill" id="brakeFill"></i>
+    </div>
   </div>
-  <div class="pad" id="padGas" data-act="gas">
-    <svg viewBox="0 0 24 24"><path d="M12 19 L12 5 M6 11 L12 5 L18 11"/></svg>
+
+  <!-- ── handbrake: a wide bar above the pedals, where a thumb reaches ─── -->
+  <div class="chip-btn" id="padHB" data-act="hb">
+    <svg viewBox="0 0 24 24"><path d="M12 4 L12 20 M5 11 L12 4 L19 11"/></svg>
+    <span>EL FRENİ</span>
   </div>
-  <div class="pad" id="padBrake" data-act="brake">
-    <svg viewBox="0 0 24 24"><path d="M6 12 L18 12"/></svg>
-  </div>
-  <div class="pad" id="padHB" data-act="hb">EL</div>
-  <div class="pad" id="padCam" data-act="cam">CAM</div>
-  <div class="pad" id="padReset" data-act="reset">
-    <svg viewBox="0 0 24 24" style="width:42%;height:42%"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v5h5"/></svg>
+
+  <!-- ── utility keys, top right, clear of the gauges ──────────────────── -->
+  <div id="utilWrap">
+    <div class="util" id="padCam" data-act="cam">
+      <svg viewBox="0 0 24 24"><path d="M4 8h4l2-2h4l2 2h4v11H4z"/><circle cx="12" cy="13" r="3"/></svg>
+    </div>
+    <div class="util" id="padReset" data-act="reset">
+      <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v5h5"/></svg>
+    </div>
   </div>
 </div>
 
@@ -269,9 +393,11 @@ const CFG = {
   MASS: 1050,
   /* body-space inertia: x = pitch axis, y = yaw axis, z = roll axis */
   INERTIA: new THREE.Vector3(1400, 1500, 420),
-  /* CoM height above the wheel-centre line (so 0.25 + wheel radius above
-     the road, roughly 0.55 m — right for a rear-drive 1980s sedan) */
-  COM_Y: 0.25,
+  /* CoM height above the wheel-centre line.  This is also, through
+     MOUNT_STATIC = HARD_Y + COM_Y, how far the shell rides above the hub, so
+     it sets the static ride height directly.  Measured: the sill needs to
+     come up 0.06 m from where 0.25 m put it. */
+  COM_Y: 0.31,
   WHEELBASE: 2.46,
   TRACK: 1.33,
   WHEEL_R: 0.305,
@@ -588,7 +714,93 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 $('app').appendChild(renderer.domElement);
 
+/* ══════════════════════════════════════════════════════════════════════════
+   PROCEDURAL ENVIRONMENT MAP
+   ══════════════════════════════════════════════════════════════════════════
+   Without an environment map, every metal surface in the scene has nothing to
+   reflect, so chrome reads as flat grey plastic and paint has no depth.  This
+   is the single biggest reason a Three.js car looks "CGI" instead of like the
+   reference photography: the reference has sky, horizon and ground bouncing
+   off every panel.
+
+   Rather than ship an HDR file (the brief says one self-contained file, no
+   external assets), the environment is painted into a canvas — sky gradient,
+   a warm horizon band, a darker ground half and a soft sun disc — then run
+   through PMREMGenerator so it produces properly pre-filtered roughness
+   levels.  It costs a few milliseconds once at boot.                       */
+step(44, 'ışıklandırma hazırlanıyor…');
+
+function buildEnvironment() {
+  const W = 512, H = 256;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+
+  /* upper half: sky, deep at the zenith fading to pale at the horizon */
+  const sky = g.createLinearGradient(0, 0, 0, H * 0.5);
+  sky.addColorStop(0.00, '#2a4f7c');
+  sky.addColorStop(0.45, '#7fa3c8');
+  sky.addColorStop(0.80, '#c8d6e2');
+  sky.addColorStop(1.00, '#e8eef4');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, H * 0.5);
+
+  /* lower half: the ground bounce.  Warm asphalt/dirt, much darker than the
+     sky, which is what gives the car its dark underside reflections. */
+  const ground = g.createLinearGradient(0, H * 0.5, 0, H);
+  ground.addColorStop(0.00, '#8d8b84');
+  ground.addColorStop(0.35, '#5c5a54');
+  ground.addColorStop(1.00, '#2b2a27');
+  g.fillStyle = ground;
+  g.fillRect(0, H * 0.5, W, H * 0.5);
+
+  /* the sun: a tight bright disc with a wide bloom, up and to the left so it
+     lines up with the key light in the scene */
+  const sunX = W * 0.26, sunY = H * 0.20;
+  const bloom = g.createRadialGradient(sunX, sunY, 0, sunX, sunY, H * 0.42);
+  bloom.addColorStop(0.00, 'rgba(255,252,240,1.00)');
+  bloom.addColorStop(0.06, 'rgba(255,246,224,0.85)');
+  bloom.addColorStop(0.28, 'rgba(255,238,200,0.28)');
+  bloom.addColorStop(1.00, 'rgba(255,236,196,0.00)');
+  g.fillStyle = bloom;
+  g.fillRect(0, 0, W, H);
+
+  /* a warm band right on the horizon, the way low sun lights the haze */
+  const hazeBand = g.createLinearGradient(0, H * 0.44, 0, H * 0.56);
+  hazeBand.addColorStop(0, 'rgba(255,226,178,0.00)');
+  hazeBand.addColorStop(0.5, 'rgba(255,222,170,0.55)');
+  hazeBand.addColorStop(1, 'rgba(255,214,158,0.00)');
+  g.fillStyle = hazeBand;
+  g.fillRect(0, H * 0.44, W, H * 0.12);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+
+  /* PMREMGenerator needs a real WebGL context.  Guard it so a headless or
+     otherwise degraded context degrades to "no reflections" instead of
+     taking the whole scene down. */
+  try {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    pmrem.compileEquirectangularShader();
+    const envRT = pmrem.fromEquirectangular(tex);
+    tex.dispose();
+    pmrem.dispose();
+    return envRT.texture;
+  } catch (err) {
+    console.warn('environment map unavailable:', err && err.message);
+    tex.dispose();
+    return null;
+  }
+}
+
+const ENV_MAP = buildEnvironment();
+
 const scene = new THREE.Scene();
+if (ENV_MAP) {
+  scene.environment = ENV_MAP;
+  scene.environmentIntensity = 0.85;
+}
 const HAZE = new THREE.Color(0xc3cdd8);
 scene.fog = new THREE.Fog(HAZE.getHex(), 240, 820);
 
@@ -1330,21 +1542,34 @@ const ARCH_R   = CAR.archR;
 /* ── materials ───────────────────────────────────────────────────────────── */
 /* ivory is the signature Şahin colour; the paint is a single-coat solid with
    a clearcoat on top so it catches a highlight along the shoulder line */
+/* Ivory is the classic Şahin colour, but the specular has to work like the
+   reference photography: a thin, hard clearcoat over a slightly glossy base,
+   so the environment map reads as a crisp reflection rather than a smear. */
 const PAINT = 0xe8e2d0;
 const matPaint = new THREE.MeshPhysicalMaterial({
-  color: PAINT, roughness: 0.34, metalness: 0.02,
-  clearcoat: 0.55, clearcoatRoughness: 0.28,
+  color: PAINT, roughness: 0.22, metalness: 0.0,
+  clearcoat: 1.0, clearcoatRoughness: 0.06,
+  envMapIntensity: 1.35,
 });
-const matTrim   = new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: 0.62 });
+const matTrim = new THREE.MeshStandardMaterial({
+  color: 0x191a1c, roughness: 0.44, metalness: 0.20, envMapIntensity: 1.05,
+});
 const matBlack  = new THREE.MeshStandardMaterial({ color: 0x101113, roughness: 0.85 });
-const matBumper = new THREE.MeshStandardMaterial({ color: 0x232427, roughness: 0.72 });
-const matGlass  = new THREE.MeshPhysicalMaterial({
-  color: 0x1c2530, roughness: 0.055, metalness: 0.0,
-  transparent: true, opacity: 0.66,
-  clearcoat: 1.0, clearcoatRoughness: 0.02, side: THREE.DoubleSide,
+const matBumper = new THREE.MeshStandardMaterial({
+  color: 0x1e1f22, roughness: 0.46, metalness: 0.15, envMapIntensity: 1.1,
 });
-const matChrome = new THREE.MeshStandardMaterial({ color: 0xcfd6de, roughness: 0.19, metalness: 0.95 });
-const matSteel  = new THREE.MeshStandardMaterial({ color: 0x9aa2ac, roughness: 0.44, metalness: 0.85 });
+const matGlass = new THREE.MeshPhysicalMaterial({
+  color: 0x0e141c, roughness: 0.03, metalness: 0.0,
+  transparent: true, opacity: 0.58,
+  clearcoat: 1.0, clearcoatRoughness: 0.0,
+  envMapIntensity: 2.2, side: THREE.DoubleSide,
+});
+const matChrome = new THREE.MeshStandardMaterial({
+  color: 0xdfe6ee, roughness: 0.055, metalness: 1.0, envMapIntensity: 1.9,
+});
+const matSteel = new THREE.MeshStandardMaterial({
+  color: 0xa8b0ba, roughness: 0.30, metalness: 0.95, envMapIntensity: 1.5,
+});
 const matRubber = new THREE.MeshStandardMaterial({ color: 0x16171a, roughness: 0.94 });
 const matSeat   = new THREE.MeshStandardMaterial({ color: 0x4a4038, roughness: 0.97 });
 const matDash   = new THREE.MeshStandardMaterial({ color: 0x25211d, roughness: 0.96 });
@@ -1820,8 +2045,10 @@ const taillights = [];
   [-1, 1].forEach((end) => {
     [-1, 1].forEach((side) => {
       const wrap = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.135, 0.135), matBumper);
-      wrap.position.set(side * (CAR.W / 2 - 0.048), BY,
-                        end > 0 ? Z_NOSE - 0.085 : Z_TAIL + 0.085);
+      /* sit the return ON the body edge: the shell is BODY_W wide, and the old
+         CAR.W/2 - 0.048 left it 1 cm clear of the panel, hanging in the air */
+      wrap.position.set(side * (BODY_W / 2 - 0.045), BY,
+                        end > 0 ? Z_NOSE - 0.070 : Z_TAIL + 0.070);
       carVisual.add(wrap);
     });
   });
@@ -1994,7 +2221,13 @@ function buildWheel() {
   tyrePts.push(new THREE.Vector2(R * 0.90, hw));
   tyrePts.push(new THREE.Vector2(rIn, hw));
   const tyreGeo = new THREE.LatheGeometry(tyrePts, 20);
-  tyreGeo.rotateZ(Math.PI / 2);          // lathe axis Y → X
+  /* lathe axis is Y; a wheel needs its axis along X (the axle), so turn it
+     90° about Z.  That puts the circular face in the YZ plane — right — and
+     the tyre width along X. */
+  /* profile is (radius, halfWidth); a wheel needs radius in YZ and width on
+     X, so rotate about X — rotating about Z put the radius across the car and
+     every tyre came out as a disc lying against the body. */
+  tyreGeo.rotateX(Math.PI / 2);
   const tyre = new THREE.Mesh(tyreGeo, matRubber);
   tyre.castShadow = true;
   spin.add(tyre);
@@ -2011,15 +2244,19 @@ function buildWheel() {
 
   /* ── steel rim: a shallow dish, painted black ────────────────────────── */
   const rimGeo = new THREE.CylinderGeometry(rIn * 0.995, rIn * 0.995, WHEEL_W * 0.86, 20, 1, true);
-  rimGeo.rotateZ(Math.PI / 2);
+  /* axis Y → X, radius stays in YZ: a wheel, not a disc on the car's flank */
+  rimGeo.rotateX(Math.PI / 2);
   const rim = new THREE.Mesh(rimGeo, matSteel);
   spin.add(rim);
 
   /* the rim face: a flat disc set in from the outer edge */
   const faceGeo = new THREE.CircleGeometry(rIn * 0.985, 20);
+  /* a CircleGeometry lies in XY facing +Z.  Bake the turn into the geometry
+     (not the mesh) so the disc ends up facing along the axle — leaving it on
+     the mesh made the face read 0.37 m across the car, i.e. still sideways. */
+  faceGeo.rotateY(Math.PI / 2);
   const face = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({
     color: 0x2a2b2e, roughness: 0.62, metalness: 0.35 }));
-  face.rotation.y = -Math.PI / 2;
   face.position.x = WHEEL_W * 0.40;
   spin.add(face);
 
@@ -2043,10 +2280,13 @@ function buildWheel() {
   /* vent holes: four dark ovals punched around the cap, as on the real item */
   for (let i = 0; i < 4; i++) {
     const a = (i / 4) * Math.PI * 2 + 0.4;
+    /* same trap as the rim face: bake the turn into the geometry, because
+       rotating the mesh alone leaves the disc lying across the car */
+    const holeGeo = new THREE.CircleGeometry(capR * 0.185, 10);
+    holeGeo.rotateY(Math.PI / 2);
     const hole = new THREE.Mesh(
-      new THREE.CircleGeometry(capR * 0.185, 10),
+      holeGeo,
       new THREE.MeshStandardMaterial({ color: 0x0d0e10, roughness: 0.9 }));
-    hole.rotation.y = -Math.PI / 2;
     hole.position.set(WHEEL_W * 0.418,
                       Math.cos(a) * capR * 0.53,
                       Math.sin(a) * capR * 0.53);
@@ -3083,7 +3323,10 @@ window.addEventListener('blur', () => { for (const k in KEYS) KEYS[k] = 0; });
 if (IS_MOBILE) $('touch').classList.add('on');
 window.addEventListener('touchstart', () => $('touch').classList.add('on'), { once: true, passive: true });
 
-document.querySelectorAll('.pad').forEach((pad) => {
+/* Every control is a pointer target.  Pointer capture means a thumb that
+   slides off the button still releases it — without that the pedal sticks on
+   and the car drives itself into the scenery. */
+document.querySelectorAll('[data-act]').forEach((pad) => {
   const act = pad.dataset.act;
   const down = (e) => {
     e.preventDefault();
@@ -3093,15 +3336,55 @@ document.querySelectorAll('.pad').forEach((pad) => {
     if (TOUCH[act] !== undefined) TOUCH[act] = 1;
   };
   const up = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     pad.classList.remove('hit');
     if (TOUCH[act] !== undefined) TOUCH[act] = 0;
   };
   pad.addEventListener('pointerdown', (e) => { pad.setPointerCapture(e.pointerId); down(e); });
   pad.addEventListener('pointerup', up);
   pad.addEventListener('pointercancel', up);
+  pad.addEventListener('pointerleave', (e) => { if (!e.buttons) up(e); });
   pad.addEventListener('contextmenu', (e) => e.preventDefault());
 });
+
+/* ── live feedback for the touch controls ────────────────────────────────
+   The pedals and the steering gauge are driven from the same values the
+   physics uses, so what you see is what the car is being told to do.      */
+const _elGasFill   = $('gasFill');
+const _elBrakeFill = $('brakeFill');
+const _elNeedle    = $('sgNeedle');
+const _elArc       = $('sgArc');
+const STEER_ARC_R  = 24;
+const STEER_ARC_MAX = 1.15;   // radians of lock the gauge represents
+
+function updateTouchFeedback() {
+  /* pedal fill: the pedal's own input, with a short fade so it reads as a
+     press rather than a flicker */
+  const gas   = clamp(Math.max(TOUCH.gas, KEYS.KeyW || KEYS.ArrowUp ? 1 : 0), 0, 1);
+  const brake = clamp(Math.max(TOUCH.brake, KEYS.KeyS || KEYS.ArrowDown ? 1 : 0), 0, 1);
+  if (_elGasFill)   _elGasFill.style.height   = (gas * 100).toFixed(0) + '%';
+  if (_elBrakeFill) _elBrakeFill.style.height = (brake * 100).toFixed(0) + '%';
+
+  /* steering gauge: needle turns with the wheel, arc fills from centre */
+  if (_elNeedle) {
+    const ang = clamp(-V.steer / STEER_ARC_MAX, -1, 1) * 90;   // degrees
+    _elNeedle.setAttribute('transform', `rotate(${ang.toFixed(1)} 30 30)`);
+  }
+  if (_elArc) {
+    const t = clamp(Math.abs(V.steer) / STEER_ARC_MAX, 0, 1);
+    const sweep = t * Math.PI * 0.5;
+    const dir = V.steer >= 0 ? -1 : 1;
+    const a0 = -Math.PI / 2;
+    const a1 = a0 + dir * sweep;
+    const x0 = 30 + STEER_ARC_R * Math.cos(a0);
+    const y0 = 30 + STEER_ARC_R * Math.sin(a0);
+    const x1 = 30 + STEER_ARC_R * Math.cos(a1);
+    const y1 = 30 + STEER_ARC_R * Math.sin(a1);
+    const large = Math.abs(sweep) > Math.PI ? 1 : 0;
+    _elArc.setAttribute('d',
+      `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${STEER_ARC_R} ${STEER_ARC_R} 0 ${large} ${dir < 0 ? 1 : 0} ${x1.toFixed(1)} ${y1.toFixed(1)}`);
+  }
+}
 
 function readInput() {
   const gas = KEYS.KeyW || KEYS.ArrowUp ? 1 : 0;
@@ -3112,7 +3395,10 @@ function readInput() {
 
   let thr = Math.max(gas, TOUCH.gas);
   let br = Math.max(brk, TOUCH.brake);
-  const steer = (Math.max(rgt, TOUCH.right) - Math.max(lft, TOUCH.left));
+  /* +steer = turn LEFT (that is the sign the physics uses).  This used to be
+     `right − left`, which inverted the whole control: D swung the car left
+     and A swung it right. */
+  const steer = (Math.max(lft, TOUCH.left) - Math.max(rgt, TOUCH.right));
   inputHandbrake = Math.max(hb, TOUCH.hb);
   inputSteer = clamp(steer, -1, 1);
 
@@ -3884,6 +4170,7 @@ function loop(now) {
   if (fpsAcc >= 0.25) { fpsAvg = fpsCount / fpsAcc; fpsAcc = 0; fpsCount = 0; }
 
   readInput();
+  updateTouchFeedback();
 
   /* fixed-step physics so the suspension is stable on any frame rate */
   accTime += dt;
